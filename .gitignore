@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+*.sqlite3
+*.db
+
+# Environment variables & secrets
+.env
+*.local.env
+
+# Android
+android/.gradle/
+android/build/
+android/*/build/
+android/local.properties
+*.apk
+*.aab
+
+# PlatformIO / Firmware
+firmware/esp32-s3/.pio/
+firmware/esp32-s3/.vscode/
+*.bin
+*.elf
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Recordings & Temp
+*.wav
+*.mp3
+captures/
+temp_audio/

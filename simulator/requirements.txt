@@ -1,0 +1,10 @@
+sounddevice>=0.4.6
+soundfile>=0.12.1
+opencv-python>=4.8.0
+pyttsx3>=2.90
+httpx>=0.27.0
+rich>=13.7.0
+python-dotenv>=1.0.1
+pydantic>=2.6.0
+numpy>=1.26.0
+faster-whisper>=1.0.0
