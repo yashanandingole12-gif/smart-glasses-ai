@@ -157,7 +157,11 @@ CONNECTED (SIMULATED ESP32)
 
         # Play TTS through laptop speaker
         console.print("[bold cyan]🔊 [SPEAKER] Speaking response through laptop speaker...[/bold cyan]")
-        tts_duration_ms = await self.speaker.speak(assistant_reply)
+        try:
+            tts_duration_ms = await self.speaker.speak(assistant_reply)
+        except Exception as e:
+            console.print(f"[bold red]❌ [SPEAKER ERROR] TTS Playback failed: {e}[/bold red]")
+            tts_duration_ms = 0.0
 
         total_latency_ms = (time.time() - t_button_pressed) * 1000.0
 
@@ -202,6 +206,7 @@ CONNECTED (SIMULATED ESP32)
 
     def handle_quit(self):
         console.print("[bold red]Shutting down Smart Glasses Simulator. Goodbye![/bold red]")
+        self.speaker.stop()
         sys.exit(0)
 
     async def run(self):

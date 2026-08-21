@@ -9,9 +9,11 @@ ENV_FILE = PROJECT_ROOT / ".env"
 class Settings(BaseSettings):
     # LLM Settings
     LLM_PROVIDER: str = "mock"  # "mock", "openai", "gemini", "anthropic", "ollama"
-    LLM_MODEL: str = "gemini-2.0-flash"
+    LLM_MODEL: str = "gemini-flash-latest"
     LLM_API_KEY: Optional[str] = None
     LLM_BASE_URL: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: Optional[str] = None
 
     # Server Settings
     HOST: str = "127.0.0.1"

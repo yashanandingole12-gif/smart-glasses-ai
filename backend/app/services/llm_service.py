@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 import httpx
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
@@ -25,10 +26,30 @@ class LLMService:
         api_key: Optional[str] = None,
         base_url: Optional[str] = None
     ):
-        self.provider = (provider or settings.LLM_PROVIDER).lower()
-        self.model = model or settings.LLM_MODEL
-        self.api_key = api_key or settings.LLM_API_KEY
-        self.base_url = base_url or settings.LLM_BASE_URL
+        self._custom_provider = provider
+        self._custom_model = model
+        self._custom_api_key = api_key
+        self._custom_base_url = base_url
+
+    @property
+    def provider(self) -> str:
+        return (self._custom_provider or settings.LLM_PROVIDER).lower()
+
+    @property
+    def model(self) -> str:
+        if self.provider == "gemini":
+            return self._custom_model or settings.GEMINI_MODEL or settings.LLM_MODEL
+        return self._custom_model or settings.LLM_MODEL
+
+    @property
+    def api_key(self) -> Optional[str]:
+        if self.provider == "gemini":
+            return self._custom_api_key or settings.GEMINI_API_KEY or settings.LLM_API_KEY
+        return self._custom_api_key or settings.LLM_API_KEY
+
+    @property
+    def base_url(self) -> Optional[str]:
+        return self._custom_base_url or settings.LLM_BASE_URL
 
     async def generate(
         self,
@@ -238,22 +259,117 @@ class LLMService:
             return LLMResponse(content=content, tool_calls=tool_calls, provider="openai", model=self.model)
 
     async def _generate_gemini(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
-        # Standard Gemini REST endpoint
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
-        # Convert messages to Gemini format
+        models_to_try = [self.model]
+        if "gemini-flash-lite-latest" not in models_to_try:
+            models_to_try.append("gemini-flash-lite-latest")
+
+        # 1. Extract system instructions
+        system_prompts = [m["content"] for m in messages if m.get("role") == "system"]
+        payload: Dict[str, Any] = {}
+        if system_prompts:
+            payload["system_instruction"] = {
+                "parts": [{"text": "\n".join(system_prompts)}]
+            }
+
+        # 2. Convert conversation messages
         contents = []
         for m in messages:
-            role = "user" if m.get("role") in ["user", "system"] else "model"
-            contents.append({"role": role, "parts": [{"text": m.get("content", "")}]})
+            role = m.get("role")
+            if role == "system":
+                continue
+            elif role in ["tool", "function"]:
+                tool_name = m.get("name", "tool")
+                content_val = m.get("content", "")
+                try:
+                    res_dict = json.loads(content_val) if isinstance(content_val, str) else content_val
+                except Exception:
+                    res_dict = {"result": content_val}
+                if not isinstance(res_dict, dict):
+                    res_dict = {"result": res_dict}
 
-        payload: Dict[str, Any] = {"contents": contents}
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            cand = data["candidates"][0]["content"]
-            text = "".join(p.get("text", "") for p in cand.get("parts", []))
-            return LLMResponse(content=text, provider="gemini", model=self.model)
+                contents.append({
+                    "role": "user",
+                    "parts": [{
+                        "text": f"[Tool Result for {tool_name}]: {json.dumps(res_dict)}"
+                    }]
+                })
+            else:
+                gemini_role = "user" if role == "user" else "model"
+                contents.append({
+                    "role": gemini_role,
+                    "parts": [{"text": m.get("content", "")}]
+                })
+
+        if not contents:
+            contents = [{"role": "user", "parts": [{"text": "Hello"}]}]
+
+        payload["contents"] = contents
+
+        # 3. Format tool declarations
+        if tools:
+            gemini_tools = []
+            for t in tools:
+                gemini_tools.append({
+                    "name": t["name"],
+                    "description": t.get("description", ""),
+                    "parameters": t.get("parameters", {"type": "object", "properties": {}})
+                })
+            payload["tools"] = [{"functionDeclarations": gemini_tools}]
+
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key
+        }
+
+        last_exception = None
+        for current_model in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent"
+            max_retries = 2
+            for attempt in range(max_retries):
+                try:
+                    async with httpx.AsyncClient(timeout=25.0) as client:
+                        resp = await client.post(url, json=payload, headers=headers)
+                        if resp.status_code == 429:
+                            logger.warning(f"Gemini API model {current_model} returned 429 quota. Trying alternate model...")
+                            last_exception = httpx.HTTPStatusError("429 Quota Exceeded", request=resp.request, response=resp)
+                            break
+                        if resp.status_code == 503 and attempt < max_retries - 1:
+                            await asyncio.sleep(1.5)
+                            continue
+                        resp.raise_for_status()
+                        data = resp.json()
+                        candidate = data.get("candidates", [{}])[0]
+                        parts = candidate.get("content", {}).get("parts", [])
+
+                        text_chunks = []
+                        tool_calls = []
+
+                        for p in parts:
+                            if "text" in p:
+                                text_chunks.append(p["text"])
+                            if "functionCall" in p:
+                                fc = p["functionCall"]
+                                tool_calls.append(ToolCall(
+                                    name=fc.get("name", ""),
+                                    arguments=fc.get("args", {})
+                                ))
+
+                        content_text = "".join(text_chunks).strip() if text_chunks else (None if tool_calls else "")
+                        return LLMResponse(
+                            content=content_text,
+                            tool_calls=tool_calls if tool_calls else None,
+                            provider="gemini",
+                            model=current_model
+                        )
+                except (httpx.HTTPStatusError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+                    last_exception = e
+                    if attempt < max_retries - 1 and getattr(e, "response", None) is not None and e.response.status_code == 503:
+                        await asyncio.sleep(1.5)
+                        continue
+
+        if last_exception:
+            raise last_exception
+        raise RuntimeError("Failed to generate response with Gemini API.")
 
     async def _generate_anthropic(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
         url = "https://api.anthropic.com/v1/messages"
