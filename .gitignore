@@ -28,15 +28,23 @@ htmlcov/
 *.sqlite3
 *.db
 
-# Environment variables & secrets
+# Mandatory Security Exclusions: Secrets & OAuth Credentials
 .env
-*.local.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+credentials.json
+token.json
+client_secret*.json
 
 # Android
 android/.gradle/
 android/build/
 android/*/build/
 android/local.properties
+android/**/local.properties
 *.apk
 *.aab
 

@@ -22,6 +22,7 @@ from backend.app.services.agent_graph import run_agent
 from backend.app.services.tool_registry import registry
 from backend.app.tools.search_tools import web_search, product_search
 from backend.app.logging_service import LatencyMetrics, log_request_metrics
+from backend.app.api.auth import router as auth_router
 
 logger = logging.getLogger("SmartGlasses.API")
 
@@ -38,6 +39,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():

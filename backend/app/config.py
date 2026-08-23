@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
+from typing import Optional, List
 from pathlib import Path
 
 # Find project root .env
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Server Settings
     HOST: str = "127.0.0.1"
-    PORT: int = 8000
+    PORT: int = 8001
     DEBUG: bool = True
     LOG_LEVEL: str = "INFO"
 
@@ -35,7 +35,23 @@ class Settings(BaseSettings):
     STT_ENGINE: str = "faster_whisper"  # "faster_whisper", "mock", "auto"
     TTS_ENGINE: str = "sapi5"           # "sapi5", "pyttsx3", "silent"
 
-    # External Integrations
+    # Google OAuth 2.0 Configuration
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8001/api/v1/auth/google/callback"
+    GOOGLE_AUTH_URI: str = "https://accounts.google.com/o/oauth2/auth"
+    GOOGLE_TOKEN_URI: str = "https://oauth2.googleapis.com/token"
+    GOOGLE_REVOKE_URI: str = "https://oauth2.googleapis.com/revoke"
+    GOOGLE_USERINFO_URI: str = "https://www.googleapis.com/oauth2/v2/userinfo"
+
+    # Minimum Necessary Scopes (Read-only initially)
+    GOOGLE_OAUTH_SCOPES: List[str] = [
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/userinfo.email"
+    ]
+
+    # External Integrations (Backwards compatibility)
     GMAIL_CLIENT_ID: Optional[str] = None
     GMAIL_CLIENT_SECRET: Optional[str] = None
     GOOGLE_CALENDAR_CLIENT_ID: Optional[str] = None
@@ -50,3 +66,9 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+
+# Normalize Google Client ID / Secret if provided under alias
+if not settings.GOOGLE_CLIENT_ID and settings.GMAIL_CLIENT_ID:
+    settings.GOOGLE_CLIENT_ID = settings.GMAIL_CLIENT_ID
+if not settings.GOOGLE_CLIENT_SECRET and settings.GMAIL_CLIENT_SECRET:
+    settings.GOOGLE_CLIENT_SECRET = settings.GMAIL_CLIENT_SECRET
