@@ -88,3 +88,11 @@ data class HealthResponseDto(
     @SerializedName("device_mode") val deviceMode: String,
     @SerializedName("llm_provider") val llmProvider: String
 )
+
+data class GoogleAuthStatusDto(
+    @SerializedName("connected") val connected: Boolean = false,
+    @SerializedName("email") val email: String? = null,
+    @SerializedName("scopes") val scopes: List<String> = emptyList(),
+    @SerializedName("is_expired") val isExpired: Boolean? = false,
+    @SerializedName("expires_at") val expiresAt: String? = null
+)

@@ -40,7 +40,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.responses import HTMLResponse
+from backend.app.web_ui import get_dashboard_html
+
 app.include_router(auth_router)
+
+@app.get("/", response_class=HTMLResponse)
+async def root_dashboard():
+    """Developer System Dashboard for Smart Glasses AI."""
+    return HTMLResponse(content=get_dashboard_html())
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():

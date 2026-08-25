@@ -12,4 +12,6 @@ interface AssistantRepository {
     ): Result<WearableResponse>
 
     suspend fun checkHealth(): Result<Boolean>
+
+    suspend fun checkGoogleAuthStatus(): Result<Pair<Boolean, String?>>
 }

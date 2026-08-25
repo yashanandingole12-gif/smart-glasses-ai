@@ -83,4 +83,14 @@ class AssistantRepositoryImpl : AssistantRepository {
             Result.failure(e)
         }
     }
+
+    override suspend fun checkGoogleAuthStatus(): Result<Pair<Boolean, String?>> = withContext(Dispatchers.IO) {
+        try {
+            val api = NetworkClient.getApiService()
+            val status = api.getGoogleStatus()
+            Result.success(Pair(status.connected, status.email))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

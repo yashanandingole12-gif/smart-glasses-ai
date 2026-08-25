@@ -13,6 +13,7 @@ import com.smartglasses.ai.core.network.BackendConfig
 import com.smartglasses.ai.data.repositories.AssistantRepositoryImpl
 import com.smartglasses.ai.domain.models.AssistantState
 import com.smartglasses.ai.domain.models.ChatMessage
+import com.smartglasses.ai.domain.models.IntegrationState
 import com.smartglasses.ai.domain.models.WearableTelemetry
 import com.smartglasses.ai.domain.usecases.SendVoiceQueryUseCase
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +47,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     init {
         initSpeechRecognizer()
         observeTelemetry()
-        checkBackendHealth()
+        refreshAllStatuses()
     }
 
     private fun initSpeechRecognizer() {
@@ -130,7 +131,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             }
         }
 
-        // Periodic clock update
+        // Periodic clock update and backend status polling
         viewModelScope.launch(Dispatchers.Default) {
             while (true) {
                 val formattedTime = getCurrentFormattedTime()
@@ -141,16 +142,55 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                         period = period
                     )
                 }
-                kotlinx.coroutines.delay(15000)
+                refreshAllStatuses()
+                kotlinx.coroutines.delay(10000)
             }
         }
+    }
+
+    fun refreshAllStatuses() {
+        checkBackendHealth()
+        checkGoogleStatus()
     }
 
     fun checkBackendHealth() {
         viewModelScope.launch {
             val result = repository.checkHealth()
-            _uiState.update { it.copy(aiConnected = result.getOrDefault(false)) }
+            val isConnected = result.getOrDefault(false)
+            _uiState.update {
+                it.copy(
+                    aiConnected = isConnected,
+                    llmConnected = isConnected
+                )
+            }
         }
+    }
+
+    fun checkGoogleStatus() {
+        viewModelScope.launch {
+            val result = repository.checkGoogleAuthStatus()
+            if (result.isSuccess) {
+                val (connected, email) = result.getOrThrow()
+                _uiState.update {
+                    it.copy(
+                        googleConnected = connected,
+                        googleEmail = email,
+                        gmailStatus = if (connected) IntegrationState.CONNECTED else IntegrationState.DISCONNECTED
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        googleConnected = false,
+                        gmailStatus = IntegrationState.DISCONNECTED
+                    )
+                }
+            }
+        }
+    }
+
+    fun checkGmail() {
+        handleUserVoiceInput("Check my email.")
     }
 
     fun onTalkButtonClicked() {
@@ -211,7 +251,8 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                         latestSpeech = resp.text,
                         messages = it.messages + assistantChat,
                         pendingConfirmation = if (resp.requiresConfirmation) resp else null,
-                        aiConnected = true
+                        aiConnected = true,
+                        llmConnected = true
                     )
                 }
 
@@ -220,13 +261,14 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                     _uiState.update { it.copy(assistantState = AssistantState.IDLE) }
                 }
             }.onFailure { err ->
-                val fallbackText = "I'm listening on your smart glasses. (Offline / Connecting: ${err.localizedMessage})"
+                val fallbackText = "Backend error: ${err.localizedMessage ?: "Could not reach backend"}"
                 _uiState.update {
                     it.copy(
                         assistantState = AssistantState.ERROR,
                         latestSpeech = fallbackText,
                         errorMessage = err.localizedMessage,
-                        aiConnected = false
+                        aiConnected = false,
+                        llmConnected = false
                     )
                 }
             }
@@ -248,7 +290,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     fun updateServerUrl(newUrl: String) {
         BackendConfig.setBaseUrl(newUrl)
         _uiState.update { it.copy(serverUrl = BackendConfig.getBaseUrl()) }
-        checkBackendHealth()
+        refreshAllStatuses()
     }
 
     fun testBackendConnection(url: String, callback: (Boolean, String) -> Unit) {
@@ -258,6 +300,8 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             BackendConfig.setBaseUrl(normalized)
             val result = repository.checkHealth()
             if (result.isSuccess && result.getOrNull() == true) {
+                _uiState.update { it.copy(serverUrl = normalized, aiConnected = true, llmConnected = true) }
+                checkGoogleStatus()
                 callback(true, "Connected successfully!")
             } else {
                 BackendConfig.setBaseUrl(prev)
