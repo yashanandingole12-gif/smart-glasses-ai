@@ -18,16 +18,17 @@ class TimePeriod(str, Enum):
 class TemporalContext(BaseModel):
     local_time: str = Field(description="Local time string, e.g. 08:15")
     period: TimePeriod = Field(description="Time of day: morning, afternoon, evening, night")
-    timezone: str = Field(default="UTC", description="Timezone name, e.g. Asia/Kolkata")
+    timezone: str = Field(default="Asia/Kolkata", description="Timezone name, e.g. Asia/Kolkata")
     date_str: Optional[str] = Field(default=None, description="Date string, e.g. 2026-08-21")
     iso_timestamp: Optional[str] = Field(default=None, description="ISO timestamp")
 
 class LocationContext(BaseModel):
-    latitude: float = Field(default=0.0)
-    longitude: float = Field(default=0.0)
-    city: str = Field(default="Unknown")
-    country: str = Field(default="Unknown")
-    place_type: Optional[str] = Field(default=None, description="e.g. college, office, home, transit")
+    latitude: Optional[float] = Field(default=None)
+    longitude: Optional[float] = Field(default=None)
+    city: str = Field(default="Unavailable")
+    country: str = Field(default="")
+    is_available: bool = Field(default=False)
+    place_type: Optional[str] = Field(default=None, description="e.g. college, office, home, transit, mobile")
 
 class CalendarEvent(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -43,11 +44,13 @@ class CalendarContext(BaseModel):
     today_events: List[CalendarEvent] = Field(default_factory=list)
 
 class DeviceContext(BaseModel):
-    battery: int = Field(default=100, ge=0, le=100)
+    battery: int = Field(default=85, ge=0, le=100)
+    battery_percent: Optional[int] = Field(default=None)
     camera_available: bool = True
     microphone_available: bool = True
     network: str = "WIFI"
     connection_type: str = "SIMULATOR"  # "SIMULATOR", "BLE_ESP32", "ANDROID_HUB"
+    esp32_connected: bool = False
 
 class ConversationContext(BaseModel):
     recent_topic: Optional[str] = None
@@ -61,15 +64,20 @@ class VisionContext(BaseModel):
 class FullContextPayload(BaseModel):
     time: TemporalContext
     location: LocationContext
-    calendar: CalendarContext
+    calendar: Optional[CalendarContext] = Field(default_factory=CalendarContext)
     device: DeviceContext
-    conversation: ConversationContext
+    conversation: Optional[ConversationContext] = Field(default_factory=ConversationContext)
     memory: Optional[List[str]] = Field(default_factory=list)
     vision: Optional[VisionContext] = None
+    locale: Optional[str] = Field(default="en-IN")
+    timezone: Optional[str] = Field(default="Asia/Kolkata")
+    timestamp: Optional[str] = None
 
 class AgentMessageRequest(BaseModel):
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     message: str = Field(description="User transcript or text message")
+    language: Optional[str] = Field(default="auto", description="Detected or selected language code: en, hi, mr, hi-Latn, auto")
+    locale: Optional[str] = Field(default="en-IN", description="Full locale identifier: en-IN, hi-IN, mr-IN, etc.")
     context: Optional[FullContextPayload] = None
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_timestamp: float = Field(default_factory=time.time)

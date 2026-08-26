@@ -15,6 +15,8 @@ logger = logging.getLogger("SmartGlasses.AgentGraph")
 class AgentState(TypedDict):
     session_id: str
     user_message: str
+    language: Optional[str]
+    locale: Optional[str]
     messages: List[Dict[str, str]]
     context_payload: Dict[str, Any]
     actions: List[Dict[str, Any]]
@@ -24,23 +26,33 @@ class AgentState(TypedDict):
     iteration_count: int
 
 def load_session_and_context(state: AgentState) -> Dict[str, Any]:
-    """Node: Load past conversation history and enrich with Context Engine."""
+    """Node: Load past conversation history and enrich with Context Engine and Language parameters."""
     session_id = state["session_id"]
     user_msg = state["user_message"]
+    lang = state.get("language") or "auto"
+    loc = state.get("locale") or "en-IN"
 
     # 1. Load short-term history from SQLite
     history = memory_repository.get_session_history(session_id, limit=6)
     messages = list(history)
 
-    # 2. Build system context message
+    # 2. Build system context message with multilingual instructions
     ctx = state.get("context_payload") or {}
     t_info = ctx.get("time", {})
     l_info = ctx.get("location", {})
     c_info = ctx.get("calendar", {})
 
+    lang_instructions = (
+        "Respond concisely and naturally in the SAME language and script as the user's message "
+        "(e.g., Hindi for Hindi queries like सुप्रभात, Marathi for Marathi queries like शुभ सकाळ, "
+        "English for English, Hinglish for Hinglish). "
+        "Do not translate unless explicitly requested by the user.\n"
+    )
+
     system_prompt = (
         f"You are the AI assistant inside smart glasses.\n"
         f"Keep responses natural, concise, helpful, and wearable-friendly.\n"
+        f"{lang_instructions}"
         f"Current Time: {t_info.get('local_time', '08:15 AM')} ({t_info.get('period', 'morning')})\n"
         f"Current Location: {l_info.get('city', 'Nagpur')}, {l_info.get('country', 'India')}\n"
     )
@@ -189,11 +201,19 @@ def build_smart_glasses_graph():
 
 agent_graph = build_smart_glasses_graph()
 
-async def run_agent(session_id: str, user_message: str, context_payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute LangGraph agent workflow for a given user turn."""
+async def run_agent(
+    session_id: str,
+    user_message: str,
+    context_payload: Dict[str, Any],
+    language: str = "auto",
+    locale: str = "en-IN"
+) -> Dict[str, Any]:
+    """Execute LangGraph agent workflow for a given user turn with language awareness."""
     initial_state: AgentState = {
         "session_id": session_id,
         "user_message": user_message,
+        "language": language,
+        "locale": locale,
         "messages": [],
         "context_payload": context_payload,
         "actions": [],

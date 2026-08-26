@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,14 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.smartglasses.ai.core.bluetooth.DeviceConnectionState
 import com.smartglasses.ai.domain.models.AssistantState
 import com.smartglasses.ai.domain.models.ChatMessage
 import com.smartglasses.ai.domain.models.IntegrationState
@@ -68,15 +64,19 @@ fun WearableHomeScreen(
                 )
             }
 
-            // 2. Status Badges Grid (Backend, LLM, Google, Gmail, Location)
+            // 2. Real System Telemetry Card (8 indicators: Backend, Gemini, Google, Gmail, Mic, TTS, Location, Battery)
             item {
-                SystemStatusBadgesCard(
+                SystemTelemetryCard(
                     backendConnected = state.aiConnected,
-                    llmConnected = state.llmConnected,
+                    geminiConnected = state.llmConnected,
                     googleConnected = state.googleConnected,
                     gmailConnected = state.gmailStatus == IntegrationState.CONNECTED,
+                    micReady = state.isMicrophoneReady,
+                    ttsReady = state.isTtsReady,
                     locationAvailable = state.locationAvailable,
-                    locationName = state.locationName
+                    locationName = state.locationName,
+                    batteryPercent = state.batteryPercentage,
+                    isCharging = state.isCharging
                 )
             }
 
@@ -86,11 +86,22 @@ fun WearableHomeScreen(
                     assistantState = state.assistantState,
                     latestSpeech = state.latestSpeech,
                     partialTranscript = state.partialVoiceTranscript,
-                    messages = state.messages
+                    messages = state.messages,
+                    lastLatencyMs = state.lastResponseLatencyMs
                 )
             }
 
-            // 4. Action Buttons ([ TALK ] and [ CHECK GMAIL ])
+            // 4. Text Assistant Input Row (for dev testing)
+            item {
+                TextAssistantInputRow(
+                    textInput = state.textInput,
+                    isSending = state.isSendingText,
+                    onTextChanged = { viewModel.onTextInputChanged(it) },
+                    onSendClicked = { viewModel.sendTextMessage() }
+                )
+            }
+
+            // 5. Action Buttons ([ TALK ] and [ CHECK GMAIL ])
             item {
                 ActionButtonsRow(
                     assistantState = state.assistantState,
@@ -99,7 +110,7 @@ fun WearableHomeScreen(
                 )
             }
 
-            // 5. Backend URL Configuration Card
+            // 6. Backend URL Configuration Card
             item {
                 BackendUrlConfigCard(
                     urlInput = inlineUrlInput,
@@ -141,7 +152,7 @@ fun HeaderBar(
                 fontWeight = FontWeight.Black
             )
             Text(
-                text = "WEARABLE CONTROLLER & COMPANION",
+                text = "MOBILE WEARABLE COMPANION",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 letterSpacing = 1.sp
@@ -166,13 +177,17 @@ fun HeaderBar(
 }
 
 @Composable
-fun SystemStatusBadgesCard(
+fun SystemTelemetryCard(
     backendConnected: Boolean,
-    llmConnected: Boolean,
+    geminiConnected: Boolean,
     googleConnected: Boolean,
     gmailConnected: Boolean,
+    micReady: Boolean,
+    ttsReady: Boolean,
     locationAvailable: Boolean,
-    locationName: String
+    locationName: String,
+    batteryPercent: Int,
+    isCharging: Boolean
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -183,10 +198,10 @@ fun SystemStatusBadgesCard(
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "SYSTEM STATUS",
+                text = "REAL SYSTEM STATUS",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 fontSize = 10.sp,
@@ -194,50 +209,86 @@ fun SystemStatusBadgesCard(
                 letterSpacing = 1.sp
             )
 
+            // Primary Cloud Services (Backend, Gemini, Google, Gmail)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 StatusIndicator(label = "Backend", isConnected = backendConnected)
-                StatusIndicator(label = "LLM", isConnected = llmConnected)
+                StatusIndicator(label = "Gemini", isConnected = geminiConnected)
                 StatusIndicator(label = "Google", isConnected = googleConnected)
                 StatusIndicator(label = "Gmail", isConnected = gmailConnected)
             }
 
             HorizontalDivider(color = WearableCardBorder.copy(alpha = 0.5f), thickness = 0.8.dp)
 
+            // Device Hardware & Sensor Telemetry (Mic, TTS, Location, Battery)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Mic
+                StatusIndicator(
+                    label = "Mic",
+                    isConnected = micReady,
+                    connectedText = "READY",
+                    disconnectedText = "PERMISSION"
+                )
+
+                // TTS
+                StatusIndicator(
+                    label = "TTS",
+                    isConnected = ttsReady,
+                    connectedText = "READY",
+                    disconnectedText = "INIT"
+                )
+
+                // Battery (Real Android)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
+                        contentDescription = "Battery",
+                        tint = if (batteryPercent > 20) EmeraldNeon else CrimsonNeon,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "$batteryPercent%",
+                        color = if (batteryPercent > 20) EmeraldNeon else CrimsonNeon,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Location
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = "Location",
-                        tint = CyanNeon,
+                        tint = if (locationAvailable) CyanNeon else TextMuted,
                         modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
                     Text(
-                        text = "Location: $locationName",
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        text = if (locationAvailable) locationName else "UNAVAILABLE",
+                        color = if (locationAvailable) CyanNeon else TextMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-
-                StatusBadge(
-                    text = if (locationAvailable) "AVAILABLE" else "OFFLINE",
-                    isPositive = locationAvailable
-                )
             }
         }
     }
 }
 
 @Composable
-fun StatusIndicator(label: String, isConnected: Boolean) {
+fun StatusIndicator(
+    label: String,
+    isConnected: Boolean,
+    connectedText: String = "CONNECTED",
+    disconnectedText: String = "DISCONNECTED"
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -248,9 +299,9 @@ fun StatusIndicator(label: String, isConnected: Boolean) {
                 .background(if (isConnected) EmeraldNeon else CrimsonNeon, CircleShape)
         )
         Text(
-            text = "$label: ${if (isConnected) "CONNECTED" else "OFFLINE"}",
+            text = "$label: ${if (isConnected) connectedText else disconnectedText}",
             color = if (isConnected) EmeraldNeon else TextMuted,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold
         )
     }
@@ -261,7 +312,8 @@ fun AssistantSectionCard(
     assistantState: AssistantState,
     latestSpeech: String,
     partialTranscript: String,
-    messages: List<ChatMessage>
+    messages: List<ChatMessage>,
+    lastLatencyMs: Double?
 ) {
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -280,7 +332,7 @@ fun AssistantSectionCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "ASSISTANT HUD",
+                    text = "ASSISTANT CONVERSATION",
                     style = MaterialTheme.typography.labelSmall,
                     color = CyanNeon,
                     fontSize = 11.sp,
@@ -288,13 +340,23 @@ fun AssistantSectionCard(
                     letterSpacing = 1.sp
                 )
 
-                StatusBadge(
-                    text = assistantState.name,
-                    isPositive = assistantState == AssistantState.SPEAKING || assistantState == AssistantState.IDLE
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (lastLatencyMs != null && lastLatencyMs > 0.0) {
+                        Text(
+                            text = "⏱️ ${lastLatencyMs.toInt()}ms",
+                            color = TextMuted,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    StatusBadge(
+                        text = assistantState.name,
+                        isPositive = assistantState == AssistantState.SPEAKING || assistantState == AssistantState.IDLE
+                    )
+                }
             }
 
-            // Live speech card
+            // Live speech HUD card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -307,37 +369,79 @@ fun AssistantSectionCard(
                         text = if (partialTranscript.isNotBlank()) "Listening: \"$partialTranscript\"" else latestSpeech,
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (partialTranscript.isNotBlank()) CyanNeon else TextPrimary,
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         lineHeight = 20.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            // Conversation history overview (last 2 items)
+            // Message history (last 3 messages)
             if (messages.size > 1) {
-                Text(
-                    text = "RECENT CONVERSATION",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextMuted,
-                    fontSize = 10.sp,
-                    letterSpacing = 0.5.sp
-                )
-
-                messages.takeLast(2).forEach { msg ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = if (msg.sender == "USER") Arrangement.End else Arrangement.Start
-                    ) {
-                        Text(
-                            text = "${msg.sender}: ${msg.text}",
-                            color = if (msg.sender == "USER") CyanNeon.copy(alpha = 0.8f) else TextSecondary,
-                            fontSize = 12.sp,
-                            maxLines = 2
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    messages.takeLast(3).forEach { msg ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = if (msg.sender == "USER") Arrangement.End else Arrangement.Start
+                        ) {
+                            Text(
+                                text = "${msg.sender}: ${msg.text}",
+                                color = if (msg.sender == "USER") CyanNeon.copy(alpha = 0.85f) else TextSecondary,
+                                fontSize = 12.sp,
+                                maxLines = 3
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun TextAssistantInputRow(
+    textInput: String,
+    isSending: Boolean,
+    onTextChanged: (String) -> Unit,
+    onSendClicked: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedTextField(
+            value = textInput,
+            onValueChange = onTextChanged,
+            placeholder = { Text("Type a query (e.g. 'Check my email')", color = TextMuted, fontSize = 12.sp) },
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+                focusedBorderColor = CyanNeon,
+                unfocusedBorderColor = WearableCardBorder,
+                focusedContainerColor = WearableDarkSurface,
+                unfocusedContainerColor = WearableDarkSurface
+            ),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp)
+        )
+
+        Button(
+            onClick = onSendClicked,
+            enabled = !isSending && textInput.isNotBlank(),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CyanNeon,
+                contentColor = WearableDarkBackground
+            ),
+            modifier = Modifier.height(52.dp)
+        ) {
+            Text(
+                text = if (isSending) "..." else "SEND",
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
+            )
         }
     }
 }
@@ -412,7 +516,7 @@ fun ActionButtonsRow(
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "CHECK GMAIL",
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.5.sp
                 )
@@ -441,7 +545,7 @@ fun BackendUrlConfigCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "BACKEND SERVER URL (LAN / EMULATOR)",
+                text = "BACKEND SERVER URL (WI-FI LAN / EMULATOR)",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 fontSize = 10.sp,
@@ -467,7 +571,7 @@ fun BackendUrlConfigCard(
                         focusedContainerColor = WearableDarkBackground,
                         unfocusedContainerColor = WearableDarkBackground
                     ),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp)
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp)
                 )
 
                 Button(

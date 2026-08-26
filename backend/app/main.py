@@ -90,6 +90,13 @@ async def process_agent_message(req: AgentMessageRequest):
         session_id=req.session_id
     )
 
+    # Safe diagnostic metadata logging (No raw transcript logged in production)
+    text_len = len(req.message.strip()) if req.message else 0
+    logger.info(
+        f"STT_RESULT_RECEIVED: language={req.language or 'auto'} locale={req.locale or 'en-IN'} "
+        f"text_length={text_len} request_id={req.request_id[:8]}"
+    )
+
     t_ctx_start = time.time()
     # Retrieve relevant context
     context = context_engine.get_relevant_context(
@@ -100,12 +107,22 @@ async def process_agent_message(req: AgentMessageRequest):
     metrics.context_duration_ms = (time.time() - t_ctx_start) * 1000.0
 
     t_llm_start = time.time()
-    # Run LangGraph agent
-    agent_output = await run_agent(
-        session_id=req.session_id,
-        user_message=req.message,
-        context_payload=context.model_dump()
-    )
+    try:
+        # Run LangGraph agent with language & locale awareness
+        agent_output = await run_agent(
+            session_id=req.session_id,
+            user_message=req.message,
+            context_payload=context.model_dump(),
+            language=req.language or "auto",
+            locale=req.locale or "en-IN"
+        )
+    except Exception as e:
+        logger.error(f"Agent execution encountered an error: {type(e).__name__}: {e}")
+        agent_output = {
+            "response": f"I'm listening on your smart glasses. The cloud AI service is temporarily offline or experiencing a connection error. ({type(e).__name__})",
+            "actions": [],
+            "requires_confirmation": False
+        }
     metrics.llm_duration_ms = (time.time() - t_llm_start) * 1000.0
     metrics.finish()
 
@@ -121,7 +138,9 @@ async def process_agent_message(req: AgentMessageRequest):
         metadata={
             "latency_ms": metrics.total_latency_ms,
             "llm_provider": settings.LLM_PROVIDER,
-            "period": context.time.period
+            "period": context.time.period,
+            "language": req.language or "auto",
+            "locale": req.locale or "en-IN"
         }
     )
 

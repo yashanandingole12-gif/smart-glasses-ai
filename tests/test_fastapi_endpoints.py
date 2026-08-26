@@ -3,6 +3,15 @@ from httpx import AsyncClient, ASGITransport
 from backend.app.main import app
 
 @pytest.mark.asyncio
+async def test_root_dashboard():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/")
+        assert resp.status_code == 200
+        assert "CONTEXT-AWARE SMART GLASSES AI" in resp.text
+        assert "text/html" in resp.headers.get("content-type", "")
+
+@pytest.mark.asyncio
 async def test_api_health():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

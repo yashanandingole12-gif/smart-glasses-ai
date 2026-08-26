@@ -1,6 +1,7 @@
 package com.smartglasses.ai.presentation.home
 
 import android.app.Application
+import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartglasses.ai.core.audio.AndroidTTSState
@@ -8,8 +9,10 @@ import com.smartglasses.ai.core.audio.STTState
 import com.smartglasses.ai.core.audio.SpeechRecognizerManager
 import com.smartglasses.ai.core.audio.TextToSpeechManager
 import com.smartglasses.ai.core.bluetooth.BleManager
+import com.smartglasses.ai.core.device.AndroidBatteryProvider
 import com.smartglasses.ai.core.location.AndroidLocationProvider
 import com.smartglasses.ai.core.network.BackendConfig
+import com.smartglasses.ai.core.permissions.PermissionManager
 import com.smartglasses.ai.data.repositories.AssistantRepositoryImpl
 import com.smartglasses.ai.domain.models.AssistantState
 import com.smartglasses.ai.domain.models.ChatMessage
@@ -27,6 +30,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     private val repository = AssistantRepositoryImpl()
     private val sendVoiceQueryUseCase = SendVoiceQueryUseCase(repository)
 
+    private val batteryProvider = AndroidBatteryProvider(application)
     private val locationProvider = AndroidLocationProvider(application)
     private val bleManager = BleManager(application)
 
@@ -39,7 +43,8 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
         WearableHomeState(
             serverUrl = BackendConfig.getBaseUrl(),
             currentTime = getCurrentFormattedTime(),
-            period = calculateTimePeriod()
+            period = calculateTimePeriod(),
+            isMicrophoneReady = PermissionManager.hasAudioPermission(application)
         )
     )
     val uiState: StateFlow<WearableHomeState> = _uiState.asStateFlow()
@@ -53,14 +58,16 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     private fun initSpeechRecognizer() {
         speechRecognizerManager = SpeechRecognizerManager(
             context = getApplication(),
-            onResult = { transcript ->
-                handleUserVoiceInput(transcript)
+            onResult = { transcript, metadata ->
+                _uiState.update { it.copy(sttDurationMs = metadata.durationMs) }
+                handleUserVoiceInput(transcript, metadata.actualLanguageTag)
             },
-            onError = { errMsg ->
+            onError = { errMsg, metadata ->
                 _uiState.update {
                     it.copy(
                         assistantState = AssistantState.IDLE,
-                        errorMessage = errMsg
+                        errorMessage = errMsg,
+                        sttDurationMs = metadata.durationMs
                     )
                 }
             }
@@ -78,6 +85,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                         }
                     }
                     STTState.ERROR -> _uiState.update { it.copy(assistantState = AssistantState.ERROR) }
+                    STTState.SUCCESS -> {}
                 }
             }
         }
@@ -93,8 +101,9 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch {
             textToSpeechManager.ttsState.collect { tts ->
                 when (tts) {
+                    AndroidTTSState.READY -> _uiState.update { it.copy(isTtsReady = true) }
                     AndroidTTSState.SPEAKING -> _uiState.update { it.copy(assistantState = AssistantState.SPEAKING) }
-                    AndroidTTSState.COMPLETED, AndroidTTSState.READY -> {
+                    AndroidTTSState.COMPLETED -> {
                         if (_uiState.value.assistantState == AssistantState.SPEAKING) {
                             _uiState.update { it.copy(assistantState = AssistantState.IDLE) }
                         }
@@ -106,40 +115,50 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun observeTelemetry() {
-        // Observe BLE connection and battery
+        // 1. Real Device Battery
+        viewModelScope.launch {
+            batteryProvider.batteryLevel.collect { bat ->
+                _uiState.update { it.copy(batteryPercentage = bat) }
+            }
+        }
+        viewModelScope.launch {
+            batteryProvider.isCharging.collect { charging ->
+                _uiState.update { it.copy(isCharging = charging) }
+            }
+        }
+
+        // 2. Real Location
+        viewModelScope.launch {
+            locationProvider.locationState.collect { loc ->
+                _uiState.update {
+                    it.copy(
+                        locationAvailable = loc.isAvailable,
+                        locationName = loc.city,
+                        latitude = loc.latitude,
+                        longitude = loc.longitude
+                    )
+                }
+            }
+        }
+
+        // 3. Ble Manager
         viewModelScope.launch {
             bleManager.connectionState.collect { conn ->
                 _uiState.update { it.copy(deviceConnectionState = conn) }
             }
         }
 
-        viewModelScope.launch {
-            bleManager.batteryLevel.collect { bat ->
-                _uiState.update { it.copy(batteryPercentage = bat) }
-            }
-        }
-
-        // Observe Location
-        viewModelScope.launch {
-            locationProvider.locationState.collect { loc ->
-                _uiState.update {
-                    it.copy(
-                        locationAvailable = loc.isAvailable,
-                        locationName = loc.city
-                    )
-                }
-            }
-        }
-
-        // Periodic clock update and backend status polling
+        // 4. Periodic clock update & background health polling
         viewModelScope.launch(Dispatchers.Default) {
             while (true) {
                 val formattedTime = getCurrentFormattedTime()
                 val period = calculateTimePeriod()
+                val micReady = PermissionManager.hasAudioPermission(getApplication())
                 _uiState.update {
                     it.copy(
                         currentTime = formattedTime,
-                        period = period
+                        period = period,
+                        isMicrophoneReady = micReady
                     )
                 }
                 refreshAllStatuses()
@@ -151,6 +170,9 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     fun refreshAllStatuses() {
         checkBackendHealth()
         checkGoogleStatus()
+        viewModelScope.launch {
+            locationProvider.refreshLocation()
+        }
     }
 
     fun checkBackendHealth() {
@@ -190,10 +212,20 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun checkGmail() {
-        handleUserVoiceInput("Check my email.")
+        sendTextMessage("Check my email.")
     }
 
     fun onTalkButtonClicked() {
+        if (!PermissionManager.hasAudioPermission(getApplication())) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Microphone permission is required.",
+                    isMicrophoneReady = false
+                )
+            }
+            return
+        }
+
         if (_uiState.value.assistantState == AssistantState.LISTENING) {
             speechRecognizerManager?.stopListening()
         } else {
@@ -209,9 +241,24 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun handleUserVoiceInput(message: String) {
+    fun onTextInputChanged(newText: String) {
+        _uiState.update { it.copy(textInput = newText) }
+    }
+
+    fun sendTextMessage(query: String? = null) {
+        val message = (query ?: _uiState.value.textInput).trim()
         if (message.isBlank()) return
 
+        _uiState.update { it.copy(textInput = "", isSendingText = true) }
+        executeAssistantQuery(message = message, language = "auto", locale = Locale.getDefault().toLanguageTag())
+    }
+
+    private fun handleUserVoiceInput(transcript: String, languageTag: String) {
+        if (transcript.isBlank()) return
+        executeAssistantQuery(message = transcript, language = languageTag, locale = languageTag)
+    }
+
+    private fun executeAssistantQuery(message: String, language: String, locale: String) {
         val userChat = ChatMessage(sender = "USER", text = message)
         _uiState.update {
             it.copy(
@@ -228,21 +275,30 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                 aiConnected = _uiState.value.aiConnected,
                 locationAvailable = _uiState.value.locationAvailable,
                 locationName = _uiState.value.locationName,
+                latitude = _uiState.value.latitude,
+                longitude = _uiState.value.longitude,
                 timeFormatted = _uiState.value.currentTime,
-                period = _uiState.value.period
+                period = _uiState.value.period,
+                timezone = TimeZone.getDefault().id,
+                locale = locale
             )
 
+            val tStart = SystemClock.elapsedRealtime()
             val result = sendVoiceQueryUseCase(
                 sessionId = sessionId,
                 query = message,
-                telemetry = telemetry
+                telemetry = telemetry,
+                language = language,
+                locale = locale
             )
+            val durationMs = (SystemClock.elapsedRealtime() - tStart).toDouble()
 
             result.onSuccess { resp ->
                 val assistantChat = ChatMessage(
                     sender = "ASSISTANT",
                     text = resp.text,
-                    requiresConfirmation = resp.requiresConfirmation
+                    requiresConfirmation = resp.requiresConfirmation,
+                    latencyMs = resp.latencyMs.takeIf { it > 0.0 } ?: durationMs
                 )
 
                 _uiState.update {
@@ -252,23 +308,44 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                         messages = it.messages + assistantChat,
                         pendingConfirmation = if (resp.requiresConfirmation) resp else null,
                         aiConnected = true,
-                        llmConnected = true
+                        llmConnected = true,
+                        lastResponseLatencyMs = resp.latencyMs.takeIf { lat -> lat > 0.0 } ?: durationMs,
+                        isSendingText = false
                     )
                 }
 
-                // Speak via native Android TTS
+                // Speak via native Android TTS and track speech duration
+                val ttsStart = SystemClock.elapsedRealtime()
                 textToSpeechManager.speak(resp.text) {
-                    _uiState.update { it.copy(assistantState = AssistantState.IDLE) }
+                    val ttsDur = SystemClock.elapsedRealtime() - ttsStart
+                    _uiState.update {
+                        it.copy(
+                            assistantState = AssistantState.IDLE,
+                            ttsDurationMs = ttsDur
+                        )
+                    }
                 }
             }.onFailure { err ->
-                val fallbackText = "Backend error: ${err.localizedMessage ?: "Could not reach backend"}"
+                val errorMsg = if (!_uiState.value.aiConnected) {
+                    "Backend is unavailable."
+                } else {
+                    "Error: ${err.localizedMessage ?: "Could not complete request"}"
+                }
+
+                val assistantChat = ChatMessage(
+                    sender = "ASSISTANT",
+                    text = errorMsg,
+                    latencyMs = durationMs
+                )
+
                 _uiState.update {
                     it.copy(
                         assistantState = AssistantState.ERROR,
-                        latestSpeech = fallbackText,
+                        latestSpeech = errorMsg,
                         errorMessage = err.localizedMessage,
-                        aiConnected = false,
-                        llmConnected = false
+                        messages = it.messages + assistantChat,
+                        isSendingText = false,
+                        lastResponseLatencyMs = durationMs
                     )
                 }
             }
@@ -305,7 +382,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                 callback(true, "Connected successfully!")
             } else {
                 BackendConfig.setBaseUrl(prev)
-                callback(false, result.exceptionOrNull()?.localizedMessage ?: "Failed to connect")
+                callback(false, result.exceptionOrNull()?.localizedMessage ?: "Backend is unavailable.")
             }
         }
     }
@@ -327,6 +404,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
 
     override fun onCleared() {
         super.onCleared()
+        batteryProvider.unregister()
         speechRecognizerManager?.destroy()
         textToSpeechManager.shutdown()
     }

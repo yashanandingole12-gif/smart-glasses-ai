@@ -9,8 +9,10 @@ class SendVoiceQueryUseCase(private val repository: AssistantRepository) {
         sessionId: String,
         query: String,
         telemetry: WearableTelemetry,
-        confirmedAction: Boolean? = null
+        confirmedAction: Boolean? = null,
+        language: String? = "auto",
+        locale: String? = "en-IN"
     ): Result<WearableResponse> {
-        return repository.sendMessage(sessionId, query, telemetry, confirmedAction)
+        return repository.sendMessage(sessionId, query, telemetry, confirmedAction, language, locale)
     }
 }

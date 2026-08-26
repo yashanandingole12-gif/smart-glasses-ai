@@ -24,6 +24,8 @@ object PermissionManager {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    fun hasAudioPermission(context: Context): Boolean = hasRecordAudioPermission(context)
+
     fun hasLocationPermission(context: Context): Boolean {
         val fine = ContextCompat.checkSelfPermission(
             context,

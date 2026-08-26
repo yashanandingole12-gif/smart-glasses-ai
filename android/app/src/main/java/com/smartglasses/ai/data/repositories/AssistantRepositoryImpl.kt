@@ -11,6 +11,9 @@ import com.smartglasses.ai.domain.models.WearableTelemetry
 import com.smartglasses.ai.domain.repositories.AssistantRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 class AssistantRepositoryImpl : AssistantRepository {
@@ -19,36 +22,49 @@ class AssistantRepositoryImpl : AssistantRepository {
         sessionId: String,
         userMessage: String,
         telemetry: WearableTelemetry,
-        confirmedAction: Boolean?
+        confirmedAction: Boolean?,
+        language: String?,
+        locale: String?
     ): Result<WearableResponse> = withContext(Dispatchers.IO) {
         try {
             val api = NetworkClient.getApiService()
+
+            val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date())
 
             val contextDto = FullContextPayloadDto(
                 time = TemporalContextDto(
                     localTime = telemetry.timeFormatted,
                     period = telemetry.period,
-                    timezone = "Asia/Kolkata"
+                    timezone = telemetry.timezone,
+                    isoTimestamp = nowIso
                 ),
                 location = LocationContextDto(
-                    latitude = 21.1458,
-                    longitude = 79.0882,
+                    latitude = telemetry.latitude,
+                    longitude = telemetry.longitude,
                     city = telemetry.locationName,
-                    country = "India",
-                    placeType = "college campus"
+                    country = if (telemetry.locationAvailable) "India" else "",
+                    isAvailable = telemetry.locationAvailable,
+                    placeType = if (telemetry.locationAvailable) "mobile" else null
                 ),
                 device = DeviceContextDto(
                     battery = telemetry.batteryPercentage,
+                    batteryPercent = telemetry.batteryPercentage,
                     cameraAvailable = true,
                     microphoneAvailable = true,
                     network = "WIFI",
-                    connectionType = if (telemetry.glassesConnected) "BLE_ESP32" else "ANDROID_HUB"
-                )
+                    connectionType = if (telemetry.glassesConnected) "BLE_ESP32" else "ANDROID_HUB",
+                    esp32Connected = telemetry.glassesConnected
+                ),
+                locale = telemetry.locale,
+                timezone = telemetry.timezone,
+                timestamp = nowIso
             )
 
             val request = AgentMessageRequestDto(
                 sessionId = sessionId,
                 message = userMessage,
+                language = language ?: "auto",
+                locale = locale ?: telemetry.locale,
                 context = contextDto,
                 requestId = UUID.randomUUID().toString(),
                 clientTimestamp = System.currentTimeMillis() / 1000.0,

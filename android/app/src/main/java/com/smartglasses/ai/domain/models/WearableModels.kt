@@ -21,17 +21,22 @@ data class ChatMessage(
     val sender: String, // "USER" or "ASSISTANT"
     val text: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val requiresConfirmation: Boolean = false
+    val requiresConfirmation: Boolean = false,
+    val latencyMs: Double? = null
 )
 
 data class WearableTelemetry(
-    val glassesConnected: Boolean = true,
-    val batteryPercentage: Int = 72,
+    val glassesConnected: Boolean = false,
+    val batteryPercentage: Int = 85,
     val aiConnected: Boolean = true,
-    val locationAvailable: Boolean = true,
-    val locationName: String = "Nagpur",
+    val locationAvailable: Boolean = false,
+    val locationName: String = "Unavailable",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val timeFormatted: String = "08:15 AM",
-    val period: String = "morning"
+    val period: String = "morning",
+    val timezone: String = "Asia/Kolkata",
+    val locale: String = "en-IN"
 )
 
 data class WearableResponse(

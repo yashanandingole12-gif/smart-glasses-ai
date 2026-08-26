@@ -5,6 +5,8 @@ import com.google.gson.annotations.SerializedName
 data class AgentMessageRequestDto(
     @SerializedName("session_id") val sessionId: String,
     @SerializedName("message") val message: String,
+    @SerializedName("language") val language: String? = "auto",
+    @SerializedName("locale") val locale: String? = "en-IN",
     @SerializedName("context") val context: FullContextPayloadDto? = null,
     @SerializedName("request_id") val requestId: String? = null,
     @SerializedName("client_timestamp") val clientTimestamp: Double = System.currentTimeMillis() / 1000.0,
@@ -32,16 +34,17 @@ data class AgentMessageResponseDto(
 data class TemporalContextDto(
     @SerializedName("local_time") val localTime: String,
     @SerializedName("period") val period: String,
-    @SerializedName("timezone") val timezone: String = "UTC",
+    @SerializedName("timezone") val timezone: String = "Asia/Kolkata",
     @SerializedName("date_str") val dateStr: String? = null,
     @SerializedName("iso_timestamp") val isoTimestamp: String? = null
 )
 
 data class LocationContextDto(
-    @SerializedName("latitude") val latitude: Double = 0.0,
-    @SerializedName("longitude") val longitude: Double = 0.0,
-    @SerializedName("city") val city: String = "Unknown",
-    @SerializedName("country") val country: String = "Unknown",
+    @SerializedName("latitude") val latitude: Double? = null,
+    @SerializedName("longitude") val longitude: Double? = null,
+    @SerializedName("city") val city: String = "Unavailable",
+    @SerializedName("country") val country: String = "",
+    @SerializedName("is_available") val isAvailable: Boolean = false,
     @SerializedName("place_type") val placeType: String? = null
 )
 
@@ -61,11 +64,13 @@ data class CalendarContextDto(
 )
 
 data class DeviceContextDto(
-    @SerializedName("battery") val battery: Int = 100,
+    @SerializedName("battery") val battery: Int = 85,
+    @SerializedName("battery_percent") val batteryPercent: Int = 85,
     @SerializedName("camera_available") val cameraAvailable: Boolean = true,
     @SerializedName("microphone_available") val microphoneAvailable: Boolean = true,
     @SerializedName("network") val network: String = "WIFI",
-    @SerializedName("connection_type") val connectionType: String = "ANDROID_HUB"
+    @SerializedName("connection_type") val connectionType: String = "ANDROID_HUB",
+    @SerializedName("esp32_connected") val esp32Connected: Boolean = false
 )
 
 data class ConversationContextDto(
@@ -79,7 +84,10 @@ data class FullContextPayloadDto(
     @SerializedName("location") val location: LocationContextDto,
     @SerializedName("calendar") val calendar: CalendarContextDto? = null,
     @SerializedName("device") val device: DeviceContextDto,
-    @SerializedName("conversation") val conversation: ConversationContextDto? = null
+    @SerializedName("conversation") val conversation: ConversationContextDto? = null,
+    @SerializedName("locale") val locale: String = "en-IN",
+    @SerializedName("timezone") val timezone: String = "Asia/Kolkata",
+    @SerializedName("timestamp") val timestamp: String? = null
 )
 
 data class HealthResponseDto(

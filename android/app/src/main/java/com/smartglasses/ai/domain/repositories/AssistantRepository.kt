@@ -8,7 +8,9 @@ interface AssistantRepository {
         sessionId: String,
         userMessage: String,
         telemetry: WearableTelemetry,
-        confirmedAction: Boolean? = null
+        confirmedAction: Boolean? = null,
+        language: String? = "auto",
+        locale: String? = "en-IN"
     ): Result<WearableResponse>
 
     suspend fun checkHealth(): Result<Boolean>
