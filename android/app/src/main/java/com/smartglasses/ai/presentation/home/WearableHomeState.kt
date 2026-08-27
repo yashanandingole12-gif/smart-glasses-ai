@@ -38,6 +38,6 @@ data class WearableHomeState(
     val ttsDurationMs: Long? = null,
     val pendingConfirmation: WearableResponse? = null,
     val isConfigDialogOpen: Boolean = false,
-    val serverUrl: String = "http://192.168.243.120:8001/",
+    val serverUrl: String = "http://192.168.137.1:8001/",
     val errorMessage: String? = null
 )

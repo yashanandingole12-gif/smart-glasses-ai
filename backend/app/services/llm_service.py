@@ -110,11 +110,30 @@ class LLMService:
             except Exception:
                 data = last_tool_res
 
-            # Format tool response
+            # Format tool response with multilingual awareness
             if "unread_count" in str(data):
                 unread = data.get("unread_count", 1) if isinstance(data, dict) else 1
+                sender = data['messages'][0]['sender'] if isinstance(data, dict) and data.get('messages') else 'college admin'
+                if any(h in last_user_msg for h in ["ईमेल", "चेक", "करो", "संदेश"]):
+                    return LLMResponse(
+                        content=f"आपके पास {unread} अपठित ईमेल हैं। नवीनतम ईमेल {sender} से है।",
+                        provider="mock",
+                        model=self.model
+                    )
+                elif any(m in last_user_msg for m in ["तपासा", "वाचा"]):
+                    return LLMResponse(
+                        content=f"तुमच्याकडे {unread} न वाचलेले ईमेल आहेत. नवीनतम ईमेल {sender} कडून आहे.",
+                        provider="mock",
+                        model=self.model
+                    )
+                elif "mere" in msg_lower or "batao" in msg_lower or "karo" in msg_lower:
+                    return LLMResponse(
+                        content=f"Aapke paas {unread} unread emails hain. Latest email {sender} se aaya hai.",
+                        provider="mock",
+                        model=self.model
+                    )
                 return LLMResponse(
-                    content=f"You have {unread} unread emails. The latest is from {data['messages'][0]['sender'] if isinstance(data, dict) and data.get('messages') else 'college admin'}.",
+                    content=f"You have {unread} unread emails. The latest is from {sender}.",
                     provider="mock",
                     model=self.model
                 )
@@ -125,6 +144,13 @@ class LLMService:
                     model=self.model
                 )
             elif "events" in str(data):
+                events_list = data.get("events", []) if isinstance(data, dict) else []
+                if not events_list:
+                    return LLMResponse(
+                        content="I don't see any events scheduled for today.",
+                        provider="mock",
+                        model=self.model
+                    )
                 next_ev = data.get("next_event", {}) if isinstance(data, dict) else {}
                 title = next_ev.get("title", "Class")
                 t = next_ev.get("start_time", "10:30 AM")
@@ -137,7 +163,8 @@ class LLMService:
         # Multilingual context extraction
         time_str = "8:15 AM"
         city = "Nagpur"
-        next_ev_str = "class at 10:30"
+        has_events = False
+        next_ev_str = None
         period = "morning"
 
         if context_payload:
@@ -153,27 +180,33 @@ class LLMService:
             if cal_info.get("next_event"):
                 ev = cal_info["next_event"]
                 next_ev_str = f"{ev.get('title', 'event').lower()} at {ev.get('start_time', '10:30')}"
+                has_events = True
+            elif cal_info.get("today_events"):
+                has_events = True
 
         # 1. Hindi Greeting & Query Support
         if any(h in last_user_msg for h in ["सुप्रभात", "नमस्ते", "शुभ प्रभात", "शुभ दोपहर", "शुभ संध्या"]):
+            cal_phrase = f"आपकी अगली क्लास {next_ev_str} पर है।" if has_events else "आज आपके कैलेंडर में कोई इवेंट रिकॉर्ड नहीं है।"
             return LLMResponse(
-                content=f"सुप्रभात! अभी {time_str} बजे हैं और आप {city} में हैं। आपकी अगली क्लास 10:30 AM पर है। मैं आपकी क्या मदद कर सकता हूँ?",
+                content=f"सुप्रभात! अभी {time_str} बजे हैं और आप {city} में हैं। {cal_phrase} मैं आपकी क्या मदद कर सकता हूँ?",
                 provider="mock",
                 model=self.model
             )
 
         # 2. Marathi Greeting & Query Support
         if any(m in last_user_msg for m in ["शुभ सकाळ", "नमस्कार", "शुभ दुपार", "शुभ संध्याकाळ"]):
+            cal_phrase = f"तुमचा पुढचा क्लास {next_ev_str} वाजता आहे." if has_events else "आज तुमच्या कॅलेंडरमध्ये कोणतेही कार्यक्रम शेड्यूल केलेले नाहीत."
             return LLMResponse(
-                content=f"शुभ सकाळ! आता सकाळचे {time_str} झाले आहेत आणि तुम्ही {city}मध्ये आहात. तुमचा पुढचा क्लास 10:30 AM वाजता आहे. मी काय मदत करू शकतो?",
+                content=f"शुभ सकाळ! आता सकाळचे {time_str} झाले आहेत आणि तुम्ही {city}मध्ये आहात. {cal_phrase} मी काय मदत करू शकतो?",
                 provider="mock",
                 model=self.model
             )
 
         # 3. Hinglish Greeting & Calendar Query Support
         if ("aaj" in msg_lower and "calendar" in msg_lower) or ("mera calendar" in msg_lower) or ("good morning" in msg_lower and ("aaj" in msg_lower or "karo" in msg_lower or "check" in msg_lower)):
+            cal_phrase = f"Aapki next class {next_ev_str} hai." if has_events else "Aaj aapke calendar mein koi events scheduled nahi hain."
             return LLMResponse(
-                content=f"Good morning! Aaj {time_str} par aap {city} mein hain. Aapki next class 10:30 AM par Machine Learning lecture hai.",
+                content=f"Good morning! Aaj {time_str} par aap {city} mein hain. {cal_phrase}",
                 provider="mock",
                 model=self.model
             )
@@ -181,15 +214,27 @@ class LLMService:
         # 4. Standard English Context-aware greetings
         if any(g in msg_lower for g in ["good morning", "morning", "good afternoon", "good evening", "good night", "hello", "hi"]):
             greeting = f"Good {period}" if period != "night" else "Good evening"
-            content = f"{greeting}. It's {time_str} and you're in {city}. You have {next_ev_str}. How can I help?"
+            loc_phrase = f"You're currently near {city}." if city not in ["Unavailable", "Unknown"] else ""
+            if has_events and next_ev_str:
+                cal_phrase = f"You have {next_ev_str}."
+            else:
+                cal_phrase = "You have no upcoming calendar events recorded for today."
+            
+            content = f"{greeting}. {loc_phrase} {cal_phrase} How can I help?".replace("  ", " ").strip()
             return LLMResponse(content=content, provider="mock", model=self.model)
 
         has_email_context = any("email" in m.get("content", "").lower() or "mail" in m.get("content", "").lower() for m in messages)
         has_cal_context = any("calendar" in m.get("content", "").lower() or "event" in m.get("content", "").lower() or "class" in m.get("content", "").lower() for m in messages)
 
-        # Tool triggering heuristics for mock mode
-        if "email" in msg_lower or "mail" in msg_lower or (has_email_context and "read" in msg_lower):
-            if "read" in msg_lower or "first" in msg_lower or "second" in msg_lower or "third" in msg_lower:
+        # Tool triggering heuristics for mock mode (Multilingual: English, Hindi, Marathi, Hinglish)
+        is_email_query = (
+            "email" in msg_lower or "mail" in msg_lower or
+            "ईमेल" in last_user_msg or "तपासा" in last_user_msg or
+            ("चेक" in last_user_msg and "करो" in last_user_msg) or
+            (has_email_context and ("read" in msg_lower or "padho" in msg_lower or "वाचा" in last_user_msg))
+        )
+        if is_email_query:
+            if "read" in msg_lower or "first" in msg_lower or "second" in msg_lower or "third" in msg_lower or "वाचा" in last_user_msg or "पढ़ो" in last_user_msg:
                 idx = 1
                 if "second" in msg_lower or "2" in msg_lower:
                     idx = 2
