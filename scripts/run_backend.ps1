@@ -1,3 +1,16 @@
+# Auto-clean existing stale processes on port 8001 to prevent WinError 10013
+$existingConnections = Get-NetTCPConnection -LocalPort 8001 -ErrorAction SilentlyContinue
+if ($existingConnections) {
+    $pids = $existingConnections | Select-Object -ExpandProperty OwningProcess -Unique
+    foreach ($p in $pids) {
+        if ($p -and $p -ne 0 -and $p -ne $PID) {
+            Write-Host "Releasing port 8001 occupied by previous process ($p)..." -ForegroundColor DarkYellow
+            Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
+        }
+    }
+    Start-Sleep -Milliseconds 500
+}
+
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host " Starting Smart Glasses AI FastAPI Backend" -ForegroundColor Green
 Write-Host "=========================================" -ForegroundColor Cyan
