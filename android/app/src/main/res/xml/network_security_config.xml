@@ -1,23 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Production Base Config: Enforce strict HTTPS/TLS globally by default -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Allow cleartext HTTP communication for development backend connections across all local Wi-Fi / Hotspot IPs -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-
-    <!-- Cleartext HTTP permitted strictly for local development and LAN test backends -->
-    <domain-config cleartextTrafficPermitted="true">
-        <!-- Android Emulator loopback alias -->
-        <domain includeSubdomains="false">10.0.2.2</domain>
-        <!-- Device loopback addresses -->
-        <domain includeSubdomains="false">127.0.0.1</domain>
-        <domain includeSubdomains="false">localhost</domain>
-        <!-- Windows Mobile Hotspot Gateway (Laptop IP when phone connects to laptop hotspot) -->
-        <domain includeSubdomains="false">192.168.137.1</domain>
-        <!-- Local Wi-Fi development endpoints -->
-        <domain includeSubdomains="false">172.16.161.24</domain>
-        <domain includeSubdomains="false">192.168.243.120</domain>
-    </domain-config>
 </network-security-config>
