@@ -7,7 +7,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,13 +15,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.smartglasses.ai.core.network.ConnectionState
+import com.smartglasses.ai.core.network.NetworkDiagnostics
 import com.smartglasses.ai.domain.models.AssistantState
 import com.smartglasses.ai.domain.models.ChatMessage
 import com.smartglasses.ai.domain.models.IntegrationState
@@ -60,14 +59,26 @@ fun WearableHomeScreen(
             // 1. Header Bar: SMART GLASSES AI
             item {
                 HeaderBar(
-                    onSettingsClicked = { viewModel.openConfigDialog() }
+                    onSettingsClicked = { viewModel.openConfigDialog() },
+                    onDiagnosticsClicked = { viewModel.toggleDiagnostics() },
+                    showDiagnostics = state.showDiagnostics
                 )
             }
 
-            // 2. Real System Telemetry Card (8 indicators: Backend, Gemini, Google, Gmail, Mic, TTS, Location, Battery)
+            // 2. Developer Network Diagnostics Screen (Section 20)
+            if (state.showDiagnostics) {
+                item {
+                    NetworkDiagnosticsCard(
+                        diagnostics = state.networkDiagnostics,
+                        activeRequestId = state.activeRequestId
+                    )
+                }
+            }
+
+            // 3. Real System Telemetry Card (4-State Connection Machine + Sensors)
             item {
                 SystemTelemetryCard(
-                    backendConnected = state.aiConnected,
+                    connectionState = state.connectionState,
                     geminiConnected = state.llmConnected,
                     googleConnected = state.googleConnected,
                     gmailConnected = state.gmailStatus == IntegrationState.CONNECTED,
@@ -80,7 +91,7 @@ fun WearableHomeScreen(
                 )
             }
 
-            // 3. Assistant HUD & Conversation Area
+            // 4. Assistant HUD & Conversation Area
             item {
                 AssistantSectionCard(
                     assistantState = state.assistantState,
@@ -91,7 +102,7 @@ fun WearableHomeScreen(
                 )
             }
 
-            // 4. Text Assistant Input Row (for dev testing)
+            // 5. Text Assistant Input Row (for dev testing)
             item {
                 TextAssistantInputRow(
                     textInput = state.textInput,
@@ -101,7 +112,7 @@ fun WearableHomeScreen(
                 )
             }
 
-            // 5. Action Buttons ([ TALK ] and [ CHECK GMAIL ])
+            // 6. Action Buttons ([ TALK ] and [ CHECK GMAIL ])
             item {
                 ActionButtonsRow(
                     assistantState = state.assistantState,
@@ -110,7 +121,7 @@ fun WearableHomeScreen(
                 )
             }
 
-            // 6. Backend URL Configuration Card
+            // 7. Backend URL Configuration Card
             item {
                 BackendUrlConfigCard(
                     urlInput = inlineUrlInput,
@@ -136,7 +147,9 @@ fun WearableHomeScreen(
 
 @Composable
 fun HeaderBar(
-    onSettingsClicked: () -> Unit
+    onSettingsClicked: () -> Unit,
+    onDiagnosticsClicked: () -> Unit,
+    showDiagnostics: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -159,26 +172,149 @@ fun HeaderBar(
             )
         }
 
-        IconButton(
-            onClick = onSettingsClicked,
-            modifier = Modifier
-                .size(40.dp)
-                .background(WearableDarkSurface, CircleShape)
-                .border(1.dp, WearableCardBorder, CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Server Settings",
-                tint = CyanNeon,
-                modifier = Modifier.size(20.dp)
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Diagnostics toggle button
+            IconButton(
+                onClick = onDiagnosticsClicked,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(if (showDiagnostics) CyanNeon.copy(alpha = 0.2f) else WearableDarkSurface, CircleShape)
+                    .border(1.dp, if (showDiagnostics) CyanNeon else WearableCardBorder, CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Speed,
+                    contentDescription = "Diagnostics",
+                    tint = if (showDiagnostics) CyanNeon else TextMuted,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            // Settings button
+            IconButton(
+                onClick = onSettingsClicked,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(WearableDarkSurface, CircleShape)
+                    .border(1.dp, WearableCardBorder, CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Server Settings",
+                    tint = CyanNeon,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
+fun NetworkDiagnosticsCard(
+    diagnostics: NetworkDiagnostics,
+    activeRequestId: String?
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = WearableDarkSurface),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, CyanNeon.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "NETWORK & LATENCY DIAGNOSTICS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CyanNeon,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "REQ: ${activeRequestId?.take(8) ?: "N/A"}",
+                    color = TextMuted,
+                    fontSize = 9.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            HorizontalDivider(color = WearableCardBorder.copy(alpha = 0.5f), thickness = 0.8.dp)
+
+            // Connection State & Endpoint
+            Text(
+                text = "Host: ${diagnostics.backendUrl}",
+                color = TextSecondary,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace
+            )
+
+            // Latency Metrics Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                MetricItem(label = "Last", value = "${diagnostics.lastLatencyMs?.toInt() ?: 0}ms")
+                MetricItem(label = "Average", value = "${diagnostics.averageLatencyMs.toInt()}ms")
+                MetricItem(label = "P95", value = "${diagnostics.p95LatencyMs.toInt()}ms")
+                MetricItem(label = "Min", value = "${diagnostics.minLatencyMs.toInt()}ms")
+                MetricItem(label = "Max", value = "${diagnostics.maxLatencyMs.toInt()}ms")
+            }
+
+            // Requests & Failure Counts
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Total Requests: ${diagnostics.totalRequests}",
+                    color = TextMuted,
+                    fontSize = 10.sp
+                )
+                Text(
+                    text = "Failures: ${diagnostics.failedRequests}",
+                    color = if (diagnostics.failedRequests > 0) CrimsonNeon else EmeraldNeon,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                if (diagnostics.lastSuccessfulRequestTime != null) {
+                    Text(
+                        text = "Last OK: ${diagnostics.lastSuccessfulRequestTime}",
+                        color = EmeraldNeon,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+
+            if (diagnostics.lastFailureReason != null) {
+                Text(
+                    text = "Last Error: ${diagnostics.lastFailureReason}",
+                    color = CrimsonNeon,
+                    fontSize = 10.sp,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MetricItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, color = TextMuted, fontSize = 9.sp)
+        Text(text = value, color = CyanNeon, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+    }
+}
+
+@Composable
 fun SystemTelemetryCard(
-    backendConnected: Boolean,
+    connectionState: ConnectionState,
     geminiConnected: Boolean,
     googleConnected: Boolean,
     gmailConnected: Boolean,
@@ -209,12 +345,12 @@ fun SystemTelemetryCard(
                 letterSpacing = 1.sp
             )
 
-            // Primary Cloud Services (Backend, Gemini, Google, Gmail)
+            // Primary Cloud Services with 4-State Connection Machine
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatusIndicator(label = "Backend", isConnected = backendConnected)
+                ConnectionStatusIndicator(state = connectionState)
                 StatusIndicator(label = "Gemini", isConnected = geminiConnected)
                 StatusIndicator(label = "Google", isConnected = googleConnected)
                 StatusIndicator(label = "Gmail", isConnected = gmailConnected)
@@ -279,6 +415,33 @@ fun SystemTelemetryCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ConnectionStatusIndicator(state: ConnectionState) {
+    val (color, text) = when (state) {
+        ConnectionState.CONNECTED -> Pair(EmeraldNeon, "CONNECTED")
+        ConnectionState.CONNECTING -> Pair(CyanNeon, "CONNECTING")
+        ConnectionState.DEGRADED -> Pair(Color(0xFFFFA500), "DEGRADED")
+        ConnectionState.DISCONNECTED -> Pair(CrimsonNeon, "DISCONNECTED")
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .background(color, CircleShape)
+        )
+        Text(
+            text = "Backend: $text",
+            color = color,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -413,7 +576,7 @@ fun TextAssistantInputRow(
         OutlinedTextField(
             value = textInput,
             onValueChange = onTextChanged,
-            placeholder = { Text("Type a query (e.g. 'Check my email')", color = TextMuted, fontSize = 12.sp) },
+            placeholder = { Text("Type a query (e.g. 'What time is it?')", color = TextMuted, fontSize = 12.sp) },
             modifier = Modifier.weight(1f),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
@@ -545,7 +708,7 @@ fun BackendUrlConfigCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "BACKEND SERVER URL (WI-FI LAN / EMULATOR)",
+                text = "BACKEND SERVER URL (WI-FI LAN / HOTSPOT)",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 fontSize = 10.sp,

@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     LLM_BASE_URL: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: Optional[str] = None
+    FAST_MODEL: str = "gemini-1.5-flash"
+    QUALITY_MODEL: str = "gemini-1.5-pro"
+    MAX_AGENT_STEPS: int = 4
+    RECENT_MESSAGES_LIMIT: int = 10
 
     # Server Settings
     HOST: str = "127.0.0.1"

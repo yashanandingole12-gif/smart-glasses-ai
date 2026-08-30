@@ -1,6 +1,8 @@
 package com.smartglasses.ai.presentation.home
 
 import com.smartglasses.ai.core.bluetooth.DeviceConnectionState
+import com.smartglasses.ai.core.network.ConnectionState
+import com.smartglasses.ai.core.network.NetworkDiagnostics
 import com.smartglasses.ai.domain.models.AssistantState
 import com.smartglasses.ai.domain.models.ChatMessage
 import com.smartglasses.ai.domain.models.IntegrationState
@@ -13,6 +15,7 @@ data class WearableHomeState(
     val deviceConnectionState: DeviceConnectionState = DeviceConnectionState.CONNECTED_SIMULATED,
     val batteryPercentage: Int = 85,
     val isCharging: Boolean = false,
+    val connectionState: ConnectionState = ConnectionState.CONNECTING,
     val aiConnected: Boolean = false,
     val llmConnected: Boolean = false,
     val googleConnected: Boolean = false,
@@ -39,5 +42,8 @@ data class WearableHomeState(
     val pendingConfirmation: WearableResponse? = null,
     val isConfigDialogOpen: Boolean = false,
     val serverUrl: String = "http://192.168.137.1:8001/",
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val networkDiagnostics: NetworkDiagnostics = NetworkDiagnostics(),
+    val showDiagnostics: Boolean = false,
+    val activeRequestId: String? = null
 )

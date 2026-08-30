@@ -82,8 +82,9 @@ async def get_current_context(timezone_str: str = settings.DEFAULT_TIMEZONE):
 async def process_agent_message(req: AgentMessageRequest):
     """
     Main conversational endpoint:
-    Processes user voice transcript or text query, enriches with Context Engine,
-    invokes LangGraph agent, and tracks sub-second latency breakdown.
+    Processes user voice transcript or text query with deterministic fast-path routing,
+    enriches with Context Engine, executes LangGraph agent when reasoning is required,
+    and logs sub-stage latency profiling.
     """
     metrics = LatencyMetrics(
         request_id=req.request_id,
@@ -93,22 +94,52 @@ async def process_agent_message(req: AgentMessageRequest):
     # Safe diagnostic metadata logging (No raw transcript logged in production)
     text_len = len(req.message.strip()) if req.message else 0
     logger.info(
-        f"STT_RESULT_RECEIVED: language={req.language or 'auto'} locale={req.locale or 'en-IN'} "
-        f"text_length={text_len} request_id={req.request_id[:8]}"
+        f"[REQ_ID: {req.request_id[:8]}] RECEIVED: lang={req.language or 'auto'} "
+        f"locale={req.locale or 'en-IN'} len={text_len}"
     )
 
+    # 1. Retrieve relevant context
     t_ctx_start = time.time()
-    # Retrieve relevant context
     context = context_engine.get_relevant_context(
         user_message=req.message,
         client_context=req.context,
         session_id=req.session_id
     )
-    metrics.context_duration_ms = (time.time() - t_ctx_start) * 1000.0
+    metrics.context_ms = (time.time() - t_ctx_start) * 1000.0
 
-    t_llm_start = time.time()
+    # 2. Section 7: Deterministic Fast Path Check (Time, Battery, Location, Date)
+    t_fp_start = time.time()
+    fast_reply = context_engine.resolve_deterministic_query(
+        user_message=req.message,
+        context=context,
+        language=req.language or "auto"
+    )
+    if fast_reply is not None:
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response=fast_reply,
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["context_engine_fast_path"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "timings": metrics.to_dict(),
+                "llm_provider": "fast_path",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
+    # 3. LangGraph Agent Execution
+    t_agent_start = time.time()
     try:
-        # Run LangGraph agent with language & locale awareness
         agent_output = await run_agent(
             session_id=req.session_id,
             user_message=req.message,
@@ -117,13 +148,19 @@ async def process_agent_message(req: AgentMessageRequest):
             locale=req.locale or "en-IN"
         )
     except Exception as e:
-        logger.error(f"Agent execution encountered an error: {type(e).__name__}: {e}")
+        logger.error(f"[REQ_ID: {req.request_id[:8]}] Agent execution error: {type(e).__name__}: {e}")
         agent_output = {
             "response": f"I'm listening on your smart glasses. The cloud AI service is temporarily offline or experiencing a connection error. ({type(e).__name__})",
             "actions": [],
-            "requires_confirmation": False
+            "requires_confirmation": False,
+            "timings": {}
         }
-    metrics.llm_duration_ms = (time.time() - t_llm_start) * 1000.0
+    
+    agent_timings = agent_output.get("timings") or {}
+    metrics.agent_ms = agent_timings.get("agent_ms", (time.time() - t_agent_start) * 1000.0)
+    metrics.llm_first_response_ms = agent_timings.get("llm_first_response_ms")
+    metrics.tool_ms = agent_timings.get("tool_ms")
+    metrics.llm_final_response_ms = agent_timings.get("llm_final_response_ms")
     metrics.finish()
 
     log_request_metrics(metrics)
@@ -134,11 +171,13 @@ async def process_agent_message(req: AgentMessageRequest):
         actions=agent_output.get("actions", []),
         requires_confirmation=agent_output.get("requires_confirmation", False),
         confirmation_prompt=agent_output.get("confirmation_prompt"),
-        sources=["context_engine", "calendar", "sqlite_memory"],
+        sources=["context_engine", "sqlite_memory", "langgraph"],
         metadata={
-            "latency_ms": metrics.total_latency_ms,
+            "latency_ms": metrics.total_ms,
+            "fast_path": False,
+            "timings": metrics.to_dict(),
             "llm_provider": settings.LLM_PROVIDER,
-            "period": context.time.period,
+            "request_id": req.request_id,
             "language": req.language or "auto",
             "locale": req.locale or "en-IN"
         }

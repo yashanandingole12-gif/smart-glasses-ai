@@ -12,6 +12,8 @@ import com.smartglasses.ai.core.bluetooth.BleManager
 import com.smartglasses.ai.core.device.AndroidBatteryProvider
 import com.smartglasses.ai.core.location.AndroidLocationProvider
 import com.smartglasses.ai.core.network.BackendConfig
+import com.smartglasses.ai.core.network.ConnectionState
+import com.smartglasses.ai.core.network.NetworkDiagnostics
 import com.smartglasses.ai.core.permissions.PermissionManager
 import com.smartglasses.ai.data.repositories.AssistantRepositoryImpl
 import com.smartglasses.ai.domain.models.AssistantState
@@ -19,7 +21,10 @@ import com.smartglasses.ai.domain.models.ChatMessage
 import com.smartglasses.ai.domain.models.IntegrationState
 import com.smartglasses.ai.domain.models.WearableTelemetry
 import com.smartglasses.ai.domain.usecases.SendVoiceQueryUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -39,12 +44,24 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
 
     private val sessionId = UUID.randomUUID().toString()
 
+    // Section 4 & 17: Connection State Machine & Active In-Flight Job
+    private var consecutiveFailures = 0
+    private val latencyHistory = mutableListOf<Double>()
+    private var totalRequestsCount = 0
+    private var failedRequestsCount = 0
+    private var currentAssistantJob: Job? = null
+
     private val _uiState = MutableStateFlow(
         WearableHomeState(
             serverUrl = BackendConfig.getBaseUrl(),
             currentTime = getCurrentFormattedTime(),
             period = calculateTimePeriod(),
-            isMicrophoneReady = PermissionManager.hasAudioPermission(application)
+            isMicrophoneReady = PermissionManager.hasAudioPermission(application),
+            connectionState = ConnectionState.CONNECTING,
+            networkDiagnostics = NetworkDiagnostics(
+                backendUrl = BackendConfig.getBaseUrl(),
+                connectionState = ConnectionState.CONNECTING
+            )
         )
     )
     val uiState: StateFlow<WearableHomeState> = _uiState.asStateFlow()
@@ -127,7 +144,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             }
         }
 
-        // 2. Real Location
+        // 2. Real Device Location
         viewModelScope.launch {
             locationProvider.locationState.collect { loc ->
                 _uiState.update {
@@ -141,14 +158,14 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             }
         }
 
-        // 3. Ble Manager
+        // 3. Bluetooth Glasses State
         viewModelScope.launch {
-            bleManager.connectionState.collect { conn ->
-                _uiState.update { it.copy(deviceConnectionState = conn) }
+            bleManager.connectionState.collect { bleState ->
+                _uiState.update { it.copy(deviceConnectionState = bleState) }
             }
         }
 
-        // 4. Periodic clock update & background health polling
+        // 4. Section 5: Periodic clock update & lightweight background health polling (every 15s)
         viewModelScope.launch(Dispatchers.Default) {
             while (true) {
                 val formattedTime = getCurrentFormattedTime()
@@ -161,8 +178,8 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                         isMicrophoneReady = micReady
                     )
                 }
-                refreshAllStatuses()
-                kotlinx.coroutines.delay(10000)
+                checkBackendHealth()
+                delay(15000)
             }
         }
     }
@@ -175,16 +192,85 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    // Section 4 & 5: Health Check with 4-State Machine (CONNECTED, CONNECTING, DEGRADED, DISCONNECTED)
     fun checkBackendHealth() {
         viewModelScope.launch {
+            val t0 = SystemClock.elapsedRealtime()
             val result = repository.checkHealth()
-            val isConnected = result.getOrDefault(false)
-            _uiState.update {
-                it.copy(
-                    aiConnected = isConnected,
-                    llmConnected = isConnected
-                )
+            val dur = (SystemClock.elapsedRealtime() - t0).toDouble()
+            if (result.isSuccess && result.getOrDefault(false)) {
+                handleConnectionSuccess(dur)
+            } else {
+                val reason = result.exceptionOrNull()?.localizedMessage ?: "Health check failed"
+                handleConnectionFailure(reason)
             }
+        }
+    }
+
+    private fun handleConnectionSuccess(latencyMs: Double) {
+        consecutiveFailures = 0
+        totalRequestsCount++
+        latencyHistory.add(latencyMs)
+        if (latencyHistory.size > 50) latencyHistory.removeAt(0)
+
+        val sorted = latencyHistory.sorted()
+        val avg = latencyHistory.average()
+        val p95Index = (sorted.size * 0.95).toInt().coerceAtMost(sorted.size - 1)
+        val p95 = if (sorted.isNotEmpty()) sorted[p95Index] else latencyMs
+        val min = sorted.firstOrNull() ?: latencyMs
+        val max = sorted.lastOrNull() ?: latencyMs
+
+        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+
+        val diag = NetworkDiagnostics(
+            backendUrl = BackendConfig.getBaseUrl(),
+            connectionState = ConnectionState.CONNECTED,
+            lastSuccessfulRequestTime = timeStr,
+            lastFailureReason = null,
+            lastLatencyMs = latencyMs,
+            averageLatencyMs = avg,
+            p95LatencyMs = p95,
+            minLatencyMs = min,
+            maxLatencyMs = max,
+            totalRequests = totalRequestsCount,
+            failedRequests = failedRequestsCount
+        )
+
+        _uiState.update {
+            it.copy(
+                connectionState = ConnectionState.CONNECTED,
+                aiConnected = true,
+                llmConnected = true,
+                networkDiagnostics = diag
+            )
+        }
+    }
+
+    private fun handleConnectionFailure(reason: String) {
+        consecutiveFailures++
+        totalRequestsCount++
+        failedRequestsCount++
+
+        val nextState = if (consecutiveFailures < 3) {
+            ConnectionState.DEGRADED
+        } else {
+            ConnectionState.DISCONNECTED
+        }
+
+        val diag = _uiState.value.networkDiagnostics.copy(
+            backendUrl = BackendConfig.getBaseUrl(),
+            connectionState = nextState,
+            lastFailureReason = reason,
+            totalRequests = totalRequestsCount,
+            failedRequests = failedRequestsCount
+        )
+
+        _uiState.update {
+            it.copy(
+                connectionState = nextState,
+                aiConnected = nextState != ConnectionState.DISCONNECTED,
+                networkDiagnostics = diag
+            )
         }
     }
 
@@ -258,17 +344,24 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
         executeAssistantQuery(message = transcript, language = languageTag, locale = languageTag)
     }
 
+    // Section 17: Request Cancellation & Fast Query Execution
     private fun executeAssistantQuery(message: String, language: String, locale: String) {
+        // Cancel in-flight assistant request if user speaks again
+        currentAssistantJob?.cancel()
+
         val userChat = ChatMessage(sender = "USER", text = message)
+        val reqId = UUID.randomUUID().toString()
+
         _uiState.update {
             it.copy(
                 assistantState = AssistantState.PROCESSING,
                 partialVoiceTranscript = "",
-                messages = it.messages + userChat
+                messages = it.messages + userChat,
+                activeRequestId = reqId
             )
         }
 
-        viewModelScope.launch {
+        currentAssistantJob = viewModelScope.launch {
             val telemetry = WearableTelemetry(
                 glassesConnected = _uiState.value.deviceConnectionState != com.smartglasses.ai.core.bluetooth.DeviceConnectionState.DISCONNECTED,
                 batteryPercentage = _uiState.value.batteryPercentage,
@@ -284,72 +377,87 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             )
 
             val tStart = SystemClock.elapsedRealtime()
-            val result = sendVoiceQueryUseCase(
-                sessionId = sessionId,
-                query = message,
-                telemetry = telemetry,
-                language = language,
-                locale = locale
-            )
-            val durationMs = (SystemClock.elapsedRealtime() - tStart).toDouble()
-
-            result.onSuccess { resp ->
-                val assistantChat = ChatMessage(
-                    sender = "ASSISTANT",
-                    text = resp.text,
-                    requiresConfirmation = resp.requiresConfirmation,
-                    latencyMs = resp.latencyMs.takeIf { it > 0.0 } ?: durationMs
+            try {
+                val result = sendVoiceQueryUseCase(
+                    sessionId = sessionId,
+                    query = message,
+                    telemetry = telemetry,
+                    language = language,
+                    locale = locale
                 )
+                val durationMs = (SystemClock.elapsedRealtime() - tStart).toDouble()
 
-                _uiState.update {
-                    it.copy(
-                        assistantState = AssistantState.SPEAKING,
-                        latestSpeech = resp.text,
-                        messages = it.messages + assistantChat,
-                        pendingConfirmation = if (resp.requiresConfirmation) resp else null,
-                        aiConnected = true,
-                        llmConnected = true,
-                        lastResponseLatencyMs = resp.latencyMs.takeIf { lat -> lat > 0.0 } ?: durationMs,
-                        isSendingText = false
+                result.onSuccess { resp ->
+                    handleConnectionSuccess(durationMs)
+
+                    val assistantChat = ChatMessage(
+                        sender = "ASSISTANT",
+                        text = resp.text,
+                        requiresConfirmation = resp.requiresConfirmation,
+                        latencyMs = resp.latencyMs.takeIf { it > 0.0 } ?: durationMs
                     )
-                }
 
-                // Speak via native Android TTS and track speech duration
-                val ttsStart = SystemClock.elapsedRealtime()
-                textToSpeechManager.speak(resp.text) {
-                    val ttsDur = SystemClock.elapsedRealtime() - ttsStart
                     _uiState.update {
                         it.copy(
-                            assistantState = AssistantState.IDLE,
-                            ttsDurationMs = ttsDur
+                            assistantState = AssistantState.SPEAKING,
+                            latestSpeech = resp.text,
+                            messages = it.messages + assistantChat,
+                            pendingConfirmation = if (resp.requiresConfirmation) resp else null,
+                            lastResponseLatencyMs = resp.latencyMs.takeIf { lat -> lat > 0.0 } ?: durationMs,
+                            isSendingText = false
+                        )
+                    }
+
+                    // Section 15: Concise response playback tracking
+                    val ttsStart = SystemClock.elapsedRealtime()
+                    textToSpeechManager.speak(resp.text) {
+                        val ttsDur = SystemClock.elapsedRealtime() - ttsStart
+                        _uiState.update {
+                            it.copy(
+                                assistantState = AssistantState.IDLE,
+                                ttsDurationMs = ttsDur
+                            )
+                        }
+                    }
+                }.onFailure { err ->
+                    handleConnectionFailure(err.localizedMessage ?: "Query error")
+
+                    val errorMsg = if (_uiState.value.connectionState == ConnectionState.DISCONNECTED) {
+                        "BACKEND OFFLINE"
+                    } else {
+                        "Error: ${err.localizedMessage ?: "Could not complete request"}"
+                    }
+
+                    val assistantChat = ChatMessage(
+                        sender = "ASSISTANT",
+                        text = errorMsg,
+                        latencyMs = durationMs
+                    )
+
+                    _uiState.update {
+                        it.copy(
+                            assistantState = AssistantState.ERROR,
+                            latestSpeech = errorMsg,
+                            errorMessage = err.localizedMessage,
+                            messages = it.messages + assistantChat,
+                            isSendingText = false,
+                            lastResponseLatencyMs = durationMs
                         )
                     }
                 }
-            }.onFailure { err ->
-                val errorMsg = if (!_uiState.value.aiConnected) {
-                    "Backend is unavailable."
-                } else {
-                    "Error: ${err.localizedMessage ?: "Could not complete request"}"
-                }
-
-                val assistantChat = ChatMessage(
-                    sender = "ASSISTANT",
-                    text = errorMsg,
-                    latencyMs = durationMs
-                )
-
-                _uiState.update {
-                    it.copy(
-                        assistantState = AssistantState.ERROR,
-                        latestSpeech = errorMsg,
-                        errorMessage = err.localizedMessage,
-                        messages = it.messages + assistantChat,
-                        isSendingText = false,
-                        lastResponseLatencyMs = durationMs
-                    )
-                }
+            } catch (e: CancellationException) {
+                // Request was safely cancelled by subsequent user action
+                _uiState.update { it.copy(assistantState = AssistantState.IDLE, isSendingText = false) }
+            } catch (e: Exception) {
+                val durationMs = (SystemClock.elapsedRealtime() - tStart).toDouble()
+                handleConnectionFailure(e.localizedMessage ?: "Unexpected error")
+                _uiState.update { it.copy(assistantState = AssistantState.ERROR, isSendingText = false) }
             }
         }
+    }
+
+    fun toggleDiagnostics() {
+        _uiState.update { it.copy(showDiagnostics = !it.showDiagnostics) }
     }
 
     fun toggleDeviceConnectionMode() {
@@ -372,17 +480,24 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
 
     fun testBackendConnection(url: String, callback: (Boolean, String) -> Unit) {
         viewModelScope.launch {
+            _uiState.update { it.copy(connectionState = ConnectionState.CONNECTING) }
             val normalized = BackendConfig.normalizeUrl(url)
             val prev = BackendConfig.getBaseUrl()
             BackendConfig.setBaseUrl(normalized)
+            val t0 = SystemClock.elapsedRealtime()
             val result = repository.checkHealth()
+            val dur = (SystemClock.elapsedRealtime() - t0).toDouble()
+
             if (result.isSuccess && result.getOrNull() == true) {
-                _uiState.update { it.copy(serverUrl = normalized, aiConnected = true, llmConnected = true) }
+                handleConnectionSuccess(dur)
+                _uiState.update { it.copy(serverUrl = normalized) }
                 checkGoogleStatus()
                 callback(true, "Connected successfully!")
             } else {
                 BackendConfig.setBaseUrl(prev)
-                callback(false, result.exceptionOrNull()?.localizedMessage ?: "Backend is unavailable.")
+                val err = result.exceptionOrNull()?.localizedMessage ?: "Backend is unavailable."
+                handleConnectionFailure(err)
+                callback(false, err)
             }
         }
     }
@@ -404,6 +519,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
 
     override fun onCleared() {
         super.onCleared()
+        currentAssistantJob?.cancel()
         batteryProvider.unregister()
         speechRecognizerManager?.destroy()
         textToSpeechManager.shutdown()

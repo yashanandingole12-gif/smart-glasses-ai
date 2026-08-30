@@ -1,9 +1,11 @@
 import json
+import time
 import logging
 from typing import TypedDict, Annotated, List, Dict, Any, Optional
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 
+from backend.app.config import settings
 from backend.app.services.llm_service import llm_service, ToolCall
 from backend.app.services.tool_registry import registry
 from backend.app.services.context_engine import context_engine
@@ -24,69 +26,93 @@ class AgentState(TypedDict):
     confirmation_prompt: Optional[str]
     final_response: Optional[str]
     iteration_count: int
+    timings: Dict[str, float]
 
 def load_session_and_context(state: AgentState) -> Dict[str, Any]:
-    """Node: Load past conversation history and enrich with Context Engine and Language parameters."""
+    """Node: Load bounded past conversation history and build minimal necessary context."""
     session_id = state["session_id"]
     user_msg = state["user_message"]
     lang = state.get("language") or "auto"
     loc = state.get("locale") or "en-IN"
 
-    # 1. Load short-term history from SQLite
-    history = memory_repository.get_session_history(session_id, limit=6)
+    # 1. Load bounded recent history (Section 13: RECENT_MESSAGES_LIMIT)
+    history = memory_repository.get_session_history(session_id, limit=settings.RECENT_MESSAGES_LIMIT)
     messages = list(history)
 
-    # 2. Build system context message with multilingual instructions
+    # 2. Build concise system context message (Section 12: Prompt Size Minimization)
     ctx = state.get("context_payload") or {}
     t_info = ctx.get("time", {})
     l_info = ctx.get("location", {})
     c_info = ctx.get("calendar", {})
 
     lang_instructions = (
-        "Respond concisely and naturally in the SAME language and script as the user's message "
-        "(e.g., Hindi for Hindi queries like सुप्रभात, Marathi for Marathi queries like शुभ सकाळ, "
-        "English for English, Hinglish for Hinglish). "
-        "Do not translate unless explicitly requested by the user.\n"
+        "Respond concisely in the same language and script as user query. "
+        "Keep responses brief, informative, and wearable-friendly.\n"
     )
 
     system_prompt = (
         f"You are the AI assistant inside smart glasses.\n"
-        f"Keep responses natural, concise, helpful, and wearable-friendly.\n"
         f"{lang_instructions}"
-        f"Current Time: {t_info.get('local_time', '08:15 AM')} ({t_info.get('period', 'morning')})\n"
-        f"Current Location: {l_info.get('city', 'Nagpur')}, {l_info.get('country', 'India')}\n"
+        f"Time: {t_info.get('local_time', '08:15 AM')} ({t_info.get('period', 'morning')})\n"
     )
+    if l_info.get("is_available") and l_info.get("city") not in ["Unavailable", "Unknown", None]:
+        system_prompt += f"Location: {l_info.get('city')}\n"
+
     if c_info.get("next_event"):
         ne = c_info["next_event"]
-        system_prompt += f"Next Calendar Event: {ne.get('title')} at {ne.get('start_time')}\n"
+        system_prompt += f"Next Event: {ne.get('title')} at {ne.get('start_time')}\n"
 
-    # Prepend or update system message
     messages = [{"role": "system", "content": system_prompt}] + messages
     messages.append({"role": "user", "content": user_msg})
 
     return {
         "messages": messages,
         "iteration_count": 0,
-        "actions": []
+        "actions": [],
+        "timings": state.get("timings") or {}
     }
 
 async def call_llm_node(state: AgentState) -> Dict[str, Any]:
-    """Node: Call LLM with tool definitions and current messages."""
+    """Node: Call LLM with selective tool definitions based on user intent."""
     messages = state["messages"]
     ctx = state.get("context_payload", {})
-    tools = [
-        {
-            "name": t.name,
-            "description": t.description,
-            "parameters": t.parameters
-        }
-        for t in registry.list_tools()
-    ]
+    user_msg = state["user_message"].lower()
+    timings = dict(state.get("timings") or {})
 
+    # Section 8: Gmail Fast Path & Selective Tool Loading
+    # Only bind tools if user intent requires external interaction
+    has_email_intent = any(
+        kw in user_msg or kw in state["user_message"]
+        for kw in ["email", "mail", "gmail", "ईमेल", "तपासा", "संदेश", "चेक", "unread", "inbox"]
+    )
+
+    tools = None
+    if has_email_intent:
+        tools = [
+            {
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.parameters
+            }
+            for t in registry.list_tools()
+            if "gmail" in t.name
+        ]
+
+    # Model tier selection (Section 11: FAST_MODEL vs QUALITY_MODEL)
+    model_name = settings.FAST_MODEL if not has_email_intent else settings.QUALITY_MODEL
+
+    t0 = time.time()
     llm_resp = await llm_service.generate(messages, tools=tools, context_payload=ctx)
+    duration_ms = (time.time() - t0) * 1000.0
+
+    if "llm_first_response_ms" not in timings:
+        timings["llm_first_response_ms"] = duration_ms
+    else:
+        timings["llm_final_response_ms"] = duration_ms
+
+    iter_count = state["iteration_count"] + 1
 
     if llm_resp.tool_calls:
-        # Save tool calls in state
         return {
             "actions": [
                 {
@@ -96,22 +122,26 @@ async def call_llm_node(state: AgentState) -> Dict[str, Any]:
                 }
                 for tc in llm_resp.tool_calls
             ],
-            "iteration_count": state["iteration_count"] + 1
+            "iteration_count": iter_count,
+            "timings": timings
         }
     else:
         return {
             "final_response": llm_resp.content or "I am ready to help.",
-            "iteration_count": state["iteration_count"] + 1
+            "iteration_count": iter_count,
+            "timings": timings
         }
 
 async def execute_tool_node(state: AgentState) -> Dict[str, Any]:
     """Node: Execute requested tool or prepare confirmation."""
     actions = state.get("actions", [])
     messages = list(state["messages"])
+    timings = dict(state.get("timings") or {})
     updated_actions = []
     requires_conf = False
     conf_prompt = None
 
+    t_tool_start = time.time()
     for act in actions:
         tool_name = act["tool_name"]
         tool_input = act["tool_input"]
@@ -150,33 +180,40 @@ async def execute_tool_node(state: AgentState) -> Dict[str, Any]:
                     "result": str(e)
                 })
 
-        # Append tool execution result to message history for next LLM turn
         messages.append({
             "role": "tool",
             "content": res_str,
             "name": tool_name
         })
 
+    timings["tool_ms"] = (time.time() - t_tool_start) * 1000.0
+
     if requires_conf:
         return {
             "actions": updated_actions,
             "requires_confirmation": True,
             "confirmation_prompt": conf_prompt,
-            "final_response": conf_prompt
+            "final_response": conf_prompt,
+            "timings": timings
         }
 
     return {
         "messages": messages,
-        "actions": updated_actions
+        "actions": updated_actions,
+        "timings": timings
     }
 
 def route_after_llm(state: AgentState) -> str:
-    """Conditional Edge: Determine if tools need executing or finish."""
+    """Conditional Edge: Section 10 - Strict iteration limit enforcement."""
     if state.get("requires_confirmation"):
         return END
     if state.get("final_response"):
         return END
-    if state.get("actions") and state.get("iteration_count", 0) <= 3:
+    # Stop safely if max agent steps exceeded
+    if state.get("iteration_count", 0) >= settings.MAX_AGENT_STEPS:
+        logger.warning(f"Agent reached MAX_AGENT_STEPS ({settings.MAX_AGENT_STEPS}). Stopping.")
+        return END
+    if state.get("actions"):
         return "execute_tool"
     return END
 
@@ -195,7 +232,6 @@ def build_smart_glasses_graph():
     })
     graph.add_edge("execute_tool", "call_llm")
 
-    # In-memory checkpointer for conversational continuity
     checkpointer = MemorySaver()
     return graph.compile(checkpointer=checkpointer)
 
@@ -208,7 +244,8 @@ async def run_agent(
     language: str = "auto",
     locale: str = "en-IN"
 ) -> Dict[str, Any]:
-    """Execute LangGraph agent workflow for a given user turn with language awareness."""
+    """Execute LangGraph agent workflow with profiling and safe step limiting."""
+    t_start = time.time()
     initial_state: AgentState = {
         "session_id": session_id,
         "user_message": user_message,
@@ -220,15 +257,20 @@ async def run_agent(
         "requires_confirmation": False,
         "confirmation_prompt": None,
         "final_response": None,
-        "iteration_count": 0
+        "iteration_count": 0,
+        "timings": {}
     }
 
     config = {"configurable": {"thread_id": session_id}}
     result = await agent_graph.ainvoke(initial_state, config=config)
 
+    total_agent_ms = (time.time() - t_start) * 1000.0
+    timings = result.get("timings") or {}
+    timings["agent_ms"] = total_agent_ms
+
     final_resp = result.get("final_response") or "I processed your request."
 
-    # Save to SQLite memory repository
+    # Save to memory
     memory_repository.save_message(session_id, "user", user_message)
     memory_repository.save_message(session_id, "assistant", final_resp)
 
@@ -245,5 +287,7 @@ async def run_agent(
             for a in result.get("actions", [])
         ],
         "requires_confirmation": result.get("requires_confirmation", False),
-        "confirmation_prompt": result.get("confirmation_prompt")
+        "confirmation_prompt": result.get("confirmation_prompt"),
+        "timings": timings,
+        "steps_count": result.get("iteration_count", 1)
     }

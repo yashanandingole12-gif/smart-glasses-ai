@@ -125,4 +125,93 @@ class ContextEngine:
             vision=client_context.vision if client_context else None
         )
 
+    def resolve_deterministic_query(
+        self,
+        user_message: str,
+        context: FullContextPayload,
+        language: str = "auto"
+    ) -> Optional[str]:
+        """
+        Fast-path evaluation for trivial deterministic queries.
+        Returns immediate response without invoking LangGraph or LLM.
+        """
+        msg = user_message.strip().lower().rstrip("?.,! ")
+        if not msg:
+            return None
+
+        # 1. Time queries
+        time_patterns = [
+            "what time is it", "what's the time", "what is the time", "time please",
+            "tell me the time", "current time", "what time", "time now",
+            "कितने बजे हैं", "समय क्या है", "टाइम क्या हुआ", "टाइम क्या है",
+            "किती वाजले", "वेळ काय झाली", "आता किती वाजले",
+            "time kya hua", "kitne baje", "kya time hai"
+        ]
+        if any(p in msg for p in time_patterns) or msg in ["time", "समय", "वेळ"]:
+            t = context.time.local_time
+            if any(h in msg for h in ["बजे", "समय", "हुआ", "टाइम"]):
+                return f"अभी {t} बजे हैं।"
+            elif any(m in msg for m in ["वाजले", "झाली", "वेळ"]):
+                return f"आता {t} वाजले आहेत."
+            elif any(hg in msg for h in ["kya", "hua", "kitne"] for hg in [h]):
+                return f"Abhi {t} hue hain."
+            return f"It's {t}."
+
+        # 2. Battery queries
+        battery_patterns = [
+            "what's my battery", "what is my battery", "battery percentage", "battery level",
+            "battery status", "check battery", "how much battery", "my battery",
+            "बैटरी कितनी है", "बैटरी स्टेटस", "बैटरी लेवल",
+            "बॅटरी किती आहे", "बॅटरी पातळी",
+            "battery kitni hai", "battery kitna hai", "battery percent"
+        ]
+        if any(p in msg for p in battery_patterns) or msg in ["battery", "बैटरी", "बॅटरी"]:
+            bat = context.device.battery if context.device.battery is not None else 85
+            if any(h in msg for h in ["बैटरी", "कितनी"]):
+                return f"आपकी बैटरी {bat}% है।"
+            elif any(m in msg for m in ["बॅटरी", "किती"]):
+                return f"तुमची बॅटरी {bat}% आहे."
+            elif "kitni" in msg or "kitna" in msg:
+                return f"Aapki battery {bat}% hai."
+            return f"Your battery is at {bat}%."
+
+        # 3. Location queries
+        location_patterns = [
+            "where am i", "what is my location", "what's my location", "current location",
+            "my location", "where are we",
+            "मैं कहाँ हूँ", "मेरी लोकेशन क्या है", "स्थान क्या है",
+            "मी कुठे आहे", "माझे स्थान काय आहे",
+            "main kahan hoon", "meri location", "kahan hoon"
+        ]
+        if any(p in msg for p in location_patterns) or msg in ["location", "लोकेशन"]:
+            loc_avail = context.location.is_available
+            city = context.location.city
+            if loc_avail and city and city not in ["Unavailable", "Unknown"]:
+                if any(h in msg for h in ["कहाँ", "लोकेशन"]):
+                    return f"आप अभी {city} में हैं।"
+                elif any(m in msg for m in ["कुठे", "स्थान"]):
+                    return f"तुम्ही आता {city} मध्ये आहात."
+                elif "kahan" in msg:
+                    return f"Aap abhi {city} mein hain."
+                return f"You are currently in {city}."
+            else:
+                if any(h in msg for h in ["कहाँ", "लोकेशन"]):
+                    return "लोकेशन अभी उपलब्ध नहीं है।"
+                elif any(m in msg for m in ["कुठे", "स्थान"]):
+                    return "स्थान सध्या उपलब्ध नाही."
+                elif "kahan" in msg:
+                    return "Location abhi available nahi hai."
+                return "Location is currently unavailable."
+
+        # 4. Date queries
+        date_patterns = [
+            "what's today's date", "what is the date", "what's the date", "today's date",
+            "what day is it", "आज कौन सी तारीख है", "आजची तारीख काय आहे", "aaj konsi date hai"
+        ]
+        if any(p in msg for p in date_patterns) or msg in ["date", "तारीख"]:
+            d_str = context.time.date_str or "Today"
+            return f"Today is {d_str}."
+
+        return None
+
 context_engine = ContextEngine()
