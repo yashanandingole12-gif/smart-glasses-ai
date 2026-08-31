@@ -306,7 +306,9 @@ class LLMService:
         }
         payload: Dict[str, Any] = {
             "model": self.model,
-            "messages": messages
+            "messages": messages,
+            "max_tokens": 120,
+            "temperature": 0.2
         }
         if tools:
             payload["tools"] = [{"type": "function", "function": t} for t in tools]
@@ -385,6 +387,13 @@ class LLMService:
                     "parameters": t.get("parameters", {"type": "object", "properties": {}})
                 })
             payload["tools"] = [{"functionDeclarations": gemini_tools}]
+
+        # 4. Wearable Ultra-Low-Latency Constraints (Cap tokens to 120 for instant response)
+        payload["generationConfig"] = {
+            "maxOutputTokens": 120,
+            "temperature": 0.2,
+            "topP": 0.8
+        }
 
         headers = {
             "Content-Type": "application/json",
