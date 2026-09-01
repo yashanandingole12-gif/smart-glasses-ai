@@ -137,6 +137,30 @@ class LLMService:
                     provider="mock",
                     model=self.model
                 )
+            elif "error" in str(data).lower() or "unauthorized" in str(data).lower() or "unauthenticated" in str(data).lower() or "401" in str(data):
+                if any(h in last_user_msg for h in ["ईमेल", "चेक", "करो"]):
+                    return LLMResponse(
+                        content="आपका Gmail खाता अभी कनेक्ट नहीं है। कृपया ऐप से Google लॉगिन करें।",
+                        provider="mock",
+                        model=self.model
+                    )
+                elif any(m in last_user_msg for m in ["तपासा", "वाचा"]):
+                    return LLMResponse(
+                        content="तुमचे Gmail खाते सध्या कनेक्ट केलेले नाही. कृपया ॲपवरून Google लॉगिन करा.",
+                        provider="mock",
+                        model=self.model
+                    )
+                elif "mere" in msg_lower or "batao" in msg_lower or "karo" in msg_lower:
+                    return LLMResponse(
+                        content="Aapka Gmail account abhi connected nahi hai. Please Google login check karein.",
+                        provider="mock",
+                        model=self.model
+                    )
+                return LLMResponse(
+                    content="Your Gmail account is not connected. Please sign in with Google in the mobile app.",
+                    provider="mock",
+                    model=self.model
+                )
             elif "free_slots" in str(data):
                 return LLMResponse(
                     content="You are free between 12:00 PM and 3:00 PM today, and after 7:30 PM.",
@@ -156,6 +180,12 @@ class LLMService:
                 t = next_ev.get("start_time", "10:30 AM")
                 return LLMResponse(
                     content=f"Your next event is {title} at {t}.",
+                    provider="mock",
+                    model=self.model
+                )
+            else:
+                return LLMResponse(
+                    content="I checked your request and processed the details.",
                     provider="mock",
                     model=self.model
                 )

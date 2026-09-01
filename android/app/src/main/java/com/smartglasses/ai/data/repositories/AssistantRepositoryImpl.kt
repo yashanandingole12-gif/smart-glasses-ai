@@ -74,6 +74,13 @@ class AssistantRepositoryImpl : AssistantRepository {
             val response = api.sendMessage(request)
 
             val latency = (response.metadata["latency_ms"] as? Number)?.toDouble() ?: 0.0
+            val failCatStr = response.metadata["failure_category"] as? String ?: "NONE"
+            val failCat = try {
+                com.smartglasses.ai.domain.models.FailureCategory.valueOf(failCatStr)
+            } catch (_: Exception) {
+                com.smartglasses.ai.domain.models.FailureCategory.NONE
+            }
+            val tier = (response.metadata["routing"] as? Map<*, *>)?.get("tier_used") as? String
 
             Result.success(
                 WearableResponse(
@@ -82,7 +89,9 @@ class AssistantRepositoryImpl : AssistantRepository {
                     requiresConfirmation = response.requiresConfirmation,
                     confirmationPrompt = response.confirmationPrompt,
                     sources = response.sources,
-                    latencyMs = latency
+                    latencyMs = latency,
+                    failureCategory = failCat,
+                    tierUsed = tier
                 )
             )
         } catch (e: Exception) {

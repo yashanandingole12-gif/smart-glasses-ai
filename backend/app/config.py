@@ -7,15 +7,30 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = PROJECT_ROOT / ".env"
 
 class Settings(BaseSettings):
-    # LLM Settings
+    # LLM Settings & Multi-Tier Router
     LLM_PROVIDER: str = "mock"  # "mock", "openai", "gemini", "anthropic", "ollama"
     LLM_MODEL: str = "gemini-flash-latest"
     LLM_API_KEY: Optional[str] = None
     LLM_BASE_URL: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: Optional[str] = None
-    FAST_MODEL: str = "gemini-1.5-flash"
-    QUALITY_MODEL: str = "gemini-1.5-pro"
+
+    # Multi-Tier Routing (Phase 3B.6)
+    FAST_LLM_PROVIDER: str = "gemini"
+    FAST_LLM_MODEL: str = "gemini-flash-latest"
+    PRIMARY_LLM_PROVIDER: str = "gemini"
+    PRIMARY_LLM_MODEL: str = "gemini-flash-latest"
+    FALLBACK_LLM_PROVIDER: str = "mock"
+    FALLBACK_LLM_MODEL: str = "mock-glasses-v1"
+
+    # Latency Budget & Hard Deadlines (Phase 3B.6)
+    LLM_TIMEOUT_SECONDS: float = 5.0
+    REQUEST_DEADLINE_SECONDS: float = 8.0
+    MAX_OUTPUT_TOKENS: int = 120
+    MAX_INPUT_TOKENS: int = 2048
+    VOICE_RESPONSE_MODE: bool = True
+
+    # Agent Limits
     MAX_AGENT_STEPS: int = 4
     RECENT_MESSAGES_LIMIT: int = 10
 
@@ -76,3 +91,8 @@ if not settings.GOOGLE_CLIENT_ID and settings.GMAIL_CLIENT_ID:
     settings.GOOGLE_CLIENT_ID = settings.GMAIL_CLIENT_ID
 if not settings.GOOGLE_CLIENT_SECRET and settings.GMAIL_CLIENT_SECRET:
     settings.GOOGLE_CLIENT_SECRET = settings.GMAIL_CLIENT_SECRET
+
+# If no Gemini key is configured or default is mock, align FAST/PRIMARY to mock
+if not settings.GEMINI_API_KEY and settings.LLM_PROVIDER == "mock":
+    settings.FAST_LLM_PROVIDER = "mock"
+    settings.PRIMARY_LLM_PROVIDER = "mock"

@@ -394,12 +394,13 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                         sender = "ASSISTANT",
                         text = resp.text,
                         requiresConfirmation = resp.requiresConfirmation,
-                        latencyMs = resp.latencyMs.takeIf { it > 0.0 } ?: durationMs
+                        latencyMs = resp.latencyMs.takeIf { it > 0.0 } ?: durationMs,
+                        failureCategory = resp.failureCategory
                     )
 
                     _uiState.update {
                         it.copy(
-                            assistantState = AssistantState.SPEAKING,
+                            assistantState = AssistantState.RESPONDING,
                             latestSpeech = resp.text,
                             messages = it.messages + assistantChat,
                             pendingConfirmation = if (resp.requiresConfirmation) resp else null,
@@ -408,7 +409,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                         )
                     }
 
-                    // Section 15: Concise response playback tracking
+                    // Section 10 & 13: Voice playback transition
                     val ttsStart = SystemClock.elapsedRealtime()
                     textToSpeechManager.speak(resp.text) {
                         val ttsDur = SystemClock.elapsedRealtime() - ttsStart
@@ -422,16 +423,22 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                 }.onFailure { err ->
                     handleConnectionFailure(err.localizedMessage ?: "Query error")
 
-                    val errorMsg = if (_uiState.value.connectionState == ConnectionState.DISCONNECTED) {
-                        "BACKEND OFFLINE"
-                    } else {
-                        "Error: ${err.localizedMessage ?: "Could not complete request"}"
+                    val errorMsg = when {
+                        err is java.net.SocketTimeoutException || err.localizedMessage?.contains("timeout", ignoreCase = true) == true ->
+                            "AI service is taking too long. Please try again."
+                        err.localizedMessage?.contains("429", ignoreCase = true) == true ->
+                            "AI service is busy. Retrying with backup provider."
+                        _uiState.value.connectionState == ConnectionState.DISCONNECTED ->
+                            "BACKEND OFFLINE"
+                        else ->
+                            "Error: ${err.localizedMessage ?: "Could not complete request"}"
                     }
 
                     val assistantChat = ChatMessage(
                         sender = "ASSISTANT",
                         text = errorMsg,
-                        latencyMs = durationMs
+                        latencyMs = durationMs,
+                        failureCategory = if (err is java.net.SocketTimeoutException) com.smartglasses.ai.domain.models.FailureCategory.LLM_TIMEOUT else com.smartglasses.ai.domain.models.FailureCategory.NETWORK_FAILURE
                     )
 
                     _uiState.update {

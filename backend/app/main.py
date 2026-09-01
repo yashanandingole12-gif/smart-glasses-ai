@@ -137,7 +137,7 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 3. LangGraph Agent Execution
+    # 3. LangGraph Agent Execution with Multi-Tier LLM Router
     t_agent_start = time.time()
     try:
         agent_output = await run_agent(
@@ -153,10 +153,17 @@ async def process_agent_message(req: AgentMessageRequest):
             "response": f"I'm listening on your smart glasses. The cloud AI service is temporarily offline or experiencing a connection error. ({type(e).__name__})",
             "actions": [],
             "requires_confirmation": False,
-            "timings": {}
+            "timings": {},
+            "routing_metadata": {
+                "tier_used": "FALLBACK",
+                "failure_category": "LLM_PROVIDER_ERROR",
+                "error": str(e)
+            }
         }
     
     agent_timings = agent_output.get("timings") or {}
+    routing_meta = agent_output.get("routing_metadata") or {}
+
     metrics.agent_ms = agent_timings.get("agent_ms", (time.time() - t_agent_start) * 1000.0)
     metrics.llm_first_response_ms = agent_timings.get("llm_first_response_ms")
     metrics.tool_ms = agent_timings.get("tool_ms")
@@ -171,12 +178,15 @@ async def process_agent_message(req: AgentMessageRequest):
         actions=agent_output.get("actions", []),
         requires_confirmation=agent_output.get("requires_confirmation", False),
         confirmation_prompt=agent_output.get("confirmation_prompt"),
-        sources=["context_engine", "sqlite_memory", "langgraph"],
+        sources=["context_engine", "sqlite_memory", "langgraph", routing_meta.get("tier_used", "FAST")],
         metadata={
             "latency_ms": metrics.total_ms,
             "fast_path": False,
             "timings": metrics.to_dict(),
-            "llm_provider": settings.LLM_PROVIDER,
+            "routing": routing_meta,
+            "llm_provider": routing_meta.get("provider", settings.LLM_PROVIDER),
+            "llm_model": routing_meta.get("model", settings.LLM_MODEL),
+            "failure_category": routing_meta.get("failure_category", "NONE"),
             "request_id": req.request_id,
             "language": req.language or "auto",
             "locale": req.locale or "en-IN"

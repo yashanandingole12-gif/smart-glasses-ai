@@ -6,7 +6,8 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 
 from backend.app.config import settings
-from backend.app.services.llm_service import llm_service, ToolCall
+from backend.app.services.llm_service import ToolCall
+from backend.app.services.llm_router import llm_router, RoutingTier, FailureCategory
 from backend.app.services.tool_registry import registry
 from backend.app.services.context_engine import context_engine
 from backend.app.services.memory_repository import memory_repository
@@ -26,7 +27,8 @@ class AgentState(TypedDict):
     confirmation_prompt: Optional[str]
     final_response: Optional[str]
     iteration_count: int
-    timings: Dict[str, float]
+    timings: Dict[str, Any]
+    routing_metadata: Dict[str, Any]
 
 def load_session_and_context(state: AgentState) -> Dict[str, Any]:
     """Node: Load bounded past conversation history and build minimal necessary context."""
@@ -35,19 +37,19 @@ def load_session_and_context(state: AgentState) -> Dict[str, Any]:
     lang = state.get("language") or "auto"
     loc = state.get("locale") or "en-IN"
 
-    # 1. Load bounded recent history (Section 13: RECENT_MESSAGES_LIMIT)
+    # Bounded recent history
     history = memory_repository.get_session_history(session_id, limit=settings.RECENT_MESSAGES_LIMIT)
     messages = list(history)
 
-    # 2. Build concise system context message (Section 12: Prompt Size Minimization)
+    # Minimal system prompt
     ctx = state.get("context_payload") or {}
     t_info = ctx.get("time", {})
     l_info = ctx.get("location", {})
     c_info = ctx.get("calendar", {})
 
     lang_instructions = (
-        "Respond concisely in the same language and script as user query. "
-        "Keep responses brief, informative, and wearable-friendly.\n"
+        "Respond concisely in 1-2 sentences in the same language and script as user query. "
+        "Keep responses brief, wearable-friendly, and voice-optimized.\n"
     )
 
     system_prompt = (
@@ -69,18 +71,19 @@ def load_session_and_context(state: AgentState) -> Dict[str, Any]:
         "messages": messages,
         "iteration_count": 0,
         "actions": [],
-        "timings": state.get("timings") or {}
+        "timings": state.get("timings") or {},
+        "routing_metadata": state.get("routing_metadata") or {}
     }
 
 async def call_llm_node(state: AgentState) -> Dict[str, Any]:
-    """Node: Call LLM with selective tool definitions based on user intent."""
+    """Node: Call LLM via multi-tier Router with latency budget & fallback cascade."""
     messages = state["messages"]
     ctx = state.get("context_payload", {})
     user_msg = state["user_message"].lower()
     timings = dict(state.get("timings") or {})
+    routing_meta = dict(state.get("routing_metadata") or {})
 
-    # Section 8: Gmail Fast Path & Selective Tool Loading
-    # Only bind tools if user intent requires external interaction
+    # Selective tool binding
     has_email_intent = any(
         kw in user_msg or kw in state["user_message"]
         for kw in ["email", "mail", "gmail", "ईमेल", "तपासा", "संदेश", "चेक", "unread", "inbox"]
@@ -98,11 +101,17 @@ async def call_llm_node(state: AgentState) -> Dict[str, Any]:
             if "gmail" in t.name
         ]
 
-    # Model tier selection (Section 11: FAST_MODEL vs QUALITY_MODEL)
-    model_name = settings.FAST_MODEL if not has_email_intent else settings.QUALITY_MODEL
+    # Select starting tier based on complexity
+    starting_tier = RoutingTier.PRIMARY if has_email_intent else RoutingTier.FAST
 
+    # Route through LLM Router with timeout budget
     t0 = time.time()
-    llm_resp = await llm_service.generate(messages, tools=tools, context_payload=ctx)
+    router_resp = await llm_router.generate_with_budget(
+        messages=messages,
+        tools=tools,
+        context_payload=ctx,
+        starting_tier=starting_tier
+    )
     duration_ms = (time.time() - t0) * 1000.0
 
     if "llm_first_response_ms" not in timings:
@@ -110,9 +119,15 @@ async def call_llm_node(state: AgentState) -> Dict[str, Any]:
     else:
         timings["llm_final_response_ms"] = duration_ms
 
+    routing_meta["tier_used"] = router_resp.tier_used.value
+    routing_meta["provider"] = router_resp.provider
+    routing_meta["model"] = router_resp.model
+    routing_meta["fallback_chain"] = router_resp.fallback_chain
+    routing_meta["failure_category"] = router_resp.failure_category.value
+
     iter_count = state["iteration_count"] + 1
 
-    if llm_resp.tool_calls:
+    if router_resp.tool_calls:
         return {
             "actions": [
                 {
@@ -120,16 +135,18 @@ async def call_llm_node(state: AgentState) -> Dict[str, Any]:
                     "tool_input": tc.arguments,
                     "status": "requested"
                 }
-                for tc in llm_resp.tool_calls
+                for tc in router_resp.tool_calls
             ],
             "iteration_count": iter_count,
-            "timings": timings
+            "timings": timings,
+            "routing_metadata": routing_meta
         }
     else:
         return {
-            "final_response": llm_resp.content or "I am ready to help.",
+            "final_response": router_resp.content or "I am ready to help.",
             "iteration_count": iter_count,
-            "timings": timings
+            "timings": timings,
+            "routing_metadata": routing_meta
         }
 
 async def execute_tool_node(state: AgentState) -> Dict[str, Any]:
@@ -204,7 +221,7 @@ async def execute_tool_node(state: AgentState) -> Dict[str, Any]:
     }
 
 def route_after_llm(state: AgentState) -> str:
-    """Conditional Edge: Section 10 - Strict iteration limit enforcement."""
+    """Conditional Edge: Section 10 & 11 - Strict iteration limit enforcement."""
     if state.get("requires_confirmation"):
         return END
     if state.get("final_response"):
@@ -244,7 +261,7 @@ async def run_agent(
     language: str = "auto",
     locale: str = "en-IN"
 ) -> Dict[str, Any]:
-    """Execute LangGraph agent workflow with profiling and safe step limiting."""
+    """Execute LangGraph agent workflow with routing and safe step limiting."""
     t_start = time.time()
     initial_state: AgentState = {
         "session_id": session_id,
@@ -258,7 +275,8 @@ async def run_agent(
         "confirmation_prompt": None,
         "final_response": None,
         "iteration_count": 0,
-        "timings": {}
+        "timings": {},
+        "routing_metadata": {}
     }
 
     config = {"configurable": {"thread_id": session_id}}
@@ -269,6 +287,7 @@ async def run_agent(
     timings["agent_ms"] = total_agent_ms
 
     final_resp = result.get("final_response") or "I processed your request."
+    routing_meta = result.get("routing_metadata") or {}
 
     # Save to memory
     memory_repository.save_message(session_id, "user", user_message)
@@ -289,5 +308,6 @@ async def run_agent(
         "requires_confirmation": result.get("requires_confirmation", False),
         "confirmation_prompt": result.get("confirmation_prompt"),
         "timings": timings,
+        "routing_metadata": routing_meta,
         "steps_count": result.get("iteration_count", 1)
     }

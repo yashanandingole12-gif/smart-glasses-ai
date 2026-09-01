@@ -6,8 +6,20 @@ enum class AssistantState {
     IDLE,
     LISTENING,
     PROCESSING,
+    RESPONDING,
     SPEAKING,
     ERROR
+}
+
+enum class FailureCategory {
+    NONE,
+    NETWORK_FAILURE,
+    LLM_TIMEOUT,
+    LLM_RATE_LIMIT,
+    LLM_PROVIDER_ERROR,
+    TOOL_TIMEOUT,
+    STT_FAILURE,
+    TTS_FAILURE
 }
 
 enum class IntegrationState {
@@ -22,7 +34,8 @@ data class ChatMessage(
     val text: String,
     val timestamp: Long = System.currentTimeMillis(),
     val requiresConfirmation: Boolean = false,
-    val latencyMs: Double? = null
+    val latencyMs: Double? = null,
+    val failureCategory: FailureCategory = FailureCategory.NONE
 )
 
 data class WearableTelemetry(
@@ -45,5 +58,7 @@ data class WearableResponse(
     val requiresConfirmation: Boolean = false,
     val confirmationPrompt: String? = null,
     val sources: List<String> = emptyList(),
-    val latencyMs: Double = 0.0
+    val latencyMs: Double = 0.0,
+    val failureCategory: FailureCategory = FailureCategory.NONE,
+    val tierUsed: String? = null
 )
