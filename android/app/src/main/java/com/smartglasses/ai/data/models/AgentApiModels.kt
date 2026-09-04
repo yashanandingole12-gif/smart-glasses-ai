@@ -10,7 +10,8 @@ data class AgentMessageRequestDto(
     @SerializedName("context") val context: FullContextPayloadDto? = null,
     @SerializedName("request_id") val requestId: String? = null,
     @SerializedName("client_timestamp") val clientTimestamp: Double = System.currentTimeMillis() / 1000.0,
-    @SerializedName("confirmed_action") val confirmedAction: Boolean? = null
+    @SerializedName("confirmed_action") val confirmedAction: Boolean? = null,
+    @SerializedName("confirmed_action_id") val confirmedActionId: String? = null
 )
 
 data class AgentActionDto(
@@ -18,6 +19,7 @@ data class AgentActionDto(
     @SerializedName("tool_input") val toolInput: Map<String, Any>? = null,
     @SerializedName("risk_level") val riskLevel: String = "READ",
     @SerializedName("status") val status: String = "executed",
+    @SerializedName("action_id") val actionId: String? = null,
     @SerializedName("result") val result: Any? = null
 )
 
@@ -27,6 +29,7 @@ data class AgentMessageResponseDto(
     @SerializedName("actions") val actions: List<AgentActionDto> = emptyList(),
     @SerializedName("requires_confirmation") val requiresConfirmation: Boolean = false,
     @SerializedName("confirmation_prompt") val confirmationPrompt: String? = null,
+    @SerializedName("confirmation_action_id") val confirmationActionId: String? = null,
     @SerializedName("sources") val sources: List<String> = emptyList(),
     @SerializedName("metadata") val metadata: Map<String, Any> = emptyMap()
 )

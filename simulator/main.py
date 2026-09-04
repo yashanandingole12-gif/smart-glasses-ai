@@ -155,26 +155,31 @@ CONNECTED (SIMULATED ESP32)
         self.conversation_history.append(("ASSISTANT", assistant_reply))
         self.render_ui()
 
-        # Play TTS through laptop speaker
+        # Play TTS through laptop speaker with TTFA measurement
         console.print("[bold cyan]🔊 [SPEAKER] Speaking response through laptop speaker...[/bold cyan]")
+        ttfa_ms = 0.0
+        tts_playback_ms = 0.0
         try:
-            tts_duration_ms = await self.speaker.speak(assistant_reply)
+            ttfa_ms, tts_playback_ms = await self.speaker.speak_measured(assistant_reply)
         except Exception as e:
             console.print(f"[bold red]❌ [SPEAKER ERROR] TTS Playback failed: {e}[/bold red]")
-            tts_duration_ms = 0.0
 
-        total_latency_ms = (time.time() - t_button_pressed) * 1000.0
+        total_request_ms = stt_duration_ms + backend_duration_ms + ttfa_ms
+        total_turn_ms = (time.time() - t_button_pressed) * 1000.0
 
         # Detailed Latency Breakdown
         console.print(
             f"\n[bold green]⏱️  Latency Metrics:[/bold green]\n"
-            f"   • STT (Microphone & Inference): {stt_duration_ms:.1f}ms\n"
-            f"   • Context & LangGraph / LLM:    {backend_duration_ms:.1f}ms\n"
-            f"   • TTS (Speech Playback):       {tts_duration_ms:.1f}ms\n"
-            f"   • [bold]TOTAL ROUNDTRIP:[/bold]               [bold cyan]{total_latency_ms/1000.0:.2f}s ({total_latency_ms:.1f}ms)[/bold cyan]\n"
+            f"   • STT (Microphone & Inference):  {stt_duration_ms:.1f}ms\n"
+            f"   • Backend Context & Calendar:    {backend_duration_ms:.1f}ms\n"
+            f"   • Time-to-First-Audio (TTFA):    {ttfa_ms:.1f}ms\n"
+            f"   • [bold]TOTAL REQUEST TIME (to Audio):[/bold] [bold green]{total_request_ms:.1f}ms ({total_request_ms/1000.0:.2f}s)[/bold green]\n"
+            f"   • TTS Full Playback Duration:    {tts_playback_ms:.1f}ms ({tts_playback_ms/1000.0:.2f}s)\n"
+            f"   • [bold]TOTAL END-TO-END TURN:[/bold]          [bold cyan]{total_turn_ms/1000.0:.2f}s ({total_turn_ms:.1f}ms)[/bold cyan]\n"
         )
 
         self._busy = False
+
 
     async def handle_camera_press(self):
         """Simulates camera snapshot button."""

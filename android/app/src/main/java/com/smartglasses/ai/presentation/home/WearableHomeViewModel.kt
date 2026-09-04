@@ -283,14 +283,16 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                     it.copy(
                         googleConnected = connected,
                         googleEmail = email,
-                        gmailStatus = if (connected) IntegrationState.CONNECTED else IntegrationState.DISCONNECTED
+                        gmailStatus = if (connected) IntegrationState.CONNECTED else IntegrationState.DISCONNECTED,
+                        calendarStatus = if (connected) IntegrationState.CONNECTED else IntegrationState.DISCONNECTED
                     )
                 }
             } else {
                 _uiState.update {
                     it.copy(
                         googleConnected = false,
-                        gmailStatus = IntegrationState.DISCONNECTED
+                        gmailStatus = IntegrationState.DISCONNECTED,
+                        calendarStatus = IntegrationState.DISCONNECTED
                     )
                 }
             }
@@ -299,6 +301,41 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
 
     fun checkGmail() {
         sendTextMessage("Check my email.")
+    }
+
+    fun fetchTodayEvents() {
+        sendTextMessage("What do I have today?")
+    }
+
+    fun fetchNextEvent() {
+        sendTextMessage("What's my next event?")
+    }
+
+    fun readRecentSms() {
+        sendTextMessage("Read my recent messages.")
+    }
+
+    fun confirmPendingAction() {
+        val pending = _uiState.value.pendingConfirmation ?: return
+        val actionId = pending.confirmationActionId
+        _uiState.update { it.copy(pendingConfirmation = null) }
+        executeAssistantQuery(
+            message = "Confirm",
+            language = "auto",
+            locale = Locale.getDefault().toLanguageTag(),
+            confirmedAction = true,
+            confirmedActionId = actionId
+        )
+    }
+
+    fun cancelPendingAction() {
+        _uiState.update {
+            it.copy(
+                pendingConfirmation = null,
+                latestSpeech = "Action cancelled.",
+                assistantState = AssistantState.IDLE
+            )
+        }
     }
 
     fun onTalkButtonClicked() {
@@ -345,7 +382,13 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     }
 
     // Section 17: Request Cancellation & Fast Query Execution
-    private fun executeAssistantQuery(message: String, language: String, locale: String) {
+    private fun executeAssistantQuery(
+        message: String,
+        language: String,
+        locale: String,
+        confirmedAction: Boolean? = null,
+        confirmedActionId: String? = null
+    ) {
         // Cancel in-flight assistant request if user speaks again
         currentAssistantJob?.cancel()
 
@@ -382,6 +425,8 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                     sessionId = sessionId,
                     query = message,
                     telemetry = telemetry,
+                    confirmedAction = confirmedAction,
+                    confirmedActionId = confirmedActionId,
                     language = language,
                     locale = locale
                 )

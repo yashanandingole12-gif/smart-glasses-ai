@@ -14,15 +14,23 @@ from backend.app.models.schemas import (
     AgentMessageRequest,
     AgentMessageResponse,
     FullContextPayload,
+    DeviceContext,
+    LocationContext,
+    TemporalContext,
     VisionAnalyzeRequest,
     VisionAnalyzeResponse
 )
+
 from backend.app.services.context_engine import context_engine
 from backend.app.services.agent_graph import run_agent
 from backend.app.services.tool_registry import registry
+from backend.app.services.temporal_resolver import temporal_resolver
+from backend.app.services.memory_repository import memory_repository
+from backend.app.tools.calendar_tools import calendar_get_events
 from backend.app.tools.search_tools import web_search, product_search
 from backend.app.logging_service import LatencyMetrics, log_request_metrics
 from backend.app.api.auth import router as auth_router
+
 
 logger = logging.getLogger("SmartGlasses.API")
 
@@ -98,20 +106,27 @@ async def process_agent_message(req: AgentMessageRequest):
         f"locale={req.locale or 'en-IN'} len={text_len}"
     )
 
-    # 1. Retrieve relevant context
-    t_ctx_start = time.time()
-    context = context_engine.get_relevant_context(
-        user_message=req.message,
-        client_context=req.context,
-        session_id=req.session_id
-    )
-    metrics.context_ms = (time.time() - t_ctx_start) * 1000.0
-
-    # 2. Section 7: Deterministic Fast Path Check (Time, Battery, Location, Date)
+    # 1. Section 7: Deterministic Fast Path Check (Time, Battery, Location, Date)
     t_fp_start = time.time()
+    quick_time = req.context.time if (req.context and req.context.time) else context_engine.compute_temporal_context()
+    quick_device = req.context.device if (req.context and req.context.device) else DeviceContext(battery=85)
+    quick_location = req.context.location if (req.context and req.context.location) else LocationContext(
+        latitude=settings.DEFAULT_LOCATION_LATITUDE,
+        longitude=settings.DEFAULT_LOCATION_LONGITUDE,
+        city=settings.DEFAULT_LOCATION_CITY,
+        country=settings.DEFAULT_LOCATION_COUNTRY,
+        is_available=True
+    )
+    quick_ctx = FullContextPayload(
+        time=quick_time,
+        device=quick_device,
+        location=quick_location,
+        calendar=None
+    )
+
     fast_reply = context_engine.resolve_deterministic_query(
         user_message=req.message,
-        context=context,
+        context=quick_ctx,
         language=req.language or "auto"
     )
     if fast_reply is not None:
@@ -137,6 +152,65 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
+    # 2. Conversational Temporal Calendar Fast-Track (Direct Resolution without Agent loops)
+    recent_history = memory_repository.get_session_history(req.session_id, limit=4)
+    temporal_intent = temporal_resolver.resolve_intent(
+        query=req.message,
+        conversation_history=recent_history,
+        tz_name=settings.DEFAULT_TIMEZONE
+    )
+
+    is_mutation = any(
+        kw in req.message.lower()
+        for kw in ["create", "add event", "book", "schedule a", "cancel", "delete", "send"]
+    )
+    if temporal_intent.is_calendar_query and not is_mutation:
+        t_cal_start = time.time()
+        raw_events_data = calendar_get_events(date_target=temporal_intent.date_target)
+        events_list = raw_events_data.get("events", [])
+
+        # Filter events according to temporal intent
+        filtered_events = temporal_resolver.filter_events(events_list, temporal_intent)
+        cal_reply = temporal_resolver.format_calendar_response(temporal_intent, filtered_events)
+
+        # Persist conversation session memory
+        memory_repository.add_message(req.session_id, "user", req.message)
+        memory_repository.add_message(req.session_id, "assistant", cal_reply)
+
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.context_ms = (time.time() - t_cal_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response=cal_reply,
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["temporal_resolver_calendar"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "temporal_intent": temporal_intent.to_log_dict(),
+                "timings": metrics.to_dict(),
+                "llm_provider": "temporal_resolver",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
+    # 3. Retrieve full relevant context for LLM / Agent reasoning
+    t_ctx_start = time.time()
+    context = context_engine.get_relevant_context(
+        user_message=req.message,
+        client_context=req.context,
+        session_id=req.session_id
+    )
+    metrics.context_ms = (time.time() - t_ctx_start) * 1000.0
+
+
     # 3. LangGraph Agent Execution with Multi-Tier LLM Router
     t_agent_start = time.time()
     try:
@@ -145,7 +219,8 @@ async def process_agent_message(req: AgentMessageRequest):
             user_message=req.message,
             context_payload=context.model_dump(),
             language=req.language or "auto",
-            locale=req.locale or "en-IN"
+            locale=req.locale or "en-IN",
+            confirmed_action_id=req.confirmed_action_id
         )
     except Exception as e:
         logger.error(f"[REQ_ID: {req.request_id[:8]}] Agent execution error: {type(e).__name__}: {e}")
@@ -178,6 +253,7 @@ async def process_agent_message(req: AgentMessageRequest):
         actions=agent_output.get("actions", []),
         requires_confirmation=agent_output.get("requires_confirmation", False),
         confirmation_prompt=agent_output.get("confirmation_prompt"),
+        confirmation_action_id=agent_output.get("confirmation_action_id"),
         sources=["context_engine", "sqlite_memory", "langgraph", routing_meta.get("tier_used", "FAST")],
         metadata={
             "latency_ms": metrics.total_ms,

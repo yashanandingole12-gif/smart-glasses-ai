@@ -7,7 +7,8 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, Tuple, Dict, List
+
 
 from simulator.config import TTS_ENGINE
 
@@ -159,6 +160,8 @@ class SimulatorTextToSpeech(TextToSpeechEngine):
             logger.info("TTS_PLAYBACK_START: Playing audio for text: '%s'", sample_preview)
 
             t_play_start = time.time()
+            ttfa_ms = (t_play_start - timestamp) * 1000.0
+
             try:
                 if self.silent:
                     # Silent mode: instant deterministic completion
@@ -172,12 +175,16 @@ class SimulatorTextToSpeech(TextToSpeechEngine):
                 else:
                     time.sleep(0.01)
 
-                duration_ms = (time.time() - timestamp) * 1000.0
+                playback_ms = (time.time() - t_play_start) * 1000.0
+                total_duration_ms = (time.time() - timestamp) * 1000.0
                 self._set_state(TTSState.COMPLETED)
-                logger.info("TTS_PLAYBACK_COMPLETE: Finished speech playback in %.2f ms", duration_ms)
+                logger.info(
+                    "TTS_PLAYBACK_COMPLETE: TTFA=%.2f ms, Playback=%.2f ms, Total=%.2f ms",
+                    ttfa_ms, playback_ms, total_duration_ms
+                )
 
                 if not future.done():
-                    loop.call_soon_threadsafe(future.set_result, duration_ms)
+                    loop.call_soon_threadsafe(future.set_result, (ttfa_ms, playback_ms))
             except Exception as ex:
                 self._set_state(TTSState.FAILED)
                 err_msg = f"TTS playback failed on text '{sample_preview}': {ex}"
@@ -201,12 +208,14 @@ class SimulatorTextToSpeech(TextToSpeechEngine):
     async def speak(self, text: str, timeout: Optional[float] = None) -> float:
         """
         Enqueues text for playback and awaits full completion.
-        
-        Returns:
-            duration_ms: Total latency from queue submission to playback completion.
-        Raises:
-            TTSError: If audio synthesis/playback encounters an error.
-            asyncio.TimeoutError: If playback exceeds the specified timeout.
+        Returns total audio playback duration in ms.
+        """
+        ttfa_ms, playback_ms = await self.speak_measured(text, timeout=timeout)
+        return playback_ms
+
+    async def speak_measured(self, text: str, timeout: Optional[float] = None) -> Tuple[float, float]:
+        """
+        Enqueues text for playback and returns (time_to_first_audio_ms, total_playback_ms).
         """
         if self._stopped:
             self._set_state(TTSState.FAILED)
@@ -215,23 +224,23 @@ class SimulatorTextToSpeech(TextToSpeechEngine):
         clean_text = sanitize_speech_text(text)
         if not clean_text:
             logger.info("TTS_TEXT_RECEIVED: Received empty text, skipping playback.")
-            return 0.0
+            return 0.0, 0.0
 
         logger.info(
-            "TTS_TEXT_RECEIVED: Received text (%d chars): '%s'",
-            len(clean_text),
-            clean_text[:60] + ("..." if len(clean_text) > 60 else "")
+            "TTS_TEXT_RECEIVED: Queuing text for speech playback: '%s' (length=%d)",
+            clean_text[:50] + ("..." if len(clean_text) > 50 else ""),
+            len(clean_text)
         )
 
-        self._set_state(TTSState.QUEUED)
         loop = asyncio.get_running_loop()
-        future = loop.create_future()
-        submission_time = time.time()
+        future: asyncio.Future = loop.create_future()
+        timestamp = time.time()
 
-        self._queue.put((clean_text, loop, future, submission_time))
+        self._set_state(TTSState.QUEUED)
+        self._queue.put((clean_text, loop, future, timestamp))
 
         try:
-            if timeout:
+            if timeout is not None:
                 return await asyncio.wait_for(future, timeout=timeout)
             return await future
         except asyncio.TimeoutError:

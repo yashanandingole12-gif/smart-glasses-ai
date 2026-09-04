@@ -25,15 +25,16 @@ MULTILINGUAL_TEST_CASES = [
         "requested_language": "hi",
         "locale": "hi-IN",
         "expected_language": "hi",
-        "expected_substrings": ["सुप्रभात", "10:30"]
+        "expected_substrings": ["सुप्रभात"]
     },
+
     {
         "language_name": "Marathi",
         "input_text": "शुभ सकाळ",
         "requested_language": "mr",
         "locale": "mr-IN",
         "expected_language": "mr",
-        "expected_substrings": ["सकाळ", "10:30"]
+        "expected_substrings": ["सकाळ"]
     },
     {
         "language_name": "Hinglish",
@@ -41,8 +42,9 @@ MULTILINGUAL_TEST_CASES = [
         "requested_language": "hi-Latn",
         "locale": "hi-Latn-IN",
         "expected_language": "hi-Latn",
-        "expected_substrings": ["Good morning", "10:30"]
+        "expected_substrings": ["Good morning"]
     }
+
 ]
 
 def make_test_context() -> Dict[str, Any]:

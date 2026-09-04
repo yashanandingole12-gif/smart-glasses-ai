@@ -1,56 +1,42 @@
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from backend.app.services.providers.calendar_provider import get_calendar_provider
 
-# Sample repository state (extensible with Google Calendar OAuth in Phase 5)
-_MOCK_EVENTS = [
-    {
-        "id": "evt_101",
-        "title": "Machine Learning Class",
-        "start_time": "10:30 AM",
-        "end_time": "12:00 PM",
-        "location": "College Campus, Room 302",
-        "description": "Lecture on Transformer architectures"
-    },
-    {
-        "id": "evt_102",
-        "title": "Project Team Sync",
-        "start_time": "03:00 PM",
-        "end_time": "04:00 PM",
-        "location": "Google Meet",
-        "description": "Smart glasses weekly milestone check"
-    },
-    {
-        "id": "evt_103",
-        "title": "Gym / Workout",
-        "start_time": "06:30 PM",
-        "end_time": "07:30 PM",
-        "location": "Fitness Center",
-        "description": "Evening cardio and strength"
-    }
-]
+def calendar_get_events(
+    query: Optional[str] = None,
+    user_id: str = "default_user",
+    date_target: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Retrieve today's, tomorrow's, or specific date's scheduled calendar events or search events by query string.
+    """
+    provider = get_calendar_provider(user_id=user_id)
+    return provider.get_events(query=query, date_target=date_target)
 
-def calendar_get_events(query: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Retrieve today's scheduled calendar events.
-    """
-    events = _MOCK_EVENTS
-    if query:
-        q = query.lower()
-        events = [e for e in events if q in e["title"].lower() or q in (e.get("description") or "").lower()]
-    return {
-        "count": len(events),
-        "events": events,
-        "next_event": events[0] if events else None
-    }
 
-def calendar_find_free_time() -> Dict[str, Any]:
+def calendar_find_free_time(user_id: str = "default_user") -> Dict[str, Any]:
     """
-    Find free time slots in the user's schedule today.
+    Find available free time slots in the user's schedule today.
     """
-    return {
-        "free_slots": [
-            {"from": "12:00 PM", "to": "03:00 PM", "duration": "3 hours"},
-            {"from": "04:00 PM", "to": "06:30 PM", "duration": "2.5 hours"},
-            {"from": "07:30 PM", "to": "10:00 PM", "duration": "2.5 hours"}
-        ]
-    }
+    provider = get_calendar_provider(user_id=user_id)
+    return provider.find_free_time()
+
+def calendar_create_event(
+    title: str,
+    start_time: str,
+    end_time: Optional[str] = None,
+    location: Optional[str] = None,
+    description: Optional[str] = None,
+    user_id: str = "default_user"
+) -> Dict[str, Any]:
+    """
+    Create/schedule a new event on the user's calendar.
+    """
+    provider = get_calendar_provider(user_id=user_id)
+    return provider.create_event(
+        title=title,
+        start_time=start_time,
+        end_time=end_time,
+        location=location,
+        description=description
+    )
+

@@ -25,7 +25,8 @@ enum class FailureCategory {
 enum class IntegrationState {
     CONNECTED,
     DISCONNECTED,
-    READY
+    READY,
+    PERMISSION_REQUIRED
 }
 
 data class ChatMessage(
@@ -34,6 +35,7 @@ data class ChatMessage(
     val text: String,
     val timestamp: Long = System.currentTimeMillis(),
     val requiresConfirmation: Boolean = false,
+    val confirmationActionId: String? = null,
     val latencyMs: Double? = null,
     val failureCategory: FailureCategory = FailureCategory.NONE
 )
@@ -57,6 +59,7 @@ data class WearableResponse(
     val sessionId: String,
     val requiresConfirmation: Boolean = false,
     val confirmationPrompt: String? = null,
+    val confirmationActionId: String? = null,
     val sources: List<String> = emptyList(),
     val latencyMs: Double = 0.0,
     val failureCategory: FailureCategory = FailureCategory.NONE,

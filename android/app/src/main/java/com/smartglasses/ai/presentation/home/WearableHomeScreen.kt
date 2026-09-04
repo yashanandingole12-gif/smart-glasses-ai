@@ -1,12 +1,12 @@
 package com.smartglasses.ai.presentation.home
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,64 +47,61 @@ fun WearableHomeScreen(
     }
 
     Scaffold(
-        containerColor = WearableDarkBackground
+        containerColor = LuxuryIvory
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. Header Bar: SMART GLASSES AI
             item {
-                HeaderBar(
+                LuxuryHeaderBar(
                     onSettingsClicked = { viewModel.openConfigDialog() },
                     onDiagnosticsClicked = { viewModel.toggleDiagnostics() },
                     showDiagnostics = state.showDiagnostics
                 )
             }
 
-            // 2. Developer Network Diagnostics Screen (Section 20)
-            if (state.showDiagnostics) {
+            // 2. Main Executive Assistant Card
+            item {
+                LuxuryAssistantMainCard(
+                    assistantState = state.assistantState,
+                    latestSpeech = state.latestSpeech,
+                    partialTranscript = state.partialVoiceTranscript,
+                    locationName = if (state.locationAvailable) state.locationName else "Nagpur, India",
+                    batteryPercent = state.batteryPercentage,
+                    isCharging = state.isCharging,
+                    onTalkClicked = { viewModel.onTalkButtonClicked() }
+                )
+            }
+
+            // 3. Pending Action Confirmation Dialog (Security Unified Risk)
+            if (state.pendingConfirmation != null) {
                 item {
-                    NetworkDiagnosticsCard(
-                        diagnostics = state.networkDiagnostics,
-                        activeRequestId = state.activeRequestId
+                    LuxuryConfirmationDialogCard(
+                        prompt = state.pendingConfirmation?.confirmationPrompt ?: "Please confirm this action.",
+                        onConfirm = { viewModel.confirmPendingAction() },
+                        onCancel = { viewModel.cancelPendingAction() }
                     )
                 }
             }
 
-            // 3. Real System Telemetry Card (4-State Connection Machine + Sensors)
-            item {
-                SystemTelemetryCard(
-                    connectionState = state.connectionState,
-                    geminiConnected = state.llmConnected,
-                    googleConnected = state.googleConnected,
-                    gmailConnected = state.gmailStatus == IntegrationState.CONNECTED,
-                    micReady = state.isMicrophoneReady,
-                    ttsReady = state.isTtsReady,
-                    locationAvailable = state.locationAvailable,
-                    locationName = state.locationName,
-                    batteryPercent = state.batteryPercentage,
-                    isCharging = state.isCharging
-                )
+            // 4. Conversation History Feed
+            if (state.messages.isNotEmpty()) {
+                item {
+                    LuxuryConversationCard(
+                        messages = state.messages,
+                        lastLatencyMs = state.lastResponseLatencyMs
+                    )
+                }
             }
 
-            // 4. Assistant HUD & Conversation Area
+            // 5. Text Input Row
             item {
-                AssistantSectionCard(
-                    assistantState = state.assistantState,
-                    latestSpeech = state.latestSpeech,
-                    partialTranscript = state.partialVoiceTranscript,
-                    messages = state.messages,
-                    lastLatencyMs = state.lastResponseLatencyMs
-                )
-            }
-
-            // 5. Text Assistant Input Row (for dev testing)
-            item {
-                TextAssistantInputRow(
+                LuxuryTextInputRow(
                     textInput = state.textInput,
                     isSending = state.isSendingText,
                     onTextChanged = { viewModel.onTextInputChanged(it) },
@@ -112,28 +109,56 @@ fun WearableHomeScreen(
                 )
             }
 
-            // 6. Action Buttons ([ TALK ] and [ CHECK GMAIL ])
+            // 6. Connected Services & Integrations Card
             item {
-                ActionButtonsRow(
-                    assistantState = state.assistantState,
-                    onTalkClicked = { viewModel.onTalkButtonClicked() },
-                    onCheckGmailClicked = { viewModel.checkGmail() }
+                LuxuryServicesCard(
+                    connectionState = state.connectionState,
+                    geminiConnected = state.llmConnected,
+                    googleConnected = state.googleConnected,
+                    gmailConnected = state.gmailStatus == IntegrationState.CONNECTED,
+                    calendarConnected = state.calendarStatus == IntegrationState.CONNECTED,
+                    smsStatus = state.smsStatus,
+                    onCheckGmail = { viewModel.checkGmail() },
+                    onTodayEvents = { viewModel.fetchTodayEvents() },
+                    onReadSms = { viewModel.readRecentSms() }
                 )
             }
 
-            // 7. Backend URL Configuration Card
+            // 7. Device Status Card
             item {
-                BackendUrlConfigCard(
+                LuxuryDeviceStatusCard(
+                    batteryPercent = state.batteryPercentage,
+                    isCharging = state.isCharging,
+                    locationName = if (state.locationAvailable) state.locationName else "Location Unavailable",
+                    micReady = state.isMicrophoneReady,
+                    ttsReady = state.isTtsReady
+                )
+            }
+
+            // 8. Developer Diagnostics (Discreet Accordion / Collapsed by default)
+            if (state.showDiagnostics) {
+                item {
+                    LuxuryDiagnosticsCard(
+                        diagnostics = state.networkDiagnostics,
+                        activeRequestId = state.activeRequestId,
+                        serverUrl = state.serverUrl
+                    )
+                }
+            }
+
+            // 9. Backend Server Configuration
+            item {
+                LuxuryBackendConfigCard(
                     urlInput = inlineUrlInput,
                     onUrlChange = { inlineUrlInput = it },
                     isTesting = isTesting,
                     feedback = testFeedback,
                     onTestClick = {
                         isTesting = true
-                        testFeedback = "Testing connection..."
+                        testFeedback = "Testing..."
                         viewModel.testBackendConnection(inlineUrlInput) { success, msg ->
                             isTesting = false
-                            testFeedback = if (success) "Connected: OK" else "Error: $msg"
+                            testFeedback = if (success) "Connected OK" else "Error: $msg"
                             if (success) {
                                 viewModel.updateServerUrl(inlineUrlInput)
                             }
@@ -146,7 +171,7 @@ fun WearableHomeScreen(
 }
 
 @Composable
-fun HeaderBar(
+fun LuxuryHeaderBar(
     onSettingsClicked: () -> Unit,
     onDiagnosticsClicked: () -> Unit,
     showDiagnostics: Boolean
@@ -159,49 +184,48 @@ fun HeaderBar(
         Column {
             Text(
                 text = "SMART GLASSES AI",
-                style = MaterialTheme.typography.headlineMedium,
-                color = CyanNeon,
-                letterSpacing = 1.5.sp,
-                fontWeight = FontWeight.Black
+                style = MaterialTheme.typography.titleLarge,
+                color = LuxuryEspresso,
+                letterSpacing = 1.2.sp,
+                fontWeight = FontWeight.Bold
             )
             Text(
-                text = "MOBILE WEARABLE COMPANION",
+                text = "Personal AI Assistant",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
-                letterSpacing = 1.sp
+                color = LuxuryChampagneGold,
+                letterSpacing = 0.8.sp,
+                fontWeight = FontWeight.Medium
             )
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Diagnostics toggle button
             IconButton(
                 onClick = onDiagnosticsClicked,
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(if (showDiagnostics) CyanNeon.copy(alpha = 0.2f) else WearableDarkSurface, CircleShape)
-                    .border(1.dp, if (showDiagnostics) CyanNeon else WearableCardBorder, CircleShape)
+                    .size(36.dp)
+                    .background(LuxuryWarmWhite, CircleShape)
+                    .border(1.dp, if (showDiagnostics) LuxuryChampagneGold else LuxuryBorder, CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.Default.Speed,
                     contentDescription = "Diagnostics",
-                    tint = if (showDiagnostics) CyanNeon else TextMuted,
-                    modifier = Modifier.size(18.dp)
+                    tint = if (showDiagnostics) LuxuryChampagneGold else LuxuryTextLight,
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
-            // Settings button
             IconButton(
                 onClick = onSettingsClicked,
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(WearableDarkSurface, CircleShape)
-                    .border(1.dp, WearableCardBorder, CircleShape)
+                    .size(36.dp)
+                    .background(LuxuryWarmWhite, CircleShape)
+                    .border(1.dp, LuxuryBorder, CircleShape)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Server Settings",
-                    tint = CyanNeon,
-                    modifier = Modifier.size(18.dp)
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = "Settings",
+                    tint = LuxuryEspresso,
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
@@ -209,360 +233,255 @@ fun HeaderBar(
 }
 
 @Composable
-fun NetworkDiagnosticsCard(
-    diagnostics: NetworkDiagnostics,
-    activeRequestId: String?
-) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = WearableDarkSurface),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, CyanNeon.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "NETWORK & LATENCY DIAGNOSTICS",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = CyanNeon,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = "REQ: ${activeRequestId?.take(8) ?: "N/A"}",
-                    color = TextMuted,
-                    fontSize = 9.sp,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-
-            HorizontalDivider(color = WearableCardBorder.copy(alpha = 0.5f), thickness = 0.8.dp)
-
-            // Connection State & Endpoint
-            Text(
-                text = "Host: ${diagnostics.backendUrl}",
-                color = TextSecondary,
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace
-            )
-
-            // Latency Metrics Grid
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                MetricItem(label = "Last", value = "${diagnostics.lastLatencyMs?.toInt() ?: 0}ms")
-                MetricItem(label = "Average", value = "${diagnostics.averageLatencyMs.toInt()}ms")
-                MetricItem(label = "P95", value = "${diagnostics.p95LatencyMs.toInt()}ms")
-                MetricItem(label = "Min", value = "${diagnostics.minLatencyMs.toInt()}ms")
-                MetricItem(label = "Max", value = "${diagnostics.maxLatencyMs.toInt()}ms")
-            }
-
-            // Requests & Failure Counts
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Total Requests: ${diagnostics.totalRequests}",
-                    color = TextMuted,
-                    fontSize = 10.sp
-                )
-                Text(
-                    text = "Failures: ${diagnostics.failedRequests}",
-                    color = if (diagnostics.failedRequests > 0) CrimsonNeon else EmeraldNeon,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                if (diagnostics.lastSuccessfulRequestTime != null) {
-                    Text(
-                        text = "Last OK: ${diagnostics.lastSuccessfulRequestTime}",
-                        color = EmeraldNeon,
-                        fontSize = 10.sp
-                    )
-                }
-            }
-
-            if (diagnostics.lastFailureReason != null) {
-                Text(
-                    text = "Last Error: ${diagnostics.lastFailureReason}",
-                    color = CrimsonNeon,
-                    fontSize = 10.sp,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun MetricItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, color = TextMuted, fontSize = 9.sp)
-        Text(text = value, color = CyanNeon, fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-    }
-}
-
-@Composable
-fun SystemTelemetryCard(
-    connectionState: ConnectionState,
-    geminiConnected: Boolean,
-    googleConnected: Boolean,
-    gmailConnected: Boolean,
-    micReady: Boolean,
-    ttsReady: Boolean,
-    locationAvailable: Boolean,
-    locationName: String,
-    batteryPercent: Int,
-    isCharging: Boolean
-) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = WearableDarkSurface),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, WearableCardBorder, RoundedCornerShape(12.dp))
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "REAL SYSTEM STATUS",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
-            )
-
-            // Primary Cloud Services with 4-State Connection Machine
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                ConnectionStatusIndicator(state = connectionState)
-                StatusIndicator(label = "Gemini", isConnected = geminiConnected)
-                StatusIndicator(label = "Google", isConnected = googleConnected)
-                StatusIndicator(label = "Gmail", isConnected = gmailConnected)
-            }
-
-            HorizontalDivider(color = WearableCardBorder.copy(alpha = 0.5f), thickness = 0.8.dp)
-
-            // Device Hardware & Sensor Telemetry (Mic, TTS, Location, Battery)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Mic
-                StatusIndicator(
-                    label = "Mic",
-                    isConnected = micReady,
-                    connectedText = "READY",
-                    disconnectedText = "PERMISSION"
-                )
-
-                // TTS
-                StatusIndicator(
-                    label = "TTS",
-                    isConnected = ttsReady,
-                    connectedText = "READY",
-                    disconnectedText = "INIT"
-                )
-
-                // Battery (Real Android)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
-                        contentDescription = "Battery",
-                        tint = if (batteryPercent > 20) EmeraldNeon else CrimsonNeon,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = "$batteryPercent%",
-                        color = if (batteryPercent > 20) EmeraldNeon else CrimsonNeon,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // Location
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Location",
-                        tint = if (locationAvailable) CyanNeon else TextMuted,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = if (locationAvailable) locationName else "UNAVAILABLE",
-                        color = if (locationAvailable) CyanNeon else TextMuted,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ConnectionStatusIndicator(state: ConnectionState) {
-    val (color, text) = when (state) {
-        ConnectionState.CONNECTED -> Pair(EmeraldNeon, "CONNECTED")
-        ConnectionState.CONNECTING -> Pair(CyanNeon, "CONNECTING")
-        ConnectionState.DEGRADED -> Pair(Color(0xFFFFA500), "DEGRADED")
-        ConnectionState.DISCONNECTED -> Pair(CrimsonNeon, "DISCONNECTED")
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .background(color, CircleShape)
-        )
-        Text(
-            text = "Backend: $text",
-            color = color,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-fun StatusIndicator(
-    label: String,
-    isConnected: Boolean,
-    connectedText: String = "CONNECTED",
-    disconnectedText: String = "DISCONNECTED"
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .background(if (isConnected) EmeraldNeon else CrimsonNeon, CircleShape)
-        )
-        Text(
-            text = "$label: ${if (isConnected) connectedText else disconnectedText}",
-            color = if (isConnected) EmeraldNeon else TextMuted,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-fun AssistantSectionCard(
+fun LuxuryAssistantMainCard(
     assistantState: AssistantState,
     latestSpeech: String,
     partialTranscript: String,
+    locationName: String,
+    batteryPercent: Int,
+    isCharging: Boolean,
+    onTalkClicked: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = LuxuryWarmWhite),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, LuxuryBorder, RoundedCornerShape(16.dp))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Executive Greeting
+            Column {
+                Text(
+                    text = "Good evening.",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = LuxuryEspresso,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "How may I assist?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LuxuryTextMuted
+                )
+            }
+
+            // Context Sub-Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(LuxurySurfaceSubtle, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Location",
+                    tint = LuxuryChampagneGold,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = locationName,
+                    color = LuxuryCharcoal,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(text = "·", color = LuxuryBorder)
+                Icon(
+                    imageVector = if (isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
+                    contentDescription = "Battery",
+                    tint = LuxurySage,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "$batteryPercent%",
+                    color = LuxuryCharcoal,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Spoken Preview / Partial Transcription
+            if (partialTranscript.isNotBlank() || latestSpeech.isNotBlank()) {
+                val previewText = if (partialTranscript.isNotBlank()) partialTranscript else latestSpeech
+                Text(
+                    text = "\"$previewText\"",
+                    color = LuxuryTextMuted,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+            }
+
+            // Primary Tactile TALK Control
+            val (buttonLabel, buttonColor, textColor) = when (assistantState) {
+                AssistantState.IDLE -> Triple("TALK", LuxuryGoldLight, LuxuryEspresso)
+                AssistantState.LISTENING -> Triple("LISTENING...", LuxuryChampagneGold, LuxuryWarmWhite)
+                AssistantState.PROCESSING, AssistantState.RESPONDING -> Triple("THINKING...", LuxurySurfaceSubtle, LuxuryEspresso)
+                AssistantState.SPEAKING -> Triple("SPEAKING...", LuxuryEspresso, LuxuryWarmWhite)
+                AssistantState.ERROR -> Triple("RETRY", LuxuryTerracottaBg, LuxuryTerracotta)
+            }
+
+
+            Button(
+                onClick = onTalkClicked,
+                colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .border(1.dp, LuxuryChampagneGold, RoundedCornerShape(10.dp))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = "Mic",
+                    tint = textColor,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = buttonLabel,
+                    color = textColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LuxuryConfirmationDialogCard(
+    prompt: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LuxuryWarmWhite),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, LuxuryChampagneGold, RoundedCornerShape(14.dp))
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = "Security",
+                    tint = LuxuryChampagneGold,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "ACTION CONFIRMATION",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LuxuryEspresso,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
+                )
+            }
+
+            Text(
+                text = prompt,
+                color = LuxuryCharcoal,
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onCancel) {
+                    Text(text = "CANCEL", color = LuxuryTextMuted, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(containerColor = LuxuryEspresso),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = "CONFIRM", color = LuxuryWarmWhite, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LuxuryConversationCard(
     messages: List<ChatMessage>,
     lastLatencyMs: Double?
 ) {
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = WearableDarkSurface),
+        colors = CardDefaults.cardColors(containerColor = LuxuryWarmWhite),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, WearableCardBorder, RoundedCornerShape(14.dp))
+            .border(1.dp, LuxuryBorder, RoundedCornerShape(14.dp))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "ASSISTANT CONVERSATION",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = CyanNeon,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
+            Text(
+                text = "CONVERSATION",
+                style = MaterialTheme.typography.labelSmall,
+                color = LuxuryTextLight,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp
+            )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (lastLatencyMs != null && lastLatencyMs > 0.0) {
-                        Text(
-                            text = "⏱️ ${lastLatencyMs.toInt()}ms",
-                            color = TextMuted,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                    StatusBadge(
-                        text = assistantState.name,
-                        isPositive = assistantState == AssistantState.SPEAKING || assistantState == AssistantState.IDLE
-                    )
-                }
-            }
+            messages.takeLast(4).forEach { msg ->
+                val isUser = msg.sender.equals("USER", ignoreCase = true)
+                val bubbleBg = if (isUser) LuxuryGoldLight else LuxurySurfaceSubtle
+                val bubbleBorder = if (isUser) LuxuryChampagneGold.copy(alpha = 0.4f) else LuxuryBorder
 
-            // Live speech HUD card
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(WearableDarkBackground, RoundedCornerShape(10.dp))
-                    .border(1.dp, WearableCardBorder.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                    .padding(14.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(if (isUser) Alignment.End else Alignment.Start)
+                        .background(bubbleBg, RoundedCornerShape(10.dp))
+                        .border(1.dp, bubbleBorder, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
                     Text(
-                        text = if (partialTranscript.isNotBlank()) "Listening: \"$partialTranscript\"" else latestSpeech,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (partialTranscript.isNotBlank()) CyanNeon else TextPrimary,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        fontWeight = FontWeight.Medium
+                        text = if (isUser) "You" else "Assistant",
+                        color = if (isUser) LuxuryGoldHover else LuxuryEspresso,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = msg.text,
+                        color = LuxuryCharcoal,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
                     )
                 }
             }
 
-            // Message history (last 3 messages)
-            if (messages.size > 1) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    messages.takeLast(3).forEach { msg ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = if (msg.sender == "USER") Arrangement.End else Arrangement.Start
-                        ) {
-                            Text(
-                                text = "${msg.sender}: ${msg.text}",
-                                color = if (msg.sender == "USER") CyanNeon.copy(alpha = 0.85f) else TextSecondary,
-                                fontSize = 12.sp,
-                                maxLines = 3
-                            )
-                        }
-                    }
-                }
+            if (lastLatencyMs != null && lastLatencyMs > 0) {
+                Text(
+                    text = "Latency: ${lastLatencyMs.toInt()} ms",
+                    color = LuxuryTextLight,
+                    fontSize = 10.sp,
+                    modifier = Modifier.align(Alignment.End)
+                )
             }
         }
     }
 }
 
 @Composable
-fun TextAssistantInputRow(
+fun LuxuryTextInputRow(
     textInput: String,
     isSending: Boolean,
     onTextChanged: (String) -> Unit,
@@ -576,120 +495,222 @@ fun TextAssistantInputRow(
         OutlinedTextField(
             value = textInput,
             onValueChange = onTextChanged,
-            placeholder = { Text("Type a query (e.g. 'What time is it?')", color = TextMuted, fontSize = 12.sp) },
-            modifier = Modifier.weight(1f),
+            placeholder = { Text(text = "Ask a question...", color = LuxuryTextLight, fontSize = 13.sp) },
             singleLine = true,
+            shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary,
-                focusedBorderColor = CyanNeon,
-                unfocusedBorderColor = WearableCardBorder,
-                focusedContainerColor = WearableDarkSurface,
-                unfocusedContainerColor = WearableDarkSurface
+                focusedContainerColor = LuxuryWarmWhite,
+                unfocusedContainerColor = LuxuryWarmWhite,
+                focusedBorderColor = LuxuryChampagneGold,
+                unfocusedBorderColor = LuxuryBorder,
+                focusedTextColor = LuxuryCharcoal,
+                unfocusedTextColor = LuxuryCharcoal
             ),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp)
+            modifier = Modifier.weight(1f)
         )
 
         Button(
             onClick = onSendClicked,
-            enabled = !isSending && textInput.isNotBlank(),
+            enabled = textInput.isNotBlank() && !isSending,
+            colors = ButtonDefaults.buttonColors(containerColor = LuxuryEspresso),
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = CyanNeon,
-                contentColor = WearableDarkBackground
-            ),
             modifier = Modifier.height(52.dp)
         ) {
+            Text(text = "SEND", color = LuxuryWarmWhite, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+fun LuxuryServicesCard(
+    connectionState: ConnectionState,
+    geminiConnected: Boolean,
+    googleConnected: Boolean,
+    gmailConnected: Boolean,
+    calendarConnected: Boolean,
+    smsStatus: IntegrationState,
+    onCheckGmail: () -> Unit,
+    onTodayEvents: () -> Unit,
+    onReadSms: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LuxuryWarmWhite),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, LuxuryBorder, RoundedCornerShape(14.dp))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text(
-                text = if (isSending) "..." else "SEND",
+                text = "CONNECTED SERVICES",
+                style = MaterialTheme.typography.labelSmall,
+                color = LuxuryTextLight,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp
+                letterSpacing = 0.8.sp
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                LuxuryStatusBadge(label = "Backend", isOk = connectionState == ConnectionState.CONNECTED)
+                LuxuryStatusBadge(label = "Google", isOk = googleConnected)
+                LuxuryStatusBadge(label = "Gmail", isOk = gmailConnected)
+                LuxuryStatusBadge(label = "Calendar", isOk = calendarConnected)
+            }
+
+            HorizontalDivider(color = LuxurySurfaceSubtle, thickness = 1.dp)
+
+            // Quick Actions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onTodayEvents,
+                    shape = RoundedCornerShape(8.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(LuxuryBorder)),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "Today", color = LuxuryEspresso, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                OutlinedButton(
+                    onClick = onCheckGmail,
+                    shape = RoundedCornerShape(8.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(LuxuryBorder)),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "Gmail", color = LuxuryEspresso, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                OutlinedButton(
+                    onClick = onReadSms,
+                    shape = RoundedCornerShape(8.dp),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(LuxuryBorder)),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "SMS", color = LuxuryEspresso, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LuxuryStatusBadge(label: String, isOk: Boolean) {
+    val bg = if (isOk) LuxurySageBg else LuxuryTerracottaBg
+    val fg = if (isOk) LuxurySage else LuxuryTerracotta
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, color = LuxuryTextMuted, fontSize = 11.sp)
+        Spacer(modifier = Modifier.height(2.dp))
+        Box(
+            modifier = Modifier
+                .background(bg, RoundedCornerShape(12.dp))
+                .padding(horizontal = 8.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = if (isOk) "Active" else "Off",
+                color = fg,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
 
 @Composable
-fun ActionButtonsRow(
-    assistantState: AssistantState,
-    onTalkClicked: () -> Unit,
-    onCheckGmailClicked: () -> Unit
+fun LuxuryDeviceStatusCard(
+    batteryPercent: Int,
+    isCharging: Boolean,
+    locationName: String,
+    micReady: Boolean,
+    ttsReady: Boolean
 ) {
-    val isListening = assistantState == AssistantState.LISTENING
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LuxuryWarmWhite),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, LuxuryBorder, RoundedCornerShape(14.dp))
     ) {
-        // Prominent TALK button
-        Button(
-            onClick = onTalkClicked,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isListening) CrimsonNeon else CyanNeon,
-                contentColor = WearableDarkBackground
-            ),
-            modifier = Modifier
-                .weight(1.3f)
-                .height(52.dp)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = if (isListening) Icons.Default.Stop else Icons.Default.Mic,
-                    contentDescription = "Talk",
-                    tint = WearableDarkBackground,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (isListening) "STOP" else "TALK",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
-                )
-            }
-        }
+            Text(
+                text = "DEVICE HARDWARE",
+                style = MaterialTheme.typography.labelSmall,
+                color = LuxuryTextLight,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp
+            )
 
-        // CHECK GMAIL Button
-        Button(
-            onClick = onCheckGmailClicked,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = WearableDarkSurface,
-                contentColor = CyanNeon
-            ),
-            modifier = Modifier
-                .weight(1.3f)
-                .height(52.dp)
-                .border(1.dp, CyanNeon.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-        ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.Email,
-                    contentDescription = "Gmail",
-                    tint = CyanNeon,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "CHECK GMAIL",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
-                )
+                Text(text = "Glasses ESP32", color = LuxuryCharcoal, fontSize = 13.sp)
+                Text(text = "Connected", color = LuxurySage, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Battery", color = LuxuryCharcoal, fontSize = 13.sp)
+                Text(text = "$batteryPercent% ${if (isCharging) "(Charging)" else ""}", color = LuxuryCharcoal, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Audio Pipeline", color = LuxuryCharcoal, fontSize = 13.sp)
+                Text(text = if (micReady && ttsReady) "Ready" else "Initializing", color = LuxurySage, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
 
 @Composable
-fun BackendUrlConfigCard(
+fun LuxuryDiagnosticsCard(
+    diagnostics: NetworkDiagnostics,
+    activeRequestId: String?,
+    serverUrl: String
+) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LuxurySurfaceSubtle),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, LuxuryBorder, RoundedCornerShape(14.dp))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = "DEVELOPER DIAGNOSTICS",
+                style = MaterialTheme.typography.labelSmall,
+                color = LuxuryTextLight,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp
+            )
+
+            Text(text = "Server: $serverUrl", color = LuxuryTextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Request ID: ${activeRequestId?.take(8) ?: "None"}", color = LuxuryTextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+            Text(text = "Last Latency: ${diagnostics.lastLatencyMs?.toInt() ?: 0} ms", color = LuxuryCharcoal, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = "Avg Latency: ${diagnostics.averageLatencyMs.toInt()} ms · P95: ${diagnostics.p95LatencyMs.toInt()} ms", color = LuxuryTextMuted, fontSize = 11.sp)
+            Text(text = "Total Requests: ${diagnostics.totalRequests} · Failed: ${diagnostics.failedRequests}", color = LuxuryTextMuted, fontSize = 11.sp)
+        }
+    }
+}
+
+@Composable
+fun LuxuryBackendConfigCard(
     urlInput: String,
     onUrlChange: (String) -> Unit,
     isTesting: Boolean,
@@ -697,21 +718,20 @@ fun BackendUrlConfigCard(
     onTestClick: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = WearableDarkSurface),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = LuxuryWarmWhite),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, WearableCardBorder, RoundedCornerShape(12.dp))
+            .border(1.dp, LuxuryBorder, RoundedCornerShape(14.dp))
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "BACKEND SERVER URL (WI-FI LAN / HOTSPOT)",
+                text = "BACKEND GATEWAY CONFIGURATION",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
-                fontSize = 10.sp,
+                color = LuxuryTextLight,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp
             )
@@ -724,33 +744,30 @@ fun BackendUrlConfigCard(
                 OutlinedTextField(
                     value = urlInput,
                     onValueChange = onUrlChange,
-                    modifier = Modifier.weight(1f),
                     singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = CyanNeon,
-                        unfocusedBorderColor = WearableCardBorder,
-                        focusedContainerColor = WearableDarkBackground,
-                        unfocusedContainerColor = WearableDarkBackground
+                        focusedContainerColor = LuxuryWarmWhite,
+                        unfocusedContainerColor = LuxuryWarmWhite,
+                        focusedBorderColor = LuxuryChampagneGold,
+                        unfocusedBorderColor = LuxuryBorder,
+                        focusedTextColor = LuxuryCharcoal,
+                        unfocusedTextColor = LuxuryCharcoal
                     ),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp)
+                    modifier = Modifier.weight(1f)
                 )
 
                 Button(
                     onClick = onTestClick,
                     enabled = !isTesting,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CyanNeon,
-                        contentColor = WearableDarkBackground
-                    ),
-                    modifier = Modifier.height(48.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = LuxuryGoldLight),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         text = if (isTesting) "..." else "TEST",
+                        color = LuxuryEspresso,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                        fontSize = 11.sp
                     )
                 }
             }
@@ -758,31 +775,10 @@ fun BackendUrlConfigCard(
             if (feedback != null) {
                 Text(
                     text = feedback,
-                    color = if (feedback.contains("OK") || feedback.contains("Connected")) EmeraldNeon else CrimsonNeon,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
+                    color = if (feedback.contains("OK", ignoreCase = true)) LuxurySage else LuxuryTerracotta,
+                    fontSize = 11.sp
                 )
             }
         }
-    }
-}
-
-@Composable
-fun StatusBadge(text: String, isPositive: Boolean) {
-    val bgColor = if (isPositive) EmeraldNeon.copy(alpha = 0.15f) else TextMuted.copy(alpha = 0.15f)
-    val textColor = if (isPositive) EmeraldNeon else TextSecondary
-
-    Box(
-        modifier = Modifier
-            .background(bgColor, RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-    ) {
-        Text(
-            text = text,
-            color = textColor,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp
-        )
     }
 }

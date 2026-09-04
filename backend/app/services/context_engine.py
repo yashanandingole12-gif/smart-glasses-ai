@@ -13,6 +13,8 @@ from backend.app.models.schemas import (
     TimePeriod
 )
 from backend.app.tools.calendar_tools import calendar_get_events
+from backend.app.services.providers.calendar_provider import MockCalendarProvider
+
 
 class ContextEngine:
     def __init__(self):
@@ -77,7 +79,15 @@ class ContextEngine:
         if client_context and client_context.calendar and client_context.calendar.next_event:
             cal_ctx = client_context.calendar
         else:
-            cal_data = calendar_get_events()
+            is_fast_path = any(
+                q in user_message.lower()
+                for q in ["what time", "what is the time", "current time", "kitne baje", "battery", "charge", "battery level", "what's my battery"]
+            )
+            if is_fast_path:
+                cal_data = MockCalendarProvider().get_events()
+            else:
+                cal_data = calendar_get_events()
+
             events = [
                 CalendarEvent(
                     id=e["id"],
@@ -87,13 +97,14 @@ class ContextEngine:
                     location=e.get("location"),
                     description=e.get("description")
                 )
-                for e in cal_data["events"]
+                for e in cal_data.get("events", [])
             ]
             cal_ctx = CalendarContext(
                 current_event=None,
                 next_event=events[0] if events else None,
                 today_events=events
             )
+
 
         # 4. Device context
         if client_context and client_context.device:

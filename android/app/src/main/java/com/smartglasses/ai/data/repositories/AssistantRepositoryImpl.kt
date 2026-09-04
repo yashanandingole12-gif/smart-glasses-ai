@@ -23,41 +23,33 @@ class AssistantRepositoryImpl : AssistantRepository {
         userMessage: String,
         telemetry: WearableTelemetry,
         confirmedAction: Boolean?,
+        confirmedActionId: String?,
         language: String?,
         locale: String?
     ): Result<WearableResponse> = withContext(Dispatchers.IO) {
         try {
             val api = NetworkClient.getApiService()
 
-            val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date())
-
             val contextDto = FullContextPayloadDto(
                 time = TemporalContextDto(
                     localTime = telemetry.timeFormatted,
                     period = telemetry.period,
                     timezone = telemetry.timezone,
-                    isoTimestamp = nowIso
+                    isoTimestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date())
                 ),
                 location = LocationContextDto(
                     latitude = telemetry.latitude,
                     longitude = telemetry.longitude,
                     city = telemetry.locationName,
-                    country = if (telemetry.locationAvailable) "India" else "",
-                    isAvailable = telemetry.locationAvailable,
-                    placeType = if (telemetry.locationAvailable) "mobile" else null
+                    isAvailable = telemetry.locationAvailable
                 ),
                 device = DeviceContextDto(
                     battery = telemetry.batteryPercentage,
                     batteryPercent = telemetry.batteryPercentage,
-                    cameraAvailable = true,
-                    microphoneAvailable = true,
-                    network = "WIFI",
-                    connectionType = if (telemetry.glassesConnected) "BLE_ESP32" else "ANDROID_HUB",
                     esp32Connected = telemetry.glassesConnected
                 ),
-                locale = telemetry.locale,
-                timezone = telemetry.timezone,
-                timestamp = nowIso
+                locale = locale ?: telemetry.locale,
+                timezone = telemetry.timezone
             )
 
             val request = AgentMessageRequestDto(
@@ -68,7 +60,8 @@ class AssistantRepositoryImpl : AssistantRepository {
                 context = contextDto,
                 requestId = UUID.randomUUID().toString(),
                 clientTimestamp = System.currentTimeMillis() / 1000.0,
-                confirmedAction = confirmedAction
+                confirmedAction = confirmedAction,
+                confirmedActionId = confirmedActionId
             )
 
             val response = api.sendMessage(request)
@@ -88,6 +81,7 @@ class AssistantRepositoryImpl : AssistantRepository {
                     sessionId = response.sessionId,
                     requiresConfirmation = response.requiresConfirmation,
                     confirmationPrompt = response.confirmationPrompt,
+                    confirmationActionId = response.confirmationActionId,
                     sources = response.sources,
                     latencyMs = latency,
                     failureCategory = failCat,

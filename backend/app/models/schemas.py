@@ -6,8 +6,10 @@ import time
 
 class RiskLevel(str, Enum):
     READ = "READ"
+    WRITE = "WRITE"
     LOW_RISK_WRITE = "LOW_RISK_WRITE"
     HIGH_RISK_WRITE = "HIGH_RISK_WRITE"
+
 
 class TimePeriod(str, Enum):
     MORNING = "morning"
@@ -82,12 +84,14 @@ class AgentMessageRequest(BaseModel):
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_timestamp: float = Field(default_factory=time.time)
     confirmed_action: Optional[bool] = None
+    confirmed_action_id: Optional[str] = None
 
 class AgentAction(BaseModel):
     tool_name: str
     tool_input: Dict[str, Any] = Field(default_factory=dict)
     risk_level: RiskLevel = RiskLevel.READ
     status: str = "executed"  # "executed", "pending_confirmation", "aborted"
+    action_id: Optional[str] = None
     result: Optional[Any] = None
 
 class AgentMessageResponse(BaseModel):
@@ -96,6 +100,7 @@ class AgentMessageResponse(BaseModel):
     actions: List[AgentAction] = Field(default_factory=list)
     requires_confirmation: bool = False
     confirmation_prompt: Optional[str] = None
+    confirmation_action_id: Optional[str] = None
     sources: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 

@@ -95,14 +95,19 @@ class GoogleGmailProvider(EmailProvider):
     def _get_valid_token_sync(self) -> Optional[str]:
         from backend.app.services.token_service import token_service
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     return pool.submit(asyncio.run, token_service.get_valid_token(self.user_id)).result()
-            return loop.run_until_complete(token_service.get_valid_token(self.user_id))
-        except Exception:
             return asyncio.run(token_service.get_valid_token(self.user_id))
+        except Exception:
+            return None
+
 
     def search(self, query: Optional[str] = None) -> Dict[str, Any]:
         token = self._get_valid_token_sync()
@@ -210,6 +215,7 @@ def get_email_provider(user_id: str = "default_user") -> EmailProvider:
     """Factory to retrieve appropriate email provider based on OAuth connection status."""
     from backend.app.services.token_service import token_service
     status = token_service.get_status(user_id=user_id)
-    if status.get("connected"):
+    if status.get("connected") and not status.get("is_expired"):
         return GoogleGmailProvider(user_id=user_id)
     return LaptopEmailProvider()
+

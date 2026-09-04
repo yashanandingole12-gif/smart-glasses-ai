@@ -49,6 +49,11 @@ class MemoryRepository:
             )
             conn.commit()
 
+    def add_message(self, session_id: str, role: str, content: str, metadata: Optional[Dict[str, Any]] = None):
+        """Alias for save_message."""
+        self.save_message(session_id=session_id, role=role, content=content, metadata=metadata)
+
+
     def get_session_history(self, session_id: str, limit: int = 10) -> List[Dict[str, str]]:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

@@ -9,6 +9,7 @@ interface AssistantRepository {
         userMessage: String,
         telemetry: WearableTelemetry,
         confirmedAction: Boolean? = null,
+        confirmedActionId: String? = null,
         language: String? = "auto",
         locale: String? = "en-IN"
     ): Result<WearableResponse>
