@@ -1,12 +1,16 @@
 import json
 import logging
 import asyncio
+import time
 import httpx
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 from pydantic import BaseModel
 from backend.app.config import settings
 
 logger = logging.getLogger("SmartGlasses.LLMService")
+
+_invalid_gemini_models: Set[str] = set()
+_gemini_rate_limited_until: float = 0.0
 
 class ToolCall(BaseModel):
     name: str
@@ -361,20 +365,29 @@ class LLMService:
             return LLMResponse(content=content, tool_calls=tool_calls, provider="openai", model=self.model)
 
     async def _generate_gemini(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
+        global _gemini_rate_limited_until, _invalid_gemini_models
+
+        now = time.time()
+        if now < _gemini_rate_limited_until:
+            rem = _gemini_rate_limited_until - now
+            logger.info(f"Gemini is in 429 rate-limit cooldown ({rem:.1f}s remaining). Fast-falling back to local generator.")
+            return await self._generate_mock(messages, tools)
+
         candidate_models = [
             self.model,
+            "gemini-flash-latest",
+            "gemini-pro-latest",
             "gemini-2.0-flash",
             "gemini-2.5-flash",
             "gemini-1.5-flash-latest",
             "gemini-1.5-flash",
             "gemini-1.5-flash-8b",
-            "gemini-1.5-pro",
-            "gemini-flash-latest"
+            "gemini-1.5-pro"
         ]
-        models_to_try = []
-        for m in candidate_models:
-            if m and m not in models_to_try:
-                models_to_try.append(m)
+        models_to_try = [m for m in candidate_models if m and m not in _invalid_gemini_models]
+        if not models_to_try:
+            _invalid_gemini_models.clear()
+            models_to_try = [self.model or "gemini-flash-latest"]
 
         # 1. Extract system instructions
         system_prompts = [m["content"] for m in messages if m.get("role") == "system"]
@@ -444,25 +457,30 @@ class LLMService:
         last_exception = None
         for current_model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent"
-            max_retries = 2
+            max_retries = 1
+            hit_rate_limit = False
             for attempt in range(max_retries):
                 try:
-                    async with httpx.AsyncClient(timeout=8.0) as client:
+                    async with httpx.AsyncClient(timeout=2.5) as client:
                         resp = await client.post(url, json=payload, headers=headers)
                         if resp.status_code == 429:
-                            logger.warning(f"Gemini API model {current_model} returned 429 quota. Trying alternate model...")
+                            logger.warning(f"Gemini API returned 429 quota on {current_model}. Activating 60s cooldown...")
+                            _gemini_rate_limited_until = time.time() + 60.0
                             last_exception = httpx.HTTPStatusError("429 Quota Exceeded", request=resp.request, response=resp)
+                            hit_rate_limit = True
                             break
                         if resp.status_code == 404:
-                            logger.warning(f"Gemini API model {current_model} returned 404 Not Found. Trying alternate model...")
+                            logger.warning(f"Gemini API model {current_model} returned 404 Not Found. Marking model invalid...")
+                            _invalid_gemini_models.add(current_model)
                             last_exception = httpx.HTTPStatusError("404 Model Not Found", request=resp.request, response=resp)
                             break
                         if resp.status_code == 400:
-                            logger.warning(f"Gemini API model {current_model} returned 400 Bad Request: {resp.text[:150]}. Trying alternate model...")
+                            logger.warning(f"Gemini API model {current_model} returned 400 Bad Request: {resp.text[:150]}. Marking model invalid...")
+                            _invalid_gemini_models.add(current_model)
                             last_exception = httpx.HTTPStatusError("400 Bad Request", request=resp.request, response=resp)
                             break
                         if resp.status_code == 503 and attempt < max_retries - 1:
-                            await asyncio.sleep(1.0)
+                            await asyncio.sleep(0.5)
                             continue
                         resp.raise_for_status()
                         data = resp.json()
@@ -493,9 +511,9 @@ class LLMService:
                     last_exception = e
                     if getattr(e, "response", None) is not None and e.response.status_code in (400, 404, 429):
                         break
-                    if attempt < max_retries - 1 and getattr(e, "response", None) is not None and e.response.status_code == 503:
-                        await asyncio.sleep(1.0)
-                        continue
+
+            if hit_rate_limit:
+                break
 
         logger.warning(
             f"Gemini API request failed across all models ({type(last_exception).__name__}: {last_exception}). "
