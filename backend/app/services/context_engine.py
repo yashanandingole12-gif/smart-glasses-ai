@@ -48,13 +48,14 @@ class ContextEngine:
 
     def get_relevant_context(
         self,
-        user_message: str,
+        user_message: str = "",
         client_context: Optional[FullContextPayload] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
+        include_remote: bool = False
     ) -> FullContextPayload:
         """
         Builds a tailored context payload merging client telemetry, temporal calculation,
-        calendar status, and relevant context.
+        and optionally remote calendar status. When include_remote=False, returns in <1ms.
         """
         # 1. Temporal context (prefer client if provided, else calculate)
         if client_context and client_context.time:
@@ -77,7 +78,7 @@ class ContextEngine:
         # 3. Calendar context (Real Google Calendar, zero mock fallback)
         if client_context and client_context.calendar and client_context.calendar.next_event:
             cal_ctx = client_context.calendar
-        else:
+        elif include_remote:
             cal_data = calendar_get_events()
             raw_events = cal_data.get("events", []) if isinstance(cal_data, dict) else []
             events = [
@@ -95,6 +96,12 @@ class ContextEngine:
                 current_event=None,
                 next_event=events[0] if events else None,
                 today_events=events
+            )
+        else:
+            cal_ctx = CalendarContext(
+                current_event=None,
+                next_event=None,
+                today_events=[]
             )
 
 

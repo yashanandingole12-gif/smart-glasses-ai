@@ -26,8 +26,11 @@ from backend.app.services.agent_graph import run_agent
 from backend.app.services.tool_registry import registry
 from backend.app.services.temporal_resolver import temporal_resolver
 from backend.app.services.memory_repository import memory_repository
+from backend.app.services.llm_router import llm_router, RoutingTier
 from backend.app.tools.calendar_tools import calendar_get_events
-from backend.app.tools.search_tools import web_search, product_search
+from backend.app.tools.gmail_tools import gmail_search, gmail_read
+from backend.app.tools.sms_tools import sms_read_recent
+from backend.app.tools.search_tools import web_search, product_search, academic_research_search
 from backend.app.logging_service import LatencyMetrics, log_request_metrics
 from backend.app.api.auth import router as auth_router
 
@@ -97,34 +100,42 @@ async def get_integrations_diagnostics(user_id: str = "default_user"):
     }
 
 @app.get("/api/v1/context", response_model=FullContextPayload)
-async def get_current_context(timezone_str: str = settings.DEFAULT_TIMEZONE):
-    """Retrieve freshly computed context engine payload."""
+async def get_current_context(timezone_str: str = settings.DEFAULT_TIMEZONE, include_remote: bool = False):
+    """Retrieve freshly computed context engine payload (pure local by default, <1ms)."""
     return context_engine.get_relevant_context(
         user_message="",
-        client_context=None
+        client_context=None,
+        include_remote=include_remote
     )
 
 @app.post("/api/v1/agent/message", response_model=AgentMessageResponse)
 async def process_agent_message(req: AgentMessageRequest):
     """
-    Main conversational endpoint:
-    Processes user voice transcript or text query with deterministic fast-path routing,
-    enriches with Context Engine, executes LangGraph agent when reasoning is required,
-    and logs sub-stage latency profiling.
+    Main conversational endpoint with Authoritative Request Router:
+    1. Deterministic local fast-path (Time, Battery, Location, Date) -> <1ms
+    2. Temporal calendar queries (read today/tomorrow/etc.) -> <50ms cached, <600ms network
+    3. Gmail queries (read inbox/unread/recent) -> <500ms
+    4. SMS queries (read recent SMS) -> <10ms
+    5. Academic Research / arXiv search -> <1.5s
+    6. Direct Web search
+    7. Direct conversational single-turn LLM generation (general chat/QA without graph recursion) -> ~1s
+    8. LangGraph agent execution for mutations (event creation, SMS send) & action confirmations
     """
     metrics = LatencyMetrics(
         request_id=req.request_id,
         session_id=req.session_id
     )
 
-    # Safe diagnostic metadata logging (No raw transcript logged in production)
     text_len = len(req.message.strip()) if req.message else 0
+    msg_raw = req.message.strip() if req.message else ""
+    msg_lower = msg_raw.lower()
+
     logger.info(
         f"[REQ_ID: {req.request_id[:8]}] RECEIVED: lang={req.language or 'auto'} "
         f"locale={req.locale or 'en-IN'} len={text_len}"
     )
 
-    # 1. Section 7: Deterministic Fast Path Check (Time, Battery, Location, Date)
+    # 1. Deterministic Fast Path Check (Time, Battery, Location, Date)
     t_fp_start = time.time()
     quick_time = req.context.time if (req.context and req.context.time) else context_engine.compute_temporal_context()
     quick_device = req.context.device if (req.context and req.context.device) else DeviceContext(battery=85)
@@ -143,7 +154,7 @@ async def process_agent_message(req: AgentMessageRequest):
     )
 
     fast_reply = context_engine.resolve_deterministic_query(
-        user_message=req.message,
+        user_message=msg_raw,
         context=quick_ctx,
         language=req.language or "auto"
     )
@@ -170,18 +181,27 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
+    # Detect mutation / high-risk action intent requiring 2-step confirmation or LangGraph execution
+    is_mutation = bool(
+        req.confirmed_action_id or
+        any(
+            kw in msg_lower
+            for kw in [
+                "create event", "add event", "schedule a", "book a", "book an", "cancel event",
+                "delete event", "send sms", "send text", "send a message", "text to", "sms to",
+                "send email", "compose email", "email to"
+            ]
+        )
+    )
+
     # 2. Conversational Temporal Calendar Fast-Track (Direct Resolution without Agent loops)
     recent_history = memory_repository.get_session_history(req.session_id, limit=4)
     temporal_intent = temporal_resolver.resolve_intent(
-        query=req.message,
+        query=msg_raw,
         conversation_history=recent_history,
         tz_name=settings.DEFAULT_TIMEZONE
     )
 
-    is_mutation = any(
-        kw in req.message.lower()
-        for kw in ["create", "add event", "book", "schedule a", "cancel", "delete", "send"]
-    )
     if temporal_intent.is_calendar_query and not is_mutation:
         t_cal_start = time.time()
         raw_events_data = calendar_get_events(date_target=temporal_intent.date_target)
@@ -193,7 +213,7 @@ async def process_agent_message(req: AgentMessageRequest):
             cal_reply = temporal_resolver.format_calendar_response(temporal_intent, filtered_events)
 
         # Persist conversation session memory
-        memory_repository.add_message(req.session_id, "user", req.message)
+        memory_repository.add_message(req.session_id, "user", msg_raw)
         memory_repository.add_message(req.session_id, "assistant", cal_reply)
 
         metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
@@ -220,17 +240,278 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 3. Retrieve full relevant context for LLM / Agent reasoning
+    # 3. Direct Gmail Retrieval Fast-Track (<500ms)
+    email_keywords = ["email", "emails", "gmail", "inbox", "mail", "mails", "ईमेल", "इमेल", "मेल"]
+    is_email_read = any(kw in msg_lower for kw in email_keywords) and not is_mutation
+    if is_email_read:
+        t_gmail_start = time.time()
+        raw_email_data = gmail_search()
+        lang = req.language or "auto"
+        is_hi = lang == "hi" or any("\u0900" <= c <= "\u097f" for c in msg_raw)
+        is_mr = lang == "mr"
+
+        if raw_email_data.get("error"):
+            if is_hi:
+                email_reply = "मैं अभी आपके ईमेल एक्सेस नहीं कर सकता।"
+            elif is_mr:
+                email_reply = "मी आता तुमचे ईमेल ऍक्सेस करू शकत नाही."
+            else:
+                email_reply = raw_email_data.get("message") or "I can't access your email right now. Please connect your Google account in Settings."
+        else:
+            messages = raw_email_data.get("messages", [])
+            if not messages:
+                if is_hi:
+                    email_reply = "आपके पास कोई नया ईमेल नहीं है।"
+                elif is_mr:
+                    email_reply = "तुमच्याकडे कोणतेही नवीन ईमेल नाहीत."
+                else:
+                    email_reply = "Your inbox is clear. You have no recent emails."
+            else:
+                lines = [f"{i+1}. From {m.get('sender', 'Unknown')}: '{m.get('subject', 'No Subject')}'" for i, m in enumerate(messages[:3])]
+                count = len(messages)
+                if is_hi:
+                    email_reply = f"आपके पास {count} हालिया ईमेल हैं: " + "; ".join(lines)
+                elif is_mr:
+                    email_reply = f"तुमच्याकडे {count} नवीन ईमेल आहेत: " + "; ".join(lines)
+                else:
+                    email_reply = f"You have {count} recent email{'s' if count > 1 else ''}: " + "; ".join(lines)
+
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", email_reply)
+
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.tool_ms = (time.time() - t_gmail_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response=email_reply,
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["gmail_direct_router"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "timings": metrics.to_dict(),
+                "llm_provider": "gmail_direct",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
+    # 4. Direct SMS Read Fast-Track (<10ms)
+    sms_keywords = ["sms", "text message", "text messages", "messages", "texts", "मैसेज", "मेसेज", "एसएमएस"]
+    is_sms_read = any(kw in msg_lower for kw in sms_keywords) and not is_mutation
+    if is_sms_read:
+        t_sms_start = time.time()
+        raw_sms_data = sms_read_recent(limit=5)
+        messages = raw_sms_data.get("messages", [])
+        if not messages:
+            sms_reply = "You have no recent SMS messages."
+        else:
+            lines = [f"{i+1}. From {m.get('sender', 'Unknown')}: '{m.get('text', '')}'" for i, m in enumerate(messages[:3])]
+            count = len(messages)
+            sms_reply = f"You have {count} recent SMS message{'s' if count > 1 else ''}: " + "; ".join(lines)
+
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", sms_reply)
+
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.tool_ms = (time.time() - t_sms_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response=sms_reply,
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["sms_direct_router"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "timings": metrics.to_dict(),
+                "llm_provider": "sms_direct",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
+    # 5. Direct Academic Research / arXiv Search Fast-Track (<1.5s)
+    research_triggers = ["search arxiv", "arxiv", "find papers", "research papers", "scientific papers", "academic papers", "papers on", "paper on"]
+    if any(trig in msg_lower for trig in research_triggers) and not is_mutation:
+        t_res_start = time.time()
+        clean_topic = msg_raw
+        for trig in ["search arxiv for", "search arxiv on", "find research papers on", "find papers on", "academic papers on", "research papers on", "papers on", "arxiv"]:
+            if trig in msg_lower:
+                idx = msg_lower.find(trig)
+                clean_topic = msg_raw[idx + len(trig):].strip(" ?:.,")
+                break
+        if not clean_topic:
+            clean_topic = msg_raw
+
+        search_res = academic_research_search(query=clean_topic, limit=3)
+        papers = search_res.get("papers", [])
+        if papers:
+            lines = [f"{i+1}. '{p.get('title', 'Paper')}' ({p.get('year', 'Recent')}) by {p.get('authors', ['Unknown'])[0]}" for i, p in enumerate(papers[:3])]
+            research_reply = f"Found {len(papers)} research papers on '{clean_topic}': " + "; ".join(lines)
+        else:
+            research_reply = f"No academic papers found for '{clean_topic}'."
+
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", research_reply)
+
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.tool_ms = (time.time() - t_res_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response=research_reply,
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["academic_research_router"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "timings": metrics.to_dict(),
+                "llm_provider": "academic_research",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
+    # 6. Direct Web Search Fast-Track
+    web_triggers = ["search web for", "search the web for", "google search for", "look up on web"]
+    if any(trig in msg_lower for trig in web_triggers) and not is_mutation:
+        t_web_start = time.time()
+        clean_topic = msg_raw
+        for trig in web_triggers:
+            if trig in msg_lower:
+                idx = msg_lower.find(trig)
+                clean_topic = msg_raw[idx + len(trig):].strip(" ?:.,")
+                break
+        web_res = web_search(query=clean_topic)
+        results = web_res.get("results", [])
+        if results:
+            web_reply = f"Here is what I found for '{clean_topic}': {results[0].get('snippet', '')}"
+        else:
+            web_reply = f"No search results found for '{clean_topic}'."
+
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", web_reply)
+
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.tool_ms = (time.time() - t_web_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response=web_reply,
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["web_search_router"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "timings": metrics.to_dict(),
+                "llm_provider": "web_search",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
+    # 7. Direct Single-Turn LLM Conversational Chat (For general Q&A, chat, explanations without LangGraph overhead)
+    if not is_mutation and not req.confirmed_action_id:
+        t_llm_start = time.time()
+        # Fast local context (<1ms)
+        local_ctx = context_engine.get_relevant_context(
+            user_message=msg_raw,
+            client_context=req.context,
+            session_id=req.session_id,
+            include_remote=False
+        )
+        time_str = local_ctx.time.local_time if local_ctx.time else "Now"
+        loc_str = local_ctx.location.city if (local_ctx.location and local_ctx.location.city != "Unknown") else "Local"
+        bat_str = f"{local_ctx.device.battery}%" if (local_ctx.device and local_ctx.device.battery is not None) else "85%"
+
+        system_prompt = (
+            f"You are LARA — a personal executive companion for smart glasses. "
+            f"You speak concisely, directly, and naturally. Keep responses under 2-3 sentences "
+            f"suitable for wearable audio TTS output. Do NOT format with markdown or bullet points. "
+            f"Context: Time is {time_str}, Location is {loc_str}, Battery is {bat_str}."
+        )
+
+        history_msgs = memory_repository.get_session_history(req.session_id, limit=4)
+        formatted_messages = [{"role": "system", "content": system_prompt}]
+        for h in history_msgs:
+            formatted_messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
+        formatted_messages.append({"role": "user", "content": msg_raw})
+
+        router_resp = await llm_router.generate_with_budget(
+            messages=formatted_messages,
+            tools=None,
+            context_payload=local_ctx.model_dump(),
+            starting_tier=RoutingTier.FAST,
+            per_attempt_timeout=2.5,
+            global_deadline_seconds=4.0
+        )
+
+        final_text = (router_resp.content or "").strip()
+        if final_text:
+            memory_repository.add_message(req.session_id, "user", msg_raw)
+            memory_repository.add_message(req.session_id, "assistant", final_text)
+
+            metrics.llm_first_response_ms = router_resp.duration_ms
+            metrics.finish()
+            log_request_metrics(metrics)
+
+            return AgentMessageResponse(
+                session_id=req.session_id,
+                response=final_text,
+                actions=[],
+                requires_confirmation=False,
+                confirmation_prompt=None,
+                sources=["llm_router", router_resp.tier_used.value],
+                metadata={
+                    "latency_ms": metrics.total_ms,
+                    "fast_path": False,
+                    "timings": metrics.to_dict(),
+                    "routing": {
+                        "tier_used": router_resp.tier_used.value,
+                        "provider": router_resp.provider,
+                        "model": router_resp.model,
+                        "duration_ms": router_resp.duration_ms
+                    },
+                    "llm_provider": router_resp.provider,
+                    "llm_model": router_resp.model,
+                    "request_id": req.request_id,
+                    "language": req.language or "auto",
+                    "locale": req.locale or "en-IN"
+                }
+            )
+
+    # 8. LangGraph Agent Execution (For mutations, 2-step confirmations, or multi-step tool calls)
     t_ctx_start = time.time()
     context = context_engine.get_relevant_context(
         user_message=req.message,
         client_context=req.context,
-        session_id=req.session_id
+        session_id=req.session_id,
+        include_remote=True
     )
     metrics.context_ms = (time.time() - t_ctx_start) * 1000.0
 
-
-    # 3. LangGraph Agent Execution with Multi-Tier LLM Router
     t_agent_start = time.time()
     try:
         agent_output = await run_agent(

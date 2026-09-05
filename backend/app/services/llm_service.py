@@ -9,8 +9,70 @@ from backend.app.config import settings
 
 logger = logging.getLogger("SmartGlasses.LLMService")
 
-_invalid_gemini_models: Set[str] = set()
-_gemini_rate_limited_until: float = 0.0
+from enum import Enum
+
+class CircuitState(str, Enum):
+    CLOSED = "CLOSED"
+    OPEN = "OPEN"
+    HALF_OPEN = "HALF_OPEN"
+
+class GeminiCircuitBreaker:
+    def __init__(self, cooldown_seconds: float = 60.0):
+        self.cooldown = cooldown_seconds
+        self.state = CircuitState.CLOSED
+        self.opened_at: float = 0.0
+        self.discovered_model: Optional[str] = None
+        self._discovery_attempted = False
+        self._invalid_models: Set[str] = set()
+
+    def is_available(self) -> bool:
+        if self.state == CircuitState.OPEN:
+            if time.time() - self.opened_at > self.cooldown:
+                self.state = CircuitState.HALF_OPEN
+                logger.info("Gemini circuit transitioned OPEN -> HALF_OPEN (probing recovery).")
+                return True
+            return False
+        return True
+
+    def record_success(self, model: str):
+        if self.state != CircuitState.CLOSED:
+            logger.info("Gemini probe succeeded! Circuit transitioned to CLOSED.")
+        self.state = CircuitState.CLOSED
+        self.discovered_model = model
+
+    def record_429(self):
+        self.state = CircuitState.OPEN
+        self.opened_at = time.time()
+        logger.warning("Gemini 429 Quota Exceeded. Circuit OPEN for %ds cooldown.", int(self.cooldown))
+
+    def record_404(self, model: str):
+        self._invalid_models.add(model)
+        logger.warning("Marked Gemini model '%s' as INVALID (404 Not Found).", model)
+
+gemini_circuit_breaker = GeminiCircuitBreaker(cooldown_seconds=60.0)
+
+async def discover_valid_gemini_model(api_key: str) -> Optional[str]:
+    """Discover available generateContent models on Google AI Studio for the configured API key."""
+    if not api_key:
+        return None
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    try:
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                data = resp.json()
+                models = [m.get("name", "").replace("models/", "") for m in data.get("models", [])]
+                gen_models = [m for m in models if "flash" in m or "pro" in m]
+                for preferred in ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-flash-latest", "gemini-1.5-flash", "gemini-pro"]:
+                    if preferred in gen_models:
+                        logger.info("Gemini Model Discovery: Selected '%s' from %d available models.", preferred, len(gen_models))
+                        return preferred
+                if gen_models:
+                    logger.info("Gemini Model Discovery: Selected '%s'", gen_models[0])
+                    return gen_models[0]
+    except Exception as e:
+        logger.debug("Gemini model discovery skipped/failed: %s", e)
+    return None
 
 class ToolCall(BaseModel):
     name: str
@@ -365,31 +427,35 @@ class LLMService:
             return LLMResponse(content=content, tool_calls=tool_calls, provider="openai", model=self.model)
 
     async def _generate_gemini(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
-        global _gemini_rate_limited_until, _invalid_gemini_models
-
-        now = time.time()
-        if now < _gemini_rate_limited_until:
-            rem = _gemini_rate_limited_until - now
-            logger.info(f"Gemini is in 429 rate-limit cooldown ({rem:.1f}s remaining). Fast-falling back to local generator.")
+        if not gemini_circuit_breaker.is_available():
+            logger.info("Gemini Circuit is OPEN (429 Rate Limit Cooldown). Bypassing cloud probes directly in 0ms.")
             return await self._generate_mock(messages, tools)
 
+        # 1. Dynamic Discovery check if not yet performed
+        if not gemini_circuit_breaker._discovery_attempted and self.api_key:
+            gemini_circuit_breaker._discovery_attempted = True
+            discovered = await discover_valid_gemini_model(self.api_key)
+            if discovered:
+                gemini_circuit_breaker.discovered_model = discovered
+
+        primary_model = gemini_circuit_breaker.discovered_model or self.model or "gemini-flash-latest"
+
         candidate_models = [
-            self.model,
+            primary_model,
             "gemini-flash-latest",
             "gemini-pro-latest",
             "gemini-2.0-flash",
             "gemini-2.5-flash",
             "gemini-1.5-flash-latest",
             "gemini-1.5-flash",
-            "gemini-1.5-flash-8b",
-            "gemini-1.5-pro"
+            "gemini-pro"
         ]
-        models_to_try = [m for m in candidate_models if m and m not in _invalid_gemini_models]
+        models_to_try = [m for m in candidate_models if m and m not in gemini_circuit_breaker._invalid_models]
         if not models_to_try:
-            _invalid_gemini_models.clear()
-            models_to_try = [self.model or "gemini-flash-latest"]
+            gemini_circuit_breaker._invalid_models.clear()
+            models_to_try = [primary_model]
 
-        # 1. Extract system instructions
+        # 2. Extract system instructions
         system_prompts = [m["content"] for m in messages if m.get("role") == "system"]
         payload: Dict[str, Any] = {}
         if system_prompts:
@@ -397,7 +463,7 @@ class LLMService:
                 "parts": [{"text": "\n".join(system_prompts)}]
             }
 
-        # 2. Convert conversation messages
+        # 3. Convert conversation messages
         contents = []
         for m in messages:
             role = m.get("role")
@@ -431,7 +497,7 @@ class LLMService:
 
         payload["contents"] = contents
 
-        # 3. Format tool declarations
+        # 4. Format tool declarations
         if tools:
             gemini_tools = []
             for t in tools:
@@ -442,7 +508,7 @@ class LLMService:
                 })
             payload["tools"] = [{"functionDeclarations": gemini_tools}]
 
-        # 4. Wearable Ultra-Low-Latency Constraints (Cap tokens to 120 for instant response)
+        # 5. Wearable Ultra-Low-Latency Constraints (Cap tokens to 120 for instant response)
         payload["generationConfig"] = {
             "maxOutputTokens": 120,
             "temperature": 0.2,
@@ -457,60 +523,54 @@ class LLMService:
         last_exception = None
         for current_model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent"
-            max_retries = 1
             hit_rate_limit = False
-            for attempt in range(max_retries):
-                try:
-                    async with httpx.AsyncClient(timeout=2.5) as client:
-                        resp = await client.post(url, json=payload, headers=headers)
-                        if resp.status_code == 429:
-                            logger.warning(f"Gemini API returned 429 quota on {current_model}. Activating 60s cooldown...")
-                            _gemini_rate_limited_until = time.time() + 60.0
-                            last_exception = httpx.HTTPStatusError("429 Quota Exceeded", request=resp.request, response=resp)
-                            hit_rate_limit = True
-                            break
-                        if resp.status_code == 404:
-                            logger.warning(f"Gemini API model {current_model} returned 404 Not Found. Marking model invalid...")
-                            _invalid_gemini_models.add(current_model)
-                            last_exception = httpx.HTTPStatusError("404 Model Not Found", request=resp.request, response=resp)
-                            break
-                        if resp.status_code == 400:
-                            logger.warning(f"Gemini API model {current_model} returned 400 Bad Request: {resp.text[:150]}. Marking model invalid...")
-                            _invalid_gemini_models.add(current_model)
-                            last_exception = httpx.HTTPStatusError("400 Bad Request", request=resp.request, response=resp)
-                            break
-                        if resp.status_code == 503 and attempt < max_retries - 1:
-                            await asyncio.sleep(0.5)
-                            continue
-                        resp.raise_for_status()
-                        data = resp.json()
-                        candidate = data.get("candidates", [{}])[0]
-                        parts = candidate.get("content", {}).get("parts", [])
-
-                        text_chunks = []
-                        tool_calls = []
-
-                        for p in parts:
-                            if "text" in p:
-                                text_chunks.append(p["text"])
-                            if "functionCall" in p:
-                                fc = p["functionCall"]
-                                tool_calls.append(ToolCall(
-                                    name=fc.get("name", ""),
-                                    arguments=fc.get("args", {})
-                                ))
-
-                        content_text = "".join(text_chunks).strip() if text_chunks else (None if tool_calls else "")
-                        return LLMResponse(
-                            content=content_text,
-                            tool_calls=tool_calls if tool_calls else None,
-                            provider="gemini",
-                            model=current_model
-                        )
-                except (httpx.HTTPError, httpx.NetworkError, Exception) as e:
-                    last_exception = e
-                    if getattr(e, "response", None) is not None and e.response.status_code in (400, 404, 429):
+            try:
+                async with httpx.AsyncClient(timeout=2.5) as client:
+                    resp = await client.post(url, json=payload, headers=headers)
+                    if resp.status_code == 429:
+                        gemini_circuit_breaker.record_429()
+                        last_exception = httpx.HTTPStatusError("429 Quota Exceeded", request=resp.request, response=resp)
+                        hit_rate_limit = True
                         break
+                    if resp.status_code == 404:
+                        gemini_circuit_breaker.record_404(current_model)
+                        last_exception = httpx.HTTPStatusError("404 Model Not Found", request=resp.request, response=resp)
+                        continue
+                    if resp.status_code == 400:
+                        gemini_circuit_breaker.record_404(current_model)
+                        last_exception = httpx.HTTPStatusError("400 Bad Request", request=resp.request, response=resp)
+                        continue
+                    resp.raise_for_status()
+                    data = resp.json()
+                    candidate = data.get("candidates", [{}])[0]
+                    parts = candidate.get("content", {}).get("parts", [])
+
+                    text_chunks = []
+                    tool_calls = []
+
+                    for p in parts:
+                        if "text" in p:
+                            text_chunks.append(p["text"])
+                        if "functionCall" in p:
+                            fc = p["functionCall"]
+                            tool_calls.append(ToolCall(
+                                name=fc.get("name", ""),
+                                arguments=fc.get("args", {})
+                            ))
+
+                    content_text = "".join(text_chunks).strip() if text_chunks else (None if tool_calls else "")
+                    gemini_circuit_breaker.record_success(current_model)
+                    return LLMResponse(
+                        content=content_text,
+                        tool_calls=tool_calls if tool_calls else None,
+                        provider="gemini",
+                        model=current_model
+                    )
+            except (httpx.HTTPError, httpx.NetworkError, Exception) as e:
+                last_exception = e
+                if getattr(e, "response", None) is not None and e.response.status_code == 429:
+                    gemini_circuit_breaker.record_429()
+                    break
 
             if hit_rate_limit:
                 break

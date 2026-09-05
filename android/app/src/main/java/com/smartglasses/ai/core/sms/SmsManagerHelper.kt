@@ -19,6 +19,13 @@ data class SmsItem(
 
 object SmsManagerHelper {
 
+    private const val CACHE_TTL_MS = 30_000L // 30s cache
+    @Volatile
+    private var cachedMessages: List<SmsItem> = emptyList()
+    @Volatile
+    private var cacheTimestamp: Long = 0L
+    private val lock = Any()
+
     fun hasReadPermission(context: Context): Boolean {
         return ContextCompat.checkSelfPermission(
             context,
@@ -33,8 +40,22 @@ object SmsManagerHelper {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    fun invalidateCache() {
+        synchronized(lock) {
+            cacheTimestamp = 0L
+            cachedMessages = emptyList()
+        }
+    }
+
     fun readRecentMessages(context: Context, limit: Int = 5): List<SmsItem> {
         if (!hasReadPermission(context)) return emptyList()
+
+        val now = System.currentTimeMillis()
+        synchronized(lock) {
+            if (now - cacheTimestamp < CACHE_TTL_MS && cachedMessages.isNotEmpty()) {
+                return cachedMessages.take(limit)
+            }
+        }
 
         val messages = mutableListOf<SmsItem>()
         val uri: Uri = Telephony.Sms.Inbox.CONTENT_URI
@@ -86,6 +107,13 @@ object SmsManagerHelper {
             android.util.Log.e("SmartGlasses.SMS", "Failed to query SMS content provider: ${e.message}")
         }
 
+        if (messages.isNotEmpty()) {
+            synchronized(lock) {
+                cachedMessages = messages
+                cacheTimestamp = System.currentTimeMillis()
+            }
+        }
+
         return messages
     }
 
@@ -102,6 +130,7 @@ object SmsManagerHelper {
                 SmsManager.getDefault()
             }
             smsManager.sendTextMessage(destination, null, message, null, null)
+            invalidateCache()
             android.util.Log.i("SmartGlasses.SMS", "SMS successfully dispatched to $destination")
             return true
         } catch (e: Exception) {

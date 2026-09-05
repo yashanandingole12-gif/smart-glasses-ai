@@ -211,12 +211,55 @@ class MockCalendarProvider(CalendarProvider):
         }
 
 
+import time
+import threading
+
+class CalendarCache:
+    """Thread-safe 5-minute cache with single-flight in-flight deduplication."""
+    def __init__(self, ttl_seconds: float = 300.0):
+        self.ttl = ttl_seconds
+        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._timestamps: Dict[str, float] = {}
+        self._lock = threading.Lock()
+        self._in_flight: Dict[str, threading.Event] = {}
+        self._in_flight_results: Dict[str, Dict[str, Any]] = {}
+
+    def get(self, key: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            if key in self._cache:
+                if time.time() - self._timestamps.get(key, 0) < self.ttl:
+                    return self._cache[key]
+                else:
+                    self._cache.pop(key, None)
+                    self._timestamps.pop(key, None)
+        return None
+
+    def set(self, key: str, value: Dict[str, Any]) -> None:
+        with self._lock:
+            # Don't cache error responses for the full TTL (cache errors for max 10s)
+            is_error = bool(value.get("error"))
+            self._cache[key] = value
+            self._timestamps[key] = time.time() if not is_error else (time.time() - self.ttl + 10.0)
+
+    def invalidate(self, user_id: Optional[str] = None) -> None:
+        with self._lock:
+            if user_id:
+                keys_to_del = [k for k in self._cache if k.startswith(f"{user_id}:")]
+                for k in keys_to_del:
+                    self._cache.pop(k, None)
+                    self._timestamps.pop(k, None)
+            else:
+                self._cache.clear()
+                self._timestamps.clear()
+
+calendar_cache = CalendarCache(ttl_seconds=300.0)
+_calendar_client = httpx.Client(timeout=4.0, limits=httpx.Limits(max_keepalive_connections=5, max_connections=10))
 
 class GoogleCalendarProvider(CalendarProvider):
     """
-    Real Google Calendar API v3 provider connecting via backend OAuth 2.0 token.
-    Uses read-only scope (https://www.googleapis.com/auth/calendar.readonly).
-    Never exposes raw tokens to client or LLM.
+    Authoritative production Google Calendar provider using OAuth 2.0.
+    Fetches real Google Calendar events via the Google Calendar v3 API.
+    Zero mock data fallbacks in production.
     """
 
     def __init__(self, user_id: str = "default_user"):
@@ -247,52 +290,85 @@ class GoogleCalendarProvider(CalendarProvider):
         date_target: Optional[str] = None
     ) -> Dict[str, Any]:
         t_start = datetime.now()
-        token = self._get_valid_token_sync()
-        if not token:
-            logger.info(f"calendar_request account=<redacted> date_range={date_target or 'default'} provider=google status=unauthenticated")
-            return {
+        cache_key = f"{self.user_id}:{date_target or 'default'}:{query or ''}:{max_results}"
+
+        cached = calendar_cache.get(cache_key)
+        if cached is not None:
+            logger.debug(f"calendar_cache_hit user={self.user_id} key={cache_key}")
+            return cached
+
+        # Single-flight check: If an identical request is already in-flight, await it
+        event = None
+        is_fetcher = False
+        with calendar_cache._lock:
+            if cache_key in calendar_cache._in_flight:
+                event = calendar_cache._in_flight[cache_key]
+            else:
+                event = threading.Event()
+                calendar_cache._in_flight[cache_key] = event
+                is_fetcher = True
+
+        if not is_fetcher and event is not None:
+            event.wait(timeout=4.5)
+            with calendar_cache._lock:
+                res = calendar_cache._in_flight_results.get(cache_key)
+            if res:
+                return res
+            return calendar_cache.get(cache_key) or {
                 "count": 0,
                 "events": [],
                 "next_event": None,
-                "error": "Google Calendar is not connected or token expired.",
                 "message": "I can't access your calendar right now."
             }
 
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json"
-        }
-
-        # Calculate time window according to date_target
-        now = datetime.now(timezone.utc)
-        start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-
-        if date_target == "tomorrow":
-            start_of_target = start_of_today + timedelta(days=1)
-            end_of_target = start_of_target + timedelta(days=1)
-            time_min = start_of_target.isoformat()
-            time_max = end_of_target.isoformat()
-        elif date_target == "today":
-            time_min = start_of_today.isoformat()
-            time_max = (start_of_today + timedelta(days=1)).isoformat()
-        else:
-            time_min = start_of_today.isoformat()
-            time_max = (start_of_today + timedelta(days=7)).isoformat()
-
-        params = {
-            "timeMin": time_min,
-            "timeMax": time_max,
-            "maxResults": min(max_results, 15),
-            "singleEvents": "true",
-            "orderBy": "startTime"
-        }
-        if query:
-            params["q"] = query
-
-        url = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
         try:
-            with httpx.Client(timeout=5.0) as client:
-                resp = client.get(url, headers=headers, params=params)
+            token = self._get_valid_token_sync()
+            if not token:
+                logger.info(f"calendar_request account=<redacted> date_range={date_target or 'default'} provider=google status=unauthenticated")
+                res = {
+                    "count": 0,
+                    "events": [],
+                    "next_event": None,
+                    "error": "Google Calendar is not connected or token expired.",
+                    "message": "I can't access your calendar right now."
+                }
+                calendar_cache.set(cache_key, res)
+                return res
+
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+
+            # Calculate time window according to date_target
+            now = datetime.now(timezone.utc)
+            start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            if date_target == "tomorrow":
+                start_of_target = start_of_today + timedelta(days=1)
+                end_of_target = start_of_target + timedelta(days=1)
+                time_min = start_of_target.isoformat()
+                time_max = end_of_target.isoformat()
+            elif date_target == "today":
+                time_min = start_of_today.isoformat()
+                time_max = (start_of_today + timedelta(days=1)).isoformat()
+            else:
+                time_min = start_of_today.isoformat()
+                time_max = (start_of_today + timedelta(days=7)).isoformat()
+
+            params = {
+                "timeMin": time_min,
+                "timeMax": time_max,
+                "maxResults": min(max_results, 15),
+                "singleEvents": "true",
+                "orderBy": "startTime"
+            }
+            if query:
+                params["q"] = query
+
+            url = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+            try:
+                resp = _calendar_client.get(url, headers=headers, params=params)
                 if resp.status_code == 401:
                     logger.warning("Google Calendar API returned 401 Unauthorized; disconnecting expired token.")
                     try:
@@ -309,13 +385,15 @@ class GoogleCalendarProvider(CalendarProvider):
                             asyncio.run(token_service.disconnect(self.user_id))
                     except Exception:
                         pass
-                    return {
+                    res = {
                         "count": 0,
                         "events": [],
                         "next_event": None,
                         "error": "Google Calendar authentication expired.",
                         "message": "I can't access your calendar right now."
                     }
+                    calendar_cache.set(cache_key, res)
+                    return res
 
                 if resp.status_code == 403:
                     error_detail = ""
@@ -330,74 +408,87 @@ class GoogleCalendarProvider(CalendarProvider):
                         "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com "
                         "(2) Re-authorize via http://localhost:8001/api/v1/auth/google to grant calendar permissions."
                     )
-                    return {
+                    res = {
                         "count": 0,
                         "events": [],
                         "next_event": None,
                         "error": f"Google Calendar API 403: {error_detail}",
                         "message": "I can't access your calendar right now."
                     }
+                    calendar_cache.set(cache_key, res)
+                    return res
 
                 resp.raise_for_status()
                 data = resp.json()
 
-            items = data.get("items", [])
-            normalized_events = []
-            for item in items:
-                start_raw = item.get("start", {}).get("dateTime") or item.get("start", {}).get("date", "")
-                end_raw = item.get("end", {}).get("dateTime") or item.get("end", {}).get("date", "")
+                items = data.get("items", [])
+                normalized_events = []
+                for item in items:
+                    start_raw = item.get("start", {}).get("dateTime") or item.get("start", {}).get("date", "")
+                    end_raw = item.get("end", {}).get("dateTime") or item.get("end", {}).get("date", "")
 
-                start_formatted = start_raw
-                end_formatted = end_raw
-                date_iso = ""
-                try:
-                    if "T" in start_raw:
-                        dt = datetime.fromisoformat(start_raw)
-                        start_formatted = dt.strftime("%I:%M %p").lstrip("0")
-                        date_iso = dt.strftime("%Y-%m-%d")
-                    elif start_raw:
-                        date_iso = start_raw
-                    if "T" in end_raw:
-                        dt_end = datetime.fromisoformat(end_raw)
-                        end_formatted = dt_end.strftime("%I:%M %p").lstrip("0")
-                except Exception:
-                    pass
+                    start_formatted = start_raw
+                    end_formatted = end_raw
+                    date_iso = ""
+                    try:
+                        if "T" in start_raw:
+                            dt = datetime.fromisoformat(start_raw)
+                            start_formatted = dt.strftime("%I:%M %p").lstrip("0")
+                            date_iso = dt.strftime("%Y-%m-%d")
+                        elif start_raw:
+                            date_iso = start_raw
+                        if "T" in end_raw:
+                            dt_end = datetime.fromisoformat(end_raw)
+                            end_formatted = dt_end.strftime("%I:%M %p").lstrip("0")
+                    except Exception:
+                        pass
 
-                desc = item.get("description", "")
-                if desc and len(desc) > 150:
-                    desc = desc[:150] + "..."
+                    desc = item.get("description", "")
+                    if desc and len(desc) > 200:
+                        desc = desc[:200] + "..."
 
-                normalized_events.append({
-                    "id": item.get("id", ""),
-                    "title": item.get("summary", "Untitled Event"),
-                    "start_time": start_formatted,
-                    "end_time": end_formatted,
-                    "location": item.get("location", "Not specified"),
-                    "description": desc,
-                    "date_iso": date_iso,
-                    "status": item.get("status", "confirmed")
-                })
+                    normalized_events.append({
+                        "id": item.get("id", ""),
+                        "title": item.get("summary", "Untitled Event"),
+                        "start_time": start_formatted,
+                        "end_time": end_formatted,
+                        "location": item.get("location", "Not specified"),
+                        "description": desc,
+                        "date_iso": date_iso,
+                        "status": item.get("status", "confirmed")
+                    })
 
-            lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
-            logger.info(f"calendar_request account=<redacted> date_range={date_target or 'default'} provider=google result_count={len(normalized_events)} latency_ms={lat_ms:.1f}")
+                lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
+                logger.info(f"calendar_request account=<redacted> date_range={date_target or 'default'} provider=google result_count={len(normalized_events)} latency_ms={lat_ms:.1f}")
 
-            return {
-                "count": len(normalized_events),
-                "events": normalized_events,
-                "next_event": normalized_events[0] if normalized_events else None,
-                "message": f"Retrieved {len(normalized_events)} events from Google Calendar." if normalized_events else "You have no events scheduled."
-            }
+                res = {
+                    "count": len(normalized_events),
+                    "events": normalized_events,
+                    "next_event": normalized_events[0] if normalized_events else None,
+                    "message": f"Retrieved {len(normalized_events)} events from Google Calendar." if normalized_events else "You have no events scheduled."
+                }
+                calendar_cache.set(cache_key, res)
+                return res
 
-        except Exception as e:
-            lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
-            logger.error(f"calendar_request account=<redacted> provider=google error={e} latency_ms={lat_ms:.1f}")
-            return {
-                "count": 0,
-                "events": [],
-                "next_event": None,
-                "error": f"Google Calendar error: {e}",
-                "message": "I can't access your calendar right now."
-            }
+            except Exception as e:
+                lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
+                logger.error(f"calendar_request account=<redacted> provider=google error={e} latency_ms={lat_ms:.1f}")
+                res = {
+                    "count": 0,
+                    "events": [],
+                    "next_event": None,
+                    "error": f"Google Calendar error: {e}",
+                    "message": "I can't access your calendar right now."
+                }
+                calendar_cache.set(cache_key, res)
+                return res
+
+        finally:
+            with calendar_cache._lock:
+                if is_fetcher:
+                    calendar_cache._in_flight_results[cache_key] = res if 'res' in locals() else {}
+                    event.set()
+                    calendar_cache._in_flight.pop(cache_key, None)
 
     def get_today_events(self) -> Dict[str, Any]:
         return self.get_events(date_target="today")
@@ -464,6 +555,7 @@ class GoogleCalendarProvider(CalendarProvider):
                 resp = client.post("https://www.googleapis.com/calendar/v3/calendars/primary/events", headers=headers, json=event_body)
                 if resp.status_code in [200, 201]:
                     data = resp.json()
+                    calendar_cache.invalidate(self.user_id)
                     return {
                         "status": "created",
                         "event_id": data.get("id"),
