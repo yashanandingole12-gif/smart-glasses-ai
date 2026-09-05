@@ -117,7 +117,7 @@ class LatencyMetrics(BaseModel):
         if self.llm_first_response_ms is not None:
             lines.append(f"  LLM_FIRST: {self.llm_first_response_ms:.1f}ms")
         if self.tool_ms is not None:
-            lines.append(f"  TOOL_GMAIL: {self.tool_ms:.1f}ms")
+            lines.append(f"  TOOL_EXECUTION: {self.tool_ms:.1f}ms")
         if self.llm_final_response_ms is not None:
             lines.append(f"  LLM_FINAL: {self.llm_final_response_ms:.1f}ms")
         if self.total_ms is not None:

@@ -11,7 +11,15 @@ class CalendarProvider(ABC):
     """Abstract provider interface for calendar services (Laptop Mock / Google Calendar API)."""
 
     @abstractmethod
-    def get_events(self, query: Optional[str] = None, max_results: int = 5) -> Dict[str, Any]:
+    def get_events(
+        self,
+        query: Optional[str] = None,
+        max_results: int = 5,
+        date_target: Optional[str] = None,
+        time_min: Optional[str] = None,
+        time_max: Optional[str] = None,
+        user_tz: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Retrieve scheduled events for today or matching search query."""
         pass
 
@@ -134,7 +142,10 @@ class MockCalendarProvider(CalendarProvider):
         self,
         query: Optional[str] = None,
         max_results: int = 10,
-        date_target: Optional[str] = None
+        date_target: Optional[str] = None,
+        time_min: Optional[str] = None,
+        time_max: Optional[str] = None,
+        user_tz: Optional[str] = None
     ) -> Dict[str, Any]:
         events = list(self._mock_events)
 
@@ -287,10 +298,41 @@ class GoogleCalendarProvider(CalendarProvider):
         self,
         query: Optional[str] = None,
         max_results: int = 10,
-        date_target: Optional[str] = None
+        date_target: Optional[str] = None,
+        time_min: Optional[str] = None,
+        time_max: Optional[str] = None,
+        user_tz: Optional[str] = None
     ) -> Dict[str, Any]:
         t_start = datetime.now()
-        cache_key = f"{self.user_id}:{date_target or 'default'}:{query or ''}:{max_results}"
+
+        # 1. Resolve Timezone and Date Window
+        try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo(user_tz) if user_tz else timezone.utc
+        except Exception:
+            tz = timezone.utc
+
+        now = datetime.now(tz)
+        start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_iso = start_of_today.strftime("%Y-%m-%d")
+
+        if time_min and time_max:
+            computed_min = time_min
+            computed_max = time_max
+        elif date_target == "tomorrow":
+            start_of_target = start_of_today + timedelta(days=1)
+            end_of_target = start_of_target + timedelta(days=1)
+            computed_min = start_of_target.isoformat()
+            computed_max = end_of_target.isoformat()
+        elif date_target == "today":
+            computed_min = start_of_today.isoformat()
+            computed_max = (start_of_today + timedelta(days=1)).isoformat()
+        else:
+            computed_min = start_of_today.isoformat()
+            computed_max = (start_of_today + timedelta(days=7)).isoformat()
+
+        # Request / Window / Timezone aware cache key
+        cache_key = f"{self.user_id}:{today_iso}:{date_target or 'default'}:{computed_min}:{computed_max}:{user_tz or 'utc'}:{query or ''}:{max_results}"
 
         cached = calendar_cache.get(cache_key)
         if cached is not None:
@@ -340,25 +382,9 @@ class GoogleCalendarProvider(CalendarProvider):
                 "Accept": "application/json"
             }
 
-            # Calculate time window according to date_target
-            now = datetime.now(timezone.utc)
-            start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-
-            if date_target == "tomorrow":
-                start_of_target = start_of_today + timedelta(days=1)
-                end_of_target = start_of_target + timedelta(days=1)
-                time_min = start_of_target.isoformat()
-                time_max = end_of_target.isoformat()
-            elif date_target == "today":
-                time_min = start_of_today.isoformat()
-                time_max = (start_of_today + timedelta(days=1)).isoformat()
-            else:
-                time_min = start_of_today.isoformat()
-                time_max = (start_of_today + timedelta(days=7)).isoformat()
-
             params = {
-                "timeMin": time_min,
-                "timeMax": time_max,
+                "timeMin": computed_min,
+                "timeMax": computed_max,
                 "maxResults": min(max_results, 15),
                 "singleEvents": "true",
                 "orderBy": "startTime"

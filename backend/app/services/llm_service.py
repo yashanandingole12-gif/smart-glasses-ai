@@ -51,10 +51,19 @@ class GeminiCircuitBreaker:
 
 gemini_circuit_breaker = GeminiCircuitBreaker(cooldown_seconds=60.0)
 
+_discovery_cache: Dict[str, Any] = {}
+_DISCOVERY_TTL_SECONDS = 3600.0
+
 async def discover_valid_gemini_model(api_key: str) -> Optional[str]:
-    """Discover available generateContent models on Google AI Studio for the configured API key."""
+    """Discover available generateContent models on Google AI Studio for the configured API key with 1-hour cache."""
     if not api_key:
         return None
+    now = time.time()
+    if api_key in _discovery_cache:
+        cached_time, cached_model = _discovery_cache[api_key]
+        if now - cached_time < _DISCOVERY_TTL_SECONDS:
+            return cached_model
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
     try:
         async with httpx.AsyncClient(timeout=4.0) as client:
@@ -66,12 +75,15 @@ async def discover_valid_gemini_model(api_key: str) -> Optional[str]:
                 for preferred in ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-flash-latest", "gemini-1.5-flash", "gemini-pro"]:
                     if preferred in gen_models:
                         logger.info("Gemini Model Discovery: Selected '%s' from %d available models.", preferred, len(gen_models))
+                        _discovery_cache[api_key] = (now, preferred)
                         return preferred
                 if gen_models:
                     logger.info("Gemini Model Discovery: Selected '%s'", gen_models[0])
+                    _discovery_cache[api_key] = (now, gen_models[0])
                     return gen_models[0]
     except Exception as e:
         logger.debug("Gemini model discovery skipped/failed: %s", e)
+    _discovery_cache[api_key] = (now, None)
     return None
 
 class ToolCall(BaseModel):
