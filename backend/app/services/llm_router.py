@@ -129,10 +129,10 @@ class LLMRouter:
                 provider = settings.PRIMARY_LLM_PROVIDER
                 model = settings.PRIMARY_LLM_MODEL
             elif tier == RoutingTier.SECONDARY:
-                provider = settings.SECONDARY_LLM_PROVIDER or "mock"
-                model = settings.SECONDARY_LLM_MODEL or "default"
-                api_key = settings.SECONDARY_LLM_API_KEY or api_key
-                base_url = settings.SECONDARY_LLM_BASE_URL
+                provider = settings.SECONDARY_LLM_PROVIDER or "deepseek"
+                model = settings.SECONDARY_LLM_MODEL or settings.DEEPSEEK_MODEL or "deepseek-chat"
+                api_key = settings.SECONDARY_LLM_API_KEY or settings.DEEPSEEK_API_KEY or api_key
+                base_url = settings.SECONDARY_LLM_BASE_URL or settings.DEEPSEEK_BASE_URL or "https://api.deepseek.com"
             else:
                 provider = settings.FALLBACK_LLM_PROVIDER
                 model = settings.FALLBACK_LLM_MODEL

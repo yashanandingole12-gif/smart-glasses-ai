@@ -117,16 +117,22 @@ class LLMService:
     def model(self) -> str:
         if self.provider == "gemini":
             return self._custom_model or settings.GEMINI_MODEL or settings.LLM_MODEL
+        elif self.provider == "deepseek":
+            return self._custom_model or settings.DEEPSEEK_MODEL or settings.SECONDARY_LLM_MODEL or "deepseek-chat"
         return self._custom_model or settings.LLM_MODEL
 
     @property
     def api_key(self) -> Optional[str]:
         if self.provider == "gemini":
             return self._custom_api_key or settings.GEMINI_API_KEY or settings.LLM_API_KEY
+        elif self.provider == "deepseek":
+            return self._custom_api_key or settings.DEEPSEEK_API_KEY or settings.SECONDARY_LLM_API_KEY or settings.LLM_API_KEY
         return self._custom_api_key or settings.LLM_API_KEY
 
     @property
     def base_url(self) -> Optional[str]:
+        if self.provider == "deepseek":
+            return self._custom_base_url or settings.DEEPSEEK_BASE_URL or settings.SECONDARY_LLM_BASE_URL or "https://api.deepseek.com"
         return self._custom_base_url or settings.LLM_BASE_URL
 
     async def generate(
@@ -140,7 +146,7 @@ class LLMService:
         """
         if self.provider == "mock":
             return await self._generate_mock(messages, tools, context_payload)
-        elif self.provider in ["openai", "gemini", "anthropic"]:
+        elif self.provider in ["openai", "gemini", "anthropic", "deepseek", "groq"]:
             if not self.api_key or self.api_key.strip() == "":
                 err_msg = f"LLM_PROVIDER is set to '{self.provider}' but LLM_API_KEY is missing. Please set your API key in .env or switch LLM_PROVIDER to 'mock'."
                 logger.error(err_msg)
@@ -149,8 +155,10 @@ class LLMService:
                     provider=self.provider,
                     model=self.model
                 )
-            if self.provider == "openai":
+            if self.provider == "openai" or self.provider == "groq":
                 return await self._generate_openai(messages, tools)
+            elif self.provider == "deepseek":
+                return await self._generate_deepseek(messages, tools)
             elif self.provider == "gemini":
                 return await self._generate_gemini(messages, tools)
             elif self.provider == "anthropic":
@@ -437,6 +445,43 @@ class LLMService:
                     for tc in choice["tool_calls"]
                 ]
             return LLMResponse(content=content, tool_calls=tool_calls, provider="openai", model=self.model)
+
+    async def _generate_deepseek(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
+        url = (self.base_url or "https://api.deepseek.com").rstrip("/") + "/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload: Dict[str, Any] = {
+            "model": self.model or "deepseek-chat",
+            "messages": messages,
+            "max_tokens": settings.MAX_OUTPUT_TOKENS or 120,
+            "temperature": 0.2
+        }
+        if tools:
+            payload["tools"] = [{"type": "function", "function": t} for t in tools]
+
+        timeout_sec = min(settings.LLM_TIMEOUT_SECONDS or 2.5, 5.0)
+        async with httpx.AsyncClient(timeout=timeout_sec) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            choice = data.get("choices", [{}])[0].get("message", {})
+            content = choice.get("content")
+            tool_calls = None
+            if choice.get("tool_calls"):
+                tool_calls = []
+                for tc in choice["tool_calls"]:
+                    fn = tc.get("function", {})
+                    fn_name = fn.get("name", "")
+                    fn_args = fn.get("arguments", {})
+                    if isinstance(fn_args, str):
+                        try:
+                            fn_args = json.loads(fn_args)
+                        except Exception:
+                            fn_args = {}
+                    tool_calls.append(ToolCall(name=fn_name, arguments=fn_args))
+            return LLMResponse(content=content, tool_calls=tool_calls, provider="deepseek", model=self.model or "deepseek-chat")
 
     async def _generate_gemini(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
         if not gemini_circuit_breaker.is_available():

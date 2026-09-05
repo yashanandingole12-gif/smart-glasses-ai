@@ -20,10 +20,16 @@ class Settings(BaseSettings):
     FAST_LLM_MODEL: str = "gemini-2.0-flash"
     PRIMARY_LLM_PROVIDER: str = "gemini"
     PRIMARY_LLM_MODEL: str = "gemini-2.0-flash"
-    SECONDARY_LLM_PROVIDER: Optional[str] = None  # "openai", "groq", "anthropic", "ollama", "mock"
-    SECONDARY_LLM_MODEL: Optional[str] = None
+    SECONDARY_LLM_PROVIDER: Optional[str] = "deepseek"  # "deepseek", "openai", "groq", "anthropic", "ollama", "mock"
+    SECONDARY_LLM_MODEL: Optional[str] = "deepseek-chat"
     SECONDARY_LLM_API_KEY: Optional[str] = None
-    SECONDARY_LLM_BASE_URL: Optional[str] = None
+    SECONDARY_LLM_BASE_URL: Optional[str] = "https://api.deepseek.com"
+
+    # DeepSeek Specific Configuration
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_MODEL: Optional[str] = "deepseek-chat"
+    DEEPSEEK_BASE_URL: Optional[str] = "https://api.deepseek.com"
+
     FALLBACK_LLM_PROVIDER: str = "mock"
     FALLBACK_LLM_MODEL: str = "mock-glasses-v1"
 
@@ -97,6 +103,10 @@ if not settings.GOOGLE_CLIENT_ID and settings.GMAIL_CLIENT_ID:
     settings.GOOGLE_CLIENT_ID = settings.GMAIL_CLIENT_ID
 if not settings.GOOGLE_CLIENT_SECRET and settings.GMAIL_CLIENT_SECRET:
     settings.GOOGLE_CLIENT_SECRET = settings.GMAIL_CLIENT_SECRET
+
+# Normalize DeepSeek Secondary API key
+if not settings.SECONDARY_LLM_API_KEY and settings.DEEPSEEK_API_KEY:
+    settings.SECONDARY_LLM_API_KEY = settings.DEEPSEEK_API_KEY
 
 # If no Gemini key is configured or default is mock, align FAST/PRIMARY to mock
 if not settings.GEMINI_API_KEY and settings.LLM_PROVIDER == "mock":
