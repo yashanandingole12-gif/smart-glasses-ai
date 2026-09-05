@@ -13,7 +13,6 @@ from backend.app.models.schemas import (
     TimePeriod
 )
 from backend.app.tools.calendar_tools import calendar_get_events
-from backend.app.services.providers.calendar_provider import MockCalendarProvider
 
 
 class ContextEngine:
@@ -75,29 +74,22 @@ class ContextEngine:
                 place_type="college campus"
             )
 
-        # 3. Calendar context
+        # 3. Calendar context (Real Google Calendar, zero mock fallback)
         if client_context and client_context.calendar and client_context.calendar.next_event:
             cal_ctx = client_context.calendar
         else:
-            is_fast_path = any(
-                q in user_message.lower()
-                for q in ["what time", "what is the time", "current time", "kitne baje", "battery", "charge", "battery level", "what's my battery"]
-            )
-            if is_fast_path:
-                cal_data = MockCalendarProvider().get_events()
-            else:
-                cal_data = calendar_get_events()
-
+            cal_data = calendar_get_events()
+            raw_events = cal_data.get("events", []) if isinstance(cal_data, dict) else []
             events = [
                 CalendarEvent(
-                    id=e["id"],
-                    title=e["title"],
-                    start_time=e["start_time"],
+                    id=e.get("id", f"evt_{idx}"),
+                    title=e.get("title", "Event"),
+                    start_time=e.get("start_time", ""),
                     end_time=e.get("end_time"),
                     location=e.get("location"),
                     description=e.get("description")
                 )
-                for e in cal_data.get("events", [])
+                for idx, e in enumerate(raw_events)
             ]
             cal_ctx = CalendarContext(
                 current_event=None,

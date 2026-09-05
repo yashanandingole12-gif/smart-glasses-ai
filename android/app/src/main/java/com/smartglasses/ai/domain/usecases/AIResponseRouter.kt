@@ -1,0 +1,237 @@
+package com.smartglasses.ai.domain.usecases
+
+import android.content.Context
+import com.smartglasses.ai.core.ai.LocalAiEngine
+import com.smartglasses.ai.core.network.ConnectionState
+import com.smartglasses.ai.core.sms.SmsManagerHelper
+import com.smartglasses.ai.domain.models.AiAvailabilityState
+import com.smartglasses.ai.domain.models.FailureCategory
+import com.smartglasses.ai.domain.models.ResponseCapabilityStatus
+import com.smartglasses.ai.domain.models.ResponseSource
+import com.smartglasses.ai.domain.models.UnifiedSource
+import com.smartglasses.ai.domain.models.WearableResponse
+import com.smartglasses.ai.domain.models.WearableTelemetry
+import com.smartglasses.ai.domain.repositories.AssistantRepository
+import kotlinx.coroutines.withTimeoutOrNull
+import java.util.Locale
+
+class AIResponseRouter(
+    private val repository: AssistantRepository,
+    private val deterministicResolver: LocalDeterministicResolver,
+    private val localAiEngine: LocalAiEngine,
+    private val context: Context? = null
+) {
+    var conversationalCloudTimeoutMs: Long = 2500L
+
+    suspend fun routeQuery(
+        sessionId: String,
+        query: String,
+        telemetry: WearableTelemetry,
+        connectionState: ConnectionState,
+        confirmedAction: Boolean? = null,
+        confirmedActionId: String? = null,
+        language: String? = "auto",
+        locale: String? = "en-IN",
+        onAiStateChanged: ((AiAvailabilityState) -> Unit)? = null
+    ): WearableResponse {
+        val q = query.trim()
+        val qLower = q.lowercase(Locale.ROOT)
+        val tStart = System.currentTimeMillis()
+
+        // 1. LAYER 1 — Local Deterministic Fast-Path (<50ms)
+        val deterministicResult = deterministicResolver.resolve(q, telemetry, sessionId, language)
+        if (deterministicResult != null) {
+            return deterministicResult.copy(
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED
+            )
+        }
+
+        // 2. LAYER 1.5 — Local Android SMS Queries (<50ms on-device)
+        if (isSmsQuery(qLower)) {
+            return handleLocalSmsQuery(sessionId, tStart)
+        }
+
+        // 3. Check if the query strictly requires cloud access (Gmail, Google Calendar, Web Search, Vision)
+        val cloudRequired = isCloudRequiredQuery(qLower)
+
+        if (cloudRequired) {
+            if (connectionState == ConnectionState.CONNECTED) {
+                // Execute cloud tool query with standard timeout
+                val cloudResult = repository.sendMessage(
+                    sessionId = sessionId,
+                    userMessage = q,
+                    telemetry = telemetry,
+                    confirmedAction = confirmedAction,
+                    confirmedActionId = confirmedActionId,
+                    language = language,
+                    locale = locale
+                )
+                return cloudResult.getOrElse { err ->
+                    buildHonestOfflineCloudError(qLower, sessionId, err.localizedMessage ?: "Network error")
+                }.copy(
+                    unifiedSource = UnifiedSource.TOOL,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED
+                )
+            } else {
+                // When offline, DO NOT fabricate or hallucinate external tool results
+                return buildHonestOfflineCloudError(qLower, sessionId, "Offline")
+            }
+        }
+
+        // 4. LAYER 2 & 3 — Conversational / General AI with Preemptive Cloud Timeout
+        if (connectionState == ConnectionState.CONNECTED) {
+            onAiStateChanged?.invoke(AiAvailabilityState.CLOUD_AVAILABLE)
+
+            // Attempt Cloud AI with strict 2.5-second conversational budget
+            val cloudResponse = withTimeoutOrNull(conversationalCloudTimeoutMs) {
+                try {
+                    val res = repository.sendMessage(
+                        sessionId = sessionId,
+                        userMessage = q,
+                        telemetry = telemetry,
+                        confirmedAction = confirmedAction,
+                        confirmedActionId = confirmedActionId,
+                        language = language,
+                        locale = locale
+                    )
+                    res.getOrNull()
+                } catch (_: Exception) {
+                    null
+                }
+            }
+
+            if (cloudResponse != null && cloudResponse.text.isNotBlank()) {
+                return cloudResponse.copy(
+                    source = ResponseSource.CLOUD_GEMINI,
+                    unifiedSource = UnifiedSource.CLOUD,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED
+                )
+            }
+
+            // Cloud timed out or failed -> Preempt and fallback to Local AI
+            onAiStateChanged?.invoke(AiAvailabilityState.USING_LOCAL_AI)
+            val localAiResp = localAiEngine.generateResponse(q, telemetry, sessionId)
+            return localAiResp.copy(
+                failureCategory = FailureCategory.LLM_TIMEOUT,
+                tierUsed = "LOCAL_AI_FALLBACK",
+                source = ResponseSource.LOCAL_AI,
+                unifiedSource = UnifiedSource.LOCAL_AI,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED
+            )
+        } else {
+            // Completely offline -> Direct Local AI invocation (<100ms)
+            onAiStateChanged?.invoke(AiAvailabilityState.LOCAL_ONLY)
+            val localAiResp = localAiEngine.generateResponse(q, telemetry, sessionId)
+            return localAiResp.copy(
+                source = ResponseSource.LOCAL_AI,
+                unifiedSource = UnifiedSource.LOCAL_AI,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED
+            )
+        }
+    }
+
+    private fun isSmsQuery(qLower: String): Boolean {
+        val smsKeywords = listOf(
+            "read my sms", "read my messages", "read sms", "read recent messages",
+            "check sms", "check my messages", "any new messages", "any messages",
+            "sms messages", "read text", "read texts", "my texts", "sms padho"
+        )
+        if (smsKeywords.any { qLower.contains(it) } || qLower == "sms" || qLower == "messages") {
+            return true
+        }
+        return false
+    }
+
+    private fun handleLocalSmsQuery(sessionId: String, tStart: Long): WearableResponse {
+        val ctx = context
+        if (ctx == null) {
+            return WearableResponse(
+                text = "I can't access your messages right now.",
+                sessionId = sessionId,
+                source = ResponseSource.UNAVAILABLE,
+                unifiedSource = UnifiedSource.UNAVAILABLE,
+                capabilityStatus = ResponseCapabilityStatus.FAILED,
+                latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+            )
+        }
+
+        if (!SmsManagerHelper.hasReadPermission(ctx)) {
+            return WearableResponse(
+                text = "I don't have permission to read your messages.",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.TOOL,
+                capabilityStatus = ResponseCapabilityStatus.REQUIRES_PERMISSION,
+                latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+            )
+        }
+
+        val messages = SmsManagerHelper.readRecentMessages(ctx, limit = 3)
+        val latMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+
+        if (messages.isEmpty()) {
+            return WearableResponse(
+                text = "You don't have any messages I can read.",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.TOOL,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = latMs
+            )
+        }
+
+        val latest = messages.first()
+        val text = if (messages.size == 1) {
+            "You have 1 message from ${latest.address}: ${latest.body}"
+        } else {
+            "You have ${messages.size} messages. Most recent from ${latest.address}: ${latest.body}"
+        }
+
+        return WearableResponse(
+            text = text,
+            sessionId = sessionId,
+            source = ResponseSource.TOOL,
+            unifiedSource = UnifiedSource.TOOL,
+            capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+            latencyMs = latMs
+        )
+    }
+
+    private fun isCloudRequiredQuery(qLower: String): Boolean {
+        val cloudKeywords = listOf(
+            "email", "gmail", "mail", "inbox", "unread", "ईमेल",
+            "calendar", "schedule", "events", "meeting", "class", "tomorrow", "कैलेंडर",
+            "search the web", "web search", "google search", "search for", "who won the", "weather"
+        )
+        return cloudKeywords.any { qLower.contains(it) }
+    }
+
+    private fun buildHonestOfflineCloudError(qLower: String, sessionId: String, reason: String): WearableResponse {
+        val text = when {
+            qLower.contains("email") || qLower.contains("gmail") || qLower.contains("mail") || qLower.contains("inbox") ->
+                "I can't access your email right now."
+            qLower.contains("calendar") || qLower.contains("schedule") || qLower.contains("meeting") || qLower.contains("tomorrow") || qLower.contains("class") ->
+                "I can't access your calendar right now."
+            qLower.contains("search") ->
+                "I can't search the web right now."
+            else ->
+                "I can't answer that right now."
+        }
+
+        return WearableResponse(
+            text = text,
+            sessionId = sessionId,
+            requiresConfirmation = false,
+            confirmationPrompt = null,
+            confirmationActionId = null,
+            sources = listOf("offline_guard"),
+            latencyMs = 5.0,
+            failureCategory = FailureCategory.NETWORK_FAILURE,
+            tierUsed = "OFFLINE_GUARD",
+            source = ResponseSource.UNAVAILABLE,
+            unifiedSource = UnifiedSource.UNAVAILABLE,
+            capabilityStatus = ResponseCapabilityStatus.REQUIRES_NETWORK
+        )
+    }
+}

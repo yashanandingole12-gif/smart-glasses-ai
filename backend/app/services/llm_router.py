@@ -14,6 +14,7 @@ logger = logging.getLogger("SmartGlasses.LLMRouter")
 class RoutingTier(str, Enum):
     FAST = "FAST"
     PRIMARY = "PRIMARY"
+    SECONDARY = "SECONDARY"
     FALLBACK = "FALLBACK"
 
 class FailureCategory(str, Enum):
@@ -65,7 +66,7 @@ class LLMRouter:
         cancellation_event: Optional[asyncio.Event] = None
     ) -> RouterResponse:
         """
-        Executes multi-tier cascade (FAST -> PRIMARY -> FALLBACK) with strict global deadline
+        Executes multi-tier cascade (FAST -> PRIMARY -> SECONDARY -> FALLBACK) with strict global deadline
         and per-attempt timeouts. Never blocks indefinitely or returns empty successful text.
         """
         deadline_sec = global_deadline_seconds or settings.REQUEST_DEADLINE_SECONDS
@@ -82,11 +83,17 @@ class LLMRouter:
         if not starting_tier:
             starting_tier = self.select_starting_tier(last_user_msg, bool(tools))
 
-        # Define tier order
+        # Define tier order with optional secondary provider
+        tier_order: List[RoutingTier] = []
         if starting_tier == RoutingTier.FAST:
-            tier_order = [RoutingTier.FAST, RoutingTier.PRIMARY, RoutingTier.FALLBACK]
+            tier_order = [RoutingTier.FAST, RoutingTier.PRIMARY]
         else:
-            tier_order = [RoutingTier.PRIMARY, RoutingTier.FAST, RoutingTier.FALLBACK]
+            tier_order = [RoutingTier.PRIMARY, RoutingTier.FAST]
+
+        if settings.SECONDARY_LLM_PROVIDER:
+            tier_order.append(RoutingTier.SECONDARY)
+
+        tier_order.append(RoutingTier.FALLBACK)
 
         fallback_chain: List[Dict[str, Any]] = []
         last_failure_cat = FailureCategory.NONE
@@ -113,12 +120,19 @@ class LLMRouter:
                 continue
 
             # Determine provider & model for tier
+            api_key = settings.LLM_API_KEY or settings.GEMINI_API_KEY
+            base_url = settings.LLM_BASE_URL
             if tier == RoutingTier.FAST:
                 provider = settings.FAST_LLM_PROVIDER
                 model = settings.FAST_LLM_MODEL
             elif tier == RoutingTier.PRIMARY:
                 provider = settings.PRIMARY_LLM_PROVIDER
                 model = settings.PRIMARY_LLM_MODEL
+            elif tier == RoutingTier.SECONDARY:
+                provider = settings.SECONDARY_LLM_PROVIDER or "mock"
+                model = settings.SECONDARY_LLM_MODEL or "default"
+                api_key = settings.SECONDARY_LLM_API_KEY or api_key
+                base_url = settings.SECONDARY_LLM_BASE_URL
             else:
                 provider = settings.FALLBACK_LLM_PROVIDER
                 model = settings.FALLBACK_LLM_MODEL
@@ -128,8 +142,8 @@ class LLMRouter:
 
             try:
                 # Custom instance for this tier attempt
-                tier_service = llm_service if (provider == llm_service.provider and model == llm_service.model) else \
-                    llm_service.__class__(provider=provider, model=model, api_key=settings.LLM_API_KEY or settings.GEMINI_API_KEY)
+                tier_service = llm_service if (provider == llm_service.provider and model == llm_service.model and api_key == llm_service.api_key) else \
+                    llm_service.__class__(provider=provider, model=model, api_key=api_key, base_url=base_url)
 
                 # Execute with strict per-attempt timeout
                 response: LLMResponse = await asyncio.wait_for(

@@ -1,6 +1,11 @@
 package com.smartglasses.ai.presentation.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,16 +20,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartglasses.ai.core.network.ConnectionState
 import com.smartglasses.ai.core.network.NetworkDiagnostics
+import com.smartglasses.ai.domain.models.AiAvailabilityState
 import com.smartglasses.ai.domain.models.AssistantState
 import com.smartglasses.ai.domain.models.ChatMessage
 import com.smartglasses.ai.domain.models.IntegrationState
+import com.smartglasses.ai.domain.models.ResponseSource
 import com.smartglasses.ai.presentation.settings.BackendConfigDialog
 import com.smartglasses.ai.presentation.theme.*
 
@@ -53,32 +62,36 @@ fun WearableHomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Header Bar: SMART GLASSES AI
+            // 1. Header Bar: SMART GLASSES AI + AI Status Indicator
             item {
                 LuxuryHeaderBar(
+                    aiState = state.aiAvailabilityState,
+                    connectionState = state.connectionState,
                     onSettingsClicked = { viewModel.openConfigDialog() },
                     onDiagnosticsClicked = { viewModel.toggleDiagnostics() },
                     showDiagnostics = state.showDiagnostics
                 )
             }
 
-            // 2. Main Executive Assistant Card
+            // 2. Executive Main Assistant Section
             item {
-                LuxuryAssistantMainCard(
+                LuxuryAssistantMainSection(
+                    period = state.period,
+                    currentTime = state.currentTime,
+                    locationName = if (state.locationAvailable) state.locationName else "Nagpur",
+                    batteryPercent = state.batteryPercentage,
+                    isCharging = state.isCharging,
                     assistantState = state.assistantState,
                     latestSpeech = state.latestSpeech,
                     partialTranscript = state.partialVoiceTranscript,
-                    locationName = if (state.locationAvailable) state.locationName else "Nagpur, India",
-                    batteryPercent = state.batteryPercentage,
-                    isCharging = state.isCharging,
                     onTalkClicked = { viewModel.onTalkButtonClicked() }
                 )
             }
 
-            // 3. Pending Action Confirmation Dialog (Security Unified Risk)
+            // 3. Pending Action Confirmation Dialog
             if (state.pendingConfirmation != null) {
                 item {
                     LuxuryConfirmationDialogCard(
@@ -89,7 +102,7 @@ fun WearableHomeScreen(
                 }
             }
 
-            // 4. Conversation History Feed
+            // 4. Conversation History Feed (Subtle, elegant bubbles)
             if (state.messages.isNotEmpty()) {
                 item {
                     LuxuryConversationCard(
@@ -99,7 +112,7 @@ fun WearableHomeScreen(
                 }
             }
 
-            // 5. Text Input Row
+            // 5. Minimalist Text Input Bar
             item {
                 LuxuryTextInputRow(
                     textInput = state.textInput,
@@ -109,44 +122,48 @@ fun WearableHomeScreen(
                 )
             }
 
-            // 6. Connected Services & Integrations Card
+            // 6. Connected Services (Google, Gmail, Calendar)
             item {
                 LuxuryServicesCard(
                     connectionState = state.connectionState,
-                    geminiConnected = state.llmConnected,
                     googleConnected = state.googleConnected,
                     gmailConnected = state.gmailStatus == IntegrationState.CONNECTED,
                     calendarConnected = state.calendarStatus == IntegrationState.CONNECTED,
-                    smsStatus = state.smsStatus,
                     onCheckGmail = { viewModel.checkGmail() },
                     onTodayEvents = { viewModel.fetchTodayEvents() },
                     onReadSms = { viewModel.readRecentSms() }
                 )
             }
 
-            // 7. Device Status Card
+            // 7. Device Hardware Status (Microphone, TTS, Location, Glasses)
             item {
-                LuxuryDeviceStatusCard(
+                LuxuryDeviceHardwareCard(
                     batteryPercent = state.batteryPercentage,
                     isCharging = state.isCharging,
-                    locationName = if (state.locationAvailable) state.locationName else "Location Unavailable",
+                    locationName = if (state.locationAvailable) state.locationName else "Nagpur",
                     micReady = state.isMicrophoneReady,
-                    ttsReady = state.isTtsReady
+                    ttsReady = state.isTtsReady,
+                    glassesConnected = state.deviceConnectionState != com.smartglasses.ai.core.bluetooth.DeviceConnectionState.DISCONNECTED
                 )
             }
 
             // 8. Developer Diagnostics (Discreet Accordion / Collapsed by default)
-            if (state.showDiagnostics) {
-                item {
-                    LuxuryDiagnosticsCard(
-                        diagnostics = state.networkDiagnostics,
-                        activeRequestId = state.activeRequestId,
-                        serverUrl = state.serverUrl
-                    )
-                }
+            item {
+                LuxuryDiagnosticsAccordion(
+                    isExpanded = state.showDiagnostics,
+                    onToggle = { viewModel.toggleDiagnostics() },
+                    diagnostics = state.networkDiagnostics,
+                    activeRequestId = state.activeRequestId,
+                    serverUrl = state.serverUrl,
+                    activeProvider = state.activeAiProvider,
+                    connectionState = state.connectionState,
+                    ttfaMs = state.timeToFirstAudioMs,
+                    sttMs = state.sttDurationMs,
+                    ttsMs = state.ttsDurationMs
+                )
             }
 
-            // 9. Backend Server Configuration
+            // 9. Backend Gateway Configuration Card (Clean & Compact)
             item {
                 LuxuryBackendConfigCard(
                     urlInput = inlineUrlInput,
@@ -172,6 +189,8 @@ fun WearableHomeScreen(
 
 @Composable
 fun LuxuryHeaderBar(
+    aiState: AiAvailabilityState,
+    connectionState: ConnectionState,
     onSettingsClicked: () -> Unit,
     onDiagnosticsClicked: () -> Unit,
     showDiagnostics: Boolean
@@ -186,7 +205,7 @@ fun LuxuryHeaderBar(
                 text = "SMART GLASSES AI",
                 style = MaterialTheme.typography.titleLarge,
                 color = LuxuryEspresso,
-                letterSpacing = 1.2.sp,
+                letterSpacing = 1.4.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
@@ -194,11 +213,18 @@ fun LuxuryHeaderBar(
                 style = MaterialTheme.typography.labelSmall,
                 color = LuxuryChampagneGold,
                 letterSpacing = 0.8.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Subtle AI Availability Pill
+            LuxuryAiStatusPill(aiState = aiState, connectionState = connectionState)
+
+            // Diagnostics Toggle
             IconButton(
                 onClick = onDiagnosticsClicked,
                 modifier = Modifier
@@ -214,6 +240,7 @@ fun LuxuryHeaderBar(
                 )
             }
 
+            // Settings Button
             IconButton(
                 onClick = onSettingsClicked,
                 modifier = Modifier
@@ -233,13 +260,49 @@ fun LuxuryHeaderBar(
 }
 
 @Composable
-fun LuxuryAssistantMainCard(
-    assistantState: AssistantState,
-    latestSpeech: String,
-    partialTranscript: String,
+fun LuxuryAiStatusPill(
+    aiState: AiAvailabilityState,
+    connectionState: ConnectionState
+) {
+    val (label, bg, fg) = when {
+        connectionState == ConnectionState.DISCONNECTED ->
+            Triple("OFFLINE MODE", LuxuryTerracottaBg, LuxuryTerracotta)
+        aiState == AiAvailabilityState.USING_LOCAL_AI ->
+            Triple("USING LOCAL AI", LuxuryGoldLight, LuxuryEspresso)
+        aiState == AiAvailabilityState.LOCAL_ONLY ->
+            Triple("LOCAL AI", LuxuryGoldLight, LuxuryEspresso)
+        aiState == AiAvailabilityState.CLOUD_DEGRADED ->
+            Triple("CLOUD DEGRADED", LuxuryGoldLight, LuxuryEspresso)
+        else ->
+            Triple("CLOUD", LuxurySageBg, LuxurySage)
+    }
+
+    Box(
+        modifier = Modifier
+            .background(bg, RoundedCornerShape(12.dp))
+            .border(1.dp, fg.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 9.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            color = fg,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.6.sp
+        )
+    }
+}
+
+@Composable
+fun LuxuryAssistantMainSection(
+    period: String,
+    currentTime: String,
     locationName: String,
     batteryPercent: Int,
     isCharging: Boolean,
+    assistantState: AssistantState,
+    latestSpeech: String,
+    partialTranscript: String,
     onTalkClicked: () -> Unit
 ) {
     Card(
@@ -250,67 +313,107 @@ fun LuxuryAssistantMainCard(
             .border(1.dp, LuxuryBorder, RoundedCornerShape(16.dp))
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(22.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Executive Greeting
+            val greetingWord = when (period.lowercase()) {
+                "morning" -> "Good morning."
+                "afternoon" -> "Good afternoon."
+                "evening" -> "Good evening."
+                else -> "Good evening."
+            }
+
             Column {
                 Text(
-                    text = "Good evening.",
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = greetingWord,
+                    style = MaterialTheme.typography.headlineMedium,
                     color = LuxuryEspresso,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = "How may I assist?",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = LuxuryTextMuted
                 )
             }
 
-            // Context Sub-Bar
+            // Integrated Concise Context Line: 12:42 PM · Nagpur · Battery 84%
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(LuxurySurfaceSubtle, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Location",
-                    tint = LuxuryChampagneGold,
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    text = locationName,
-                    color = LuxuryCharcoal,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = "Time",
+                        tint = LuxuryChampagneGold,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = currentTime,
+                        color = LuxuryCharcoal,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
                 Text(text = "·", color = LuxuryBorder)
-                Icon(
-                    imageVector = if (isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
-                    contentDescription = "Battery",
-                    tint = LuxurySage,
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    text = "$batteryPercent%",
-                    color = LuxuryCharcoal,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Location",
+                        tint = LuxuryChampagneGold,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = locationName,
+                        color = LuxuryCharcoal,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Text(text = "·", color = LuxuryBorder)
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
+                        contentDescription = "Battery",
+                        tint = LuxurySage,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = "$batteryPercent%",
+                        color = LuxuryCharcoal,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             // Spoken Preview / Partial Transcription
-            if (partialTranscript.isNotBlank() || latestSpeech.isNotBlank()) {
+            if (partialTranscript.isNotBlank() || (latestSpeech.isNotBlank() && latestSpeech != "Ready on your smart glasses. Tap TALK or type below.")) {
                 val previewText = if (partialTranscript.isNotBlank()) partialTranscript else latestSpeech
                 Text(
                     text = "\"$previewText\"",
                     color = LuxuryTextMuted,
                     fontSize = 13.sp,
+                    fontStyle = FontStyle.Italic,
                     lineHeight = 18.sp
                 )
             }
@@ -323,7 +426,6 @@ fun LuxuryAssistantMainCard(
                 AssistantState.SPEAKING -> Triple("SPEAKING...", LuxuryEspresso, LuxuryWarmWhite)
                 AssistantState.ERROR -> Triple("RETRY", LuxuryTerracottaBg, LuxuryTerracotta)
             }
-
 
             Button(
                 onClick = onTalkClicked,
@@ -346,7 +448,7 @@ fun LuxuryAssistantMainCard(
                     color = textColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    letterSpacing = 1.sp
+                    letterSpacing = 1.2.sp
                 )
             }
         }
@@ -380,7 +482,7 @@ fun LuxuryConfirmationDialogCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "ACTION CONFIRMATION",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = LuxuryEspresso,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp
@@ -400,7 +502,7 @@ fun LuxuryConfirmationDialogCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = onCancel) {
-                    Text(text = "CANCEL", color = LuxuryTextMuted, fontWeight = FontWeight.SemiBold)
+                    Text(text = "CANCEL", color = LuxuryTextMuted, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
@@ -408,7 +510,7 @@ fun LuxuryConfirmationDialogCard(
                     colors = ButtonDefaults.buttonColors(containerColor = LuxuryEspresso),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(text = "CONFIRM", color = LuxuryWarmWhite, fontWeight = FontWeight.Bold)
+                    Text(text = "CONFIRM", color = LuxuryWarmWhite, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }
@@ -444,7 +546,6 @@ fun LuxuryConversationCard(
                 val bubbleBg = if (isUser) LuxuryGoldLight else LuxurySurfaceSubtle
                 val bubbleBorder = if (isUser) LuxuryChampagneGold.copy(alpha = 0.4f) else LuxuryBorder
 
-
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -453,12 +554,35 @@ fun LuxuryConversationCard(
                         .border(1.dp, bubbleBorder, RoundedCornerShape(10.dp))
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    Text(
-                        text = if (isUser) "You" else "Assistant",
-                        color = if (isUser) LuxuryGoldHover else LuxuryEspresso,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isUser) "You" else "Assistant",
+                            color = if (isUser) LuxuryGoldHover else LuxuryEspresso,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (!isUser && msg.source != null) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            val tag = when (msg.source) {
+                                ResponseSource.LOCAL_DETERMINISTIC -> "Local"
+                                ResponseSource.LOCAL_AI -> "Local AI"
+                                ResponseSource.CLOUD_GEMINI -> "Gemini"
+                                ResponseSource.CLOUD_SECONDARY -> "Secondary Cloud"
+                                ResponseSource.TOOL -> "Tool"
+                                ResponseSource.UNAVAILABLE -> "Unavailable"
+                                ResponseSource.FALLBACK -> "Fallback"
+                            }
+                            Text(
+                                text = tag,
+                                color = LuxuryTextLight,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                     Text(
                         text = msg.text,
                         color = LuxuryCharcoal,
@@ -470,7 +594,7 @@ fun LuxuryConversationCard(
 
             if (lastLatencyMs != null && lastLatencyMs > 0) {
                 Text(
-                    text = "Latency: ${lastLatencyMs.toInt()} ms",
+                    text = "Response latency: ${lastLatencyMs.toInt()} ms",
                     color = LuxuryTextLight,
                     fontSize = 10.sp,
                     modifier = Modifier.align(Alignment.End)
@@ -524,11 +648,9 @@ fun LuxuryTextInputRow(
 @Composable
 fun LuxuryServicesCard(
     connectionState: ConnectionState,
-    geminiConnected: Boolean,
     googleConnected: Boolean,
     gmailConnected: Boolean,
     calendarConnected: Boolean,
-    smsStatus: IntegrationState,
     onCheckGmail: () -> Unit,
     onTodayEvents: () -> Unit,
     onReadSms: () -> Unit
@@ -624,12 +746,13 @@ fun LuxuryStatusBadge(label: String, isOk: Boolean) {
 }
 
 @Composable
-fun LuxuryDeviceStatusCard(
+fun LuxuryDeviceHardwareCard(
     batteryPercent: Int,
     isCharging: Boolean,
     locationName: String,
     micReady: Boolean,
-    ttsReady: Boolean
+    ttsReady: Boolean,
+    glassesConnected: Boolean
 ) {
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -643,7 +766,7 @@ fun LuxuryDeviceStatusCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "DEVICE HARDWARE",
+                text = "DEVICE",
                 style = MaterialTheme.typography.labelSmall,
                 color = LuxuryTextLight,
                 fontWeight = FontWeight.Bold,
@@ -655,32 +778,80 @@ fun LuxuryDeviceStatusCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = "Glasses ESP32", color = LuxuryCharcoal, fontSize = 13.sp)
-                Text(text = "Connected", color = LuxurySage, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = if (glassesConnected) "Connected" else "Simulated",
+                    color = if (glassesConnected) LuxurySage else LuxuryTextMuted,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = "Battery", color = LuxuryCharcoal, fontSize = 13.sp)
-                Text(text = "$batteryPercent% ${if (isCharging) "(Charging)" else ""}", color = LuxuryCharcoal, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "$batteryPercent% ${if (isCharging) "(Charging)" else ""}",
+                    color = LuxuryCharcoal,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Audio Pipeline", color = LuxuryCharcoal, fontSize = 13.sp)
-                Text(text = if (micReady && ttsReady) "Ready" else "Initializing", color = LuxurySage, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = "Microphone", color = LuxuryCharcoal, fontSize = 13.sp)
+                Text(
+                    text = if (micReady) "Ready" else "No Permission",
+                    color = if (micReady) LuxurySage else LuxuryTerracotta,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "TTS Speaker", color = LuxuryCharcoal, fontSize = 13.sp)
+                Text(
+                    text = if (ttsReady) "Ready" else "Initializing",
+                    color = if (ttsReady) LuxurySage else LuxuryTextMuted,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Location", color = LuxuryCharcoal, fontSize = 13.sp)
+                Text(
+                    text = locationName,
+                    color = LuxuryCharcoal,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
 }
 
 @Composable
-fun LuxuryDiagnosticsCard(
+fun LuxuryDiagnosticsAccordion(
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
     diagnostics: NetworkDiagnostics,
     activeRequestId: String?,
-    serverUrl: String
+    serverUrl: String,
+    activeProvider: String,
+    connectionState: ConnectionState,
+    ttfaMs: Long?,
+    sttMs: Long?,
+    ttsMs: Long?
 ) {
+    val rotationAngle by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "acc_arrow")
+
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = LuxurySurfaceSubtle),
@@ -689,22 +860,58 @@ fun LuxuryDiagnosticsCard(
             .border(1.dp, LuxuryBorder, RoundedCornerShape(14.dp))
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "DEVELOPER DIAGNOSTICS",
-                style = MaterialTheme.typography.labelSmall,
-                color = LuxuryTextLight,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "DEVELOPER DIAGNOSTICS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LuxuryTextLight,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
+                )
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = "Expand",
+                    tint = LuxuryTextLight,
+                    modifier = Modifier.rotate(rotationAngle)
+                )
+            }
 
-            Text(text = "Server: $serverUrl", color = LuxuryTextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-            Text(text = "Request ID: ${activeRequestId?.take(8) ?: "None"}", color = LuxuryTextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-            Text(text = "Last Latency: ${diagnostics.lastLatencyMs?.toInt() ?: 0} ms", color = LuxuryCharcoal, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Text(text = "Avg Latency: ${diagnostics.averageLatencyMs.toInt()} ms · P95: ${diagnostics.p95LatencyMs.toInt()} ms", color = LuxuryTextMuted, fontSize = 11.sp)
-            Text(text = "Total Requests: ${diagnostics.totalRequests} · Failed: ${diagnostics.failedRequests}", color = LuxuryTextMuted, fontSize = 11.sp)
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(text = "Server Gateway: $serverUrl", color = LuxuryTextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                    Text(text = "Active AI Provider: $activeProvider", color = LuxuryEspresso, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = "Connection State: ${connectionState.name}", color = LuxuryTextMuted, fontSize = 11.sp)
+                    if (sttMs != null) {
+                        Text(text = "STT Latency: $sttMs ms", color = LuxuryTextMuted, fontSize = 11.sp)
+                    }
+                    if (ttfaMs != null) {
+                        Text(text = "Time to First Audio (TTFA): $ttfaMs ms", color = LuxurySage, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    if (ttsMs != null) {
+                        Text(text = "TTS Duration: $ttsMs ms", color = LuxuryTextMuted, fontSize = 11.sp)
+                    }
+                    Text(text = "Last Latency: ${diagnostics.lastLatencyMs?.toInt() ?: 0} ms", color = LuxuryCharcoal, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = "Avg Latency: ${diagnostics.averageLatencyMs.toInt()} ms · P95: ${diagnostics.p95LatencyMs.toInt()} ms", color = LuxuryTextMuted, fontSize = 11.sp)
+                    Text(text = "Total Requests: ${diagnostics.totalRequests} · Failed: ${diagnostics.failedRequests}", color = LuxuryTextMuted, fontSize = 11.sp)
+                    Text(text = "Request ID: ${activeRequestId?.take(8) ?: "None"}", color = LuxuryTextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                }
+            }
         }
     }
 }

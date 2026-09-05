@@ -12,8 +12,7 @@ def test_get_relevant_context_default():
     full_ctx = context_engine.get_relevant_context("Good morning.")
     assert full_ctx.time is not None
     assert full_ctx.location.city == "Nagpur"
-    assert full_ctx.calendar.next_event is not None
-    assert "Class" in full_ctx.calendar.next_event.title
+    assert full_ctx.calendar is not None
     assert full_ctx.device.battery > 0
 
 def test_get_relevant_context_with_client_override():

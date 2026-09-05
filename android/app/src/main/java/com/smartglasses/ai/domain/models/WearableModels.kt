@@ -29,6 +29,52 @@ enum class IntegrationState {
     PERMISSION_REQUIRED
 }
 
+enum class AiAvailabilityState {
+    CLOUD_AVAILABLE,
+    LOCAL_ONLY,
+    CLOUD_DEGRADED,
+    USING_LOCAL_AI
+}
+
+enum class ResponseSource {
+    LOCAL_DETERMINISTIC,
+    LOCAL_AI,
+    CLOUD_GEMINI,
+    CLOUD_SECONDARY,
+    TOOL,
+    UNAVAILABLE,
+    FALLBACK
+}
+
+enum class UnifiedSource {
+    LOCAL_DETERMINISTIC,
+    LOCAL_AI,
+    CLOUD,
+    TOOL,
+    UNAVAILABLE
+}
+
+enum class ResponseCapabilityStatus {
+    ANSWERED,
+    REQUIRES_NETWORK,
+    REQUIRES_PERMISSION,
+    FAILED
+}
+
+data class ResponseResult(
+    val source: UnifiedSource,
+    val status: ResponseCapabilityStatus,
+    val text: String,
+    val sessionId: String,
+    val latencyMs: Double = 0.0,
+    val requiresConfirmation: Boolean = false,
+    val confirmationPrompt: String? = null,
+    val confirmationActionId: String? = null,
+    val failureCategory: FailureCategory = FailureCategory.NONE,
+    val tierUsed: String? = null,
+    val sources: List<String> = emptyList()
+)
+
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val sender: String, // "USER" or "ASSISTANT"
@@ -37,7 +83,10 @@ data class ChatMessage(
     val requiresConfirmation: Boolean = false,
     val confirmationActionId: String? = null,
     val latencyMs: Double? = null,
-    val failureCategory: FailureCategory = FailureCategory.NONE
+    val failureCategory: FailureCategory = FailureCategory.NONE,
+    val source: ResponseSource = ResponseSource.LOCAL_DETERMINISTIC,
+    val unifiedSource: UnifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+    val capabilityStatus: ResponseCapabilityStatus = ResponseCapabilityStatus.ANSWERED
 )
 
 data class WearableTelemetry(
@@ -63,5 +112,8 @@ data class WearableResponse(
     val sources: List<String> = emptyList(),
     val latencyMs: Double = 0.0,
     val failureCategory: FailureCategory = FailureCategory.NONE,
-    val tierUsed: String? = null
+    val tierUsed: String? = null,
+    val source: ResponseSource = ResponseSource.LOCAL_DETERMINISTIC,
+    val unifiedSource: UnifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+    val capabilityStatus: ResponseCapabilityStatus = ResponseCapabilityStatus.ANSWERED
 )

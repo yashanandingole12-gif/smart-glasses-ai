@@ -430,9 +430,12 @@ def get_dashboard_html() -> str:
                 <div class="brand-title">Smart Glasses AI</div>
                 <div class="brand-subtitle">Personal AI Assistant</div>
             </div>
-            <a href="/api/v1/auth/google" target="_blank" class="btn-gold" id="btn-oauth">
-                Connect Google Account
-            </a>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span class="badge-status badge-connected" id="badge-ai-mode" style="font-size:11px; letter-spacing:0.6px; text-transform:uppercase;">Cloud AI</span>
+                <a href="/api/v1/auth/google" target="_blank" class="btn-gold" id="btn-oauth">
+                    Connect Google Account
+                </a>
+            </div>
         </header>
 
         <!-- Assistant Main Card -->
@@ -482,21 +485,7 @@ def get_dashboard_html() -> str:
                 <span class="card-subtitle" id="schedule-date-tag">Today</span>
             </div>
             <div class="schedule-list" id="schedule-list">
-                <div class="schedule-item">
-                    <span class="schedule-time">10:30 AM</span>
-                    <span class="schedule-title">Machine Learning Class</span>
-                    <span class="schedule-loc">College Campus, Room 302</span>
-                </div>
-                <div class="schedule-item">
-                    <span class="schedule-time">03:00 PM</span>
-                    <span class="schedule-title">Project Team Sync</span>
-                    <span class="schedule-loc">Google Meet</span>
-                </div>
-                <div class="schedule-item">
-                    <span class="schedule-time">06:30 PM</span>
-                    <span class="schedule-title">Gym / Workout</span>
-                    <span class="schedule-loc">Fitness Center</span>
-                </div>
+                <div style="color:var(--text-muted); font-size:13px; padding:12px; text-align:center;">No events scheduled.</div>
             </div>
         </div>
 
@@ -580,18 +569,28 @@ def get_dashboard_html() -> str:
                     document.getElementById('diag-llm').textContent = hData.llm_provider || "Gemini";
                 }
 
-                // 2. Google OAuth Status
-                const gResp = await fetch('/api/v1/auth/google/status');
-                if (gResp.ok) {
-                    const gData = await gResp.json();
-                    const isConn = gData.connected;
+                // 2. Integration Diagnostics
+                const dResp = await fetch('/api/v1/diagnostics/integrations');
+                if (dResp.ok) {
+                    const diagData = await dResp.json();
+                    const isGoogle = diagData.google === 'connected';
+                    const isGemini = diagData.gemini === 'available';
+
+                    const badgeAi = document.getElementById('badge-ai-mode');
+                    if (isGemini) {
+                        badgeAi.className = "badge-status badge-connected";
+                        badgeAi.textContent = "Cloud AI (Gemini)";
+                    } else {
+                        badgeAi.className = "badge-status badge-disconnected";
+                        badgeAi.textContent = "Offline / Local";
+                    }
 
                     const bGoogle = document.getElementById('badge-google');
                     const bGmail = document.getElementById('badge-gmail');
                     const bCal = document.getElementById('badge-cal');
                     const btnOauth = document.getElementById('btn-oauth');
 
-                    if (isConn) {
+                    if (isGoogle) {
                         bGoogle.className = "badge-status badge-connected";
                         bGoogle.textContent = "Connected";
                         bGmail.className = "badge-status badge-connected";
@@ -599,7 +598,7 @@ def get_dashboard_html() -> str:
                         bCal.className = "badge-status badge-connected";
                         bCal.textContent = "Active";
 
-                        btnOauth.textContent = "Google Connected (" + (gData.email || "Active") + ")";
+                        btnOauth.textContent = "Google Connected";
                         btnOauth.style.borderColor = "var(--sage)";
                     } else {
                         bGoogle.className = "badge-status badge-disconnected";
@@ -614,7 +613,7 @@ def get_dashboard_html() -> str:
                     }
                 }
 
-                // 3. Context
+                // 3. Dynamic Context & Live Schedule
                 const cResp = await fetch('/api/v1/context');
                 if (cResp.ok) {
                     const cData = await cResp.json();
@@ -625,6 +624,23 @@ def get_dashboard_html() -> str:
                     }
                     if (cData.location) {
                         document.getElementById('ctx-location').textContent = cData.location.city + ", " + cData.location.country;
+                    }
+
+                    // Render Schedule Dynamically
+                    const scheduleList = document.getElementById('schedule-list');
+                    const events = (cData.calendar && cData.calendar.today_events) ? cData.calendar.today_events : [];
+                    if (events.length === 0) {
+                        scheduleList.innerHTML = '<div style="color:var(--text-light); font-size:13px; padding:12px; text-align:center;">No upcoming events scheduled for today.</div>';
+                    } else {
+                        let html = '';
+                        events.forEach(function(ev) {
+                            html += '<div class="schedule-item">' +
+                                '<span class="schedule-time">' + escapeHtml(ev.start_time || '') + '</span>' +
+                                '<span class="schedule-title">' + escapeHtml(ev.title || 'Event') + '</span>' +
+                                '<span class="schedule-loc">' + escapeHtml(ev.location || '') + '</span>' +
+                                '</div>';
+                        });
+                        scheduleList.innerHTML = html;
                     }
                 }
             } catch (err) {

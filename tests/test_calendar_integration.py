@@ -59,4 +59,5 @@ def test_google_calendar_provider_unauthenticated():
     res = provider.get_events()
     assert res["count"] == 0
     assert res["events"] == []
-    assert "Google Calendar is not connected" in res["message"]
+    assert "I can't access your calendar right now." in res["message"]
+

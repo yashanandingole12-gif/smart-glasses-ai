@@ -15,17 +15,22 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: Optional[str] = None
 
-    # Multi-Tier Routing (Phase 3B.6)
+    # Multi-Tier Routing & Secondary Cloud Provider (Phase 3B.6)
     FAST_LLM_PROVIDER: str = "gemini"
     FAST_LLM_MODEL: str = "gemini-flash-latest"
     PRIMARY_LLM_PROVIDER: str = "gemini"
     PRIMARY_LLM_MODEL: str = "gemini-flash-latest"
+    SECONDARY_LLM_PROVIDER: Optional[str] = None  # "openai", "groq", "anthropic", "ollama", "mock"
+    SECONDARY_LLM_MODEL: Optional[str] = None
+    SECONDARY_LLM_API_KEY: Optional[str] = None
+    SECONDARY_LLM_BASE_URL: Optional[str] = None
     FALLBACK_LLM_PROVIDER: str = "mock"
     FALLBACK_LLM_MODEL: str = "mock-glasses-v1"
 
     # Latency Budget & Hard Deadlines (Phase 3B.6)
-    LLM_TIMEOUT_SECONDS: float = 5.0
-    REQUEST_DEADLINE_SECONDS: float = 8.0
+    CLOUD_TIMEOUT_SECONDS: float = 2.5
+    LLM_TIMEOUT_SECONDS: float = 2.5
+    REQUEST_DEADLINE_SECONDS: float = 6.0
     MAX_OUTPUT_TOKENS: int = 120
     MAX_INPUT_TOKENS: int = 2048
     VOICE_RESPONSE_MODE: bool = True

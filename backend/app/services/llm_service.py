@@ -323,7 +323,7 @@ class LLMService:
 
         # Default conversational response
         return LLMResponse(
-            content=f"I'm listening on your smart glasses. (Echo: {last_user_msg})",
+            content="I am listening on your smart glasses.",
             provider="mock",
             model=self.model
         )
@@ -361,9 +361,11 @@ class LLMService:
             return LLMResponse(content=content, tool_calls=tool_calls, provider="openai", model=self.model)
 
     async def _generate_gemini(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
-        models_to_try = [self.model]
-        if "gemini-flash-lite-latest" not in models_to_try:
-            models_to_try.append("gemini-flash-lite-latest")
+        candidate_models = [self.model, "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-flash-lite-latest", "gemini-flash-latest"]
+        models_to_try = []
+        for m in candidate_models:
+            if m and m not in models_to_try:
+                models_to_try.append(m)
 
         # 1. Extract system instructions
         system_prompts = [m["content"] for m in messages if m.get("role") == "system"]
@@ -436,14 +438,14 @@ class LLMService:
             max_retries = 2
             for attempt in range(max_retries):
                 try:
-                    async with httpx.AsyncClient(timeout=25.0) as client:
+                    async with httpx.AsyncClient(timeout=20.0) as client:
                         resp = await client.post(url, json=payload, headers=headers)
                         if resp.status_code == 429:
                             logger.warning(f"Gemini API model {current_model} returned 429 quota. Trying alternate model...")
                             last_exception = httpx.HTTPStatusError("429 Quota Exceeded", request=resp.request, response=resp)
                             break
                         if resp.status_code == 503 and attempt < max_retries - 1:
-                            await asyncio.sleep(1.5)
+                            await asyncio.sleep(1.0)
                             continue
                         resp.raise_for_status()
                         data = resp.json()
@@ -473,13 +475,15 @@ class LLMService:
                 except (httpx.HTTPError, httpx.NetworkError, Exception) as e:
                     last_exception = e
                     if attempt < max_retries - 1 and getattr(e, "response", None) is not None and e.response.status_code == 503:
-                        await asyncio.sleep(1.5)
+                        await asyncio.sleep(1.0)
                         continue
 
         logger.warning(
-            f"Gemini API request failed ({type(last_exception).__name__}: {last_exception}). "
-            "Falling back to intelligent local context responder."
+            f"Gemini API request failed across all models ({type(last_exception).__name__}: {last_exception}). "
+            "Cascading to local router fallback."
         )
+        if last_exception:
+            raise last_exception
         return await self._generate_mock(messages, tools)
 
     async def _generate_anthropic(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:

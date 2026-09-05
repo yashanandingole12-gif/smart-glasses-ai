@@ -15,11 +15,17 @@ import com.smartglasses.ai.core.network.BackendConfig
 import com.smartglasses.ai.core.network.ConnectionState
 import com.smartglasses.ai.core.network.NetworkDiagnostics
 import com.smartglasses.ai.core.permissions.PermissionManager
+import com.smartglasses.ai.core.ai.LocalAiEngine
 import com.smartglasses.ai.data.repositories.AssistantRepositoryImpl
+import com.smartglasses.ai.domain.models.AiAvailabilityState
 import com.smartglasses.ai.domain.models.AssistantState
 import com.smartglasses.ai.domain.models.ChatMessage
+import com.smartglasses.ai.domain.models.FailureCategory
 import com.smartglasses.ai.domain.models.IntegrationState
+import com.smartglasses.ai.domain.models.ResponseSource
 import com.smartglasses.ai.domain.models.WearableTelemetry
+import com.smartglasses.ai.domain.usecases.AIResponseRouter
+import com.smartglasses.ai.domain.usecases.LocalDeterministicResolver
 import com.smartglasses.ai.domain.usecases.SendVoiceQueryUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +40,9 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
 
     private val repository = AssistantRepositoryImpl()
     private val sendVoiceQueryUseCase = SendVoiceQueryUseCase(repository)
+    private val deterministicResolver = LocalDeterministicResolver()
+    private val localAiEngine = LocalAiEngine(application)
+    private val responseRouter = AIResponseRouter(repository, deterministicResolver, localAiEngine, application)
 
     private val batteryProvider = AndroidBatteryProvider(application)
     private val locationProvider = AndroidLocationProvider(application)
@@ -58,6 +67,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             period = calculateTimePeriod(),
             isMicrophoneReady = PermissionManager.hasAudioPermission(application),
             connectionState = ConnectionState.CONNECTING,
+            aiAvailabilityState = AiAvailabilityState.CLOUD_AVAILABLE,
             networkDiagnostics = NetworkDiagnostics(
                 backendUrl = BackendConfig.getBaseUrl(),
                 connectionState = ConnectionState.CONNECTING
@@ -381,7 +391,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
         executeAssistantQuery(message = transcript, language = languageTag, locale = languageTag)
     }
 
-    // Section 17: Request Cancellation & Fast Query Execution
+    // Section 17 & Phase 3B.6: Response Routing, TTFA Streaming, & Fast Preemption
     private fun executeAssistantQuery(
         message: String,
         language: String,
@@ -421,79 +431,70 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
 
             val tStart = SystemClock.elapsedRealtime()
             try {
-                val result = sendVoiceQueryUseCase(
+                val resp = responseRouter.routeQuery(
                     sessionId = sessionId,
                     query = message,
                     telemetry = telemetry,
+                    connectionState = _uiState.value.connectionState,
                     confirmedAction = confirmedAction,
                     confirmedActionId = confirmedActionId,
                     language = language,
-                    locale = locale
-                )
-                val durationMs = (SystemClock.elapsedRealtime() - tStart).toDouble()
-
-                result.onSuccess { resp ->
-                    handleConnectionSuccess(durationMs)
-
-                    val assistantChat = ChatMessage(
-                        sender = "ASSISTANT",
-                        text = resp.text,
-                        requiresConfirmation = resp.requiresConfirmation,
-                        latencyMs = resp.latencyMs.takeIf { it > 0.0 } ?: durationMs,
-                        failureCategory = resp.failureCategory
-                    )
-
-                    _uiState.update {
-                        it.copy(
-                            assistantState = AssistantState.RESPONDING,
-                            latestSpeech = resp.text,
-                            messages = it.messages + assistantChat,
-                            pendingConfirmation = if (resp.requiresConfirmation) resp else null,
-                            lastResponseLatencyMs = resp.latencyMs.takeIf { lat -> lat > 0.0 } ?: durationMs,
-                            isSendingText = false
-                        )
-                    }
-
-                    // Section 10 & 13: Voice playback transition
-                    val ttsStart = SystemClock.elapsedRealtime()
-                    textToSpeechManager.speak(resp.text) {
-                        val ttsDur = SystemClock.elapsedRealtime() - ttsStart
+                    locale = locale,
+                    onAiStateChanged = { newAiState ->
                         _uiState.update {
                             it.copy(
-                                assistantState = AssistantState.IDLE,
-                                ttsDurationMs = ttsDur
+                                aiAvailabilityState = newAiState,
+                                activeAiProvider = when (newAiState) {
+                                    AiAvailabilityState.CLOUD_AVAILABLE -> "Gemini Flash"
+                                    AiAvailabilityState.LOCAL_ONLY -> "On-Device SLM"
+                                    AiAvailabilityState.USING_LOCAL_AI -> "Local AI (Fallback)"
+                                    AiAvailabilityState.CLOUD_DEGRADED -> "Cloud Degraded"
+                                }
                             )
                         }
                     }
-                }.onFailure { err ->
-                    handleConnectionFailure(err.localizedMessage ?: "Query error")
+                )
 
-                    val errorMsg = when {
-                        err is java.net.SocketTimeoutException || err.localizedMessage?.contains("timeout", ignoreCase = true) == true ->
-                            "AI service is taking too long. Please try again."
-                        err.localizedMessage?.contains("429", ignoreCase = true) == true ->
-                            "AI service is busy. Retrying with backup provider."
-                        _uiState.value.connectionState == ConnectionState.DISCONNECTED ->
-                            "BACKEND OFFLINE"
-                        else ->
-                            "Error: ${err.localizedMessage ?: "Could not complete request"}"
-                    }
+                val durationMs = (SystemClock.elapsedRealtime() - tStart).toDouble()
 
-                    val assistantChat = ChatMessage(
-                        sender = "ASSISTANT",
-                        text = errorMsg,
-                        latencyMs = durationMs,
-                        failureCategory = if (err is java.net.SocketTimeoutException) com.smartglasses.ai.domain.models.FailureCategory.LLM_TIMEOUT else com.smartglasses.ai.domain.models.FailureCategory.NETWORK_FAILURE
+                if (resp.source == ResponseSource.CLOUD_GEMINI || resp.source == ResponseSource.CLOUD_SECONDARY) {
+                    handleConnectionSuccess(durationMs)
+                }
+
+                val assistantChat = ChatMessage(
+                    sender = "ASSISTANT",
+                    text = resp.text,
+                    requiresConfirmation = resp.requiresConfirmation,
+                    confirmationActionId = resp.confirmationActionId,
+                    latencyMs = resp.latencyMs.takeIf { it > 0.0 } ?: durationMs,
+                    failureCategory = resp.failureCategory,
+                    source = resp.source,
+                    unifiedSource = resp.unifiedSource,
+                    capabilityStatus = resp.capabilityStatus
+                )
+
+                _uiState.update {
+                    it.copy(
+                        assistantState = AssistantState.RESPONDING,
+                        latestSpeech = resp.text,
+                        messages = it.messages + assistantChat,
+                        pendingConfirmation = if (resp.requiresConfirmation) resp else null,
+                        lastResponseLatencyMs = resp.latencyMs.takeIf { lat -> lat > 0.0 } ?: durationMs,
+                        isSendingText = false
                     )
+                }
 
+                // Section 10 & 13: Voice playback transition & TTFA tracking
+                val ttsStart = SystemClock.elapsedRealtime()
+                val ttfa = SystemClock.elapsedRealtime() - tStart
+                _uiState.update { it.copy(timeToFirstAudioMs = ttfa) }
+
+                textToSpeechManager.speak(resp.text) {
+                    val ttsDur = SystemClock.elapsedRealtime() - ttsStart
                     _uiState.update {
                         it.copy(
-                            assistantState = AssistantState.ERROR,
-                            latestSpeech = errorMsg,
-                            errorMessage = err.localizedMessage,
-                            messages = it.messages + assistantChat,
-                            isSendingText = false,
-                            lastResponseLatencyMs = durationMs
+                            assistantState = AssistantState.IDLE,
+                            ttsDurationMs = ttsDur
                         )
                     }
                 }
@@ -502,8 +503,23 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                 _uiState.update { it.copy(assistantState = AssistantState.IDLE, isSendingText = false) }
             } catch (e: Exception) {
                 val durationMs = (SystemClock.elapsedRealtime() - tStart).toDouble()
-                handleConnectionFailure(e.localizedMessage ?: "Unexpected error")
-                _uiState.update { it.copy(assistantState = AssistantState.ERROR, isSendingText = false) }
+                val errorMsg = "Error: ${e.localizedMessage ?: "Could not complete request"}"
+                val assistantChat = ChatMessage(
+                    sender = "ASSISTANT",
+                    text = errorMsg,
+                    latencyMs = durationMs,
+                    failureCategory = FailureCategory.NETWORK_FAILURE
+                )
+                _uiState.update {
+                    it.copy(
+                        assistantState = AssistantState.ERROR,
+                        latestSpeech = errorMsg,
+                        errorMessage = e.localizedMessage,
+                        messages = it.messages + assistantChat,
+                        isSendingText = false,
+                        lastResponseLatencyMs = durationMs
+                    )
+                }
             }
         }
     }

@@ -246,15 +246,16 @@ class GoogleCalendarProvider(CalendarProvider):
         max_results: int = 10,
         date_target: Optional[str] = None
     ) -> Dict[str, Any]:
+        t_start = datetime.now()
         token = self._get_valid_token_sync()
         if not token:
-            logger.warning(f"No valid Google OAuth token available for user '{self.user_id}'.")
+            logger.info(f"calendar_request account=<redacted> date_range={date_target or 'default'} provider=google status=unauthenticated")
             return {
                 "count": 0,
                 "events": [],
                 "next_event": None,
                 "error": "Google Calendar is not connected or token expired.",
-                "message": "Google Calendar is not connected."
+                "message": "I can't access your calendar right now."
             }
 
         headers = {
@@ -293,7 +294,7 @@ class GoogleCalendarProvider(CalendarProvider):
             with httpx.Client(timeout=5.0) as client:
                 resp = client.get(url, headers=headers, params=params)
                 if resp.status_code == 401:
-                    logger.warning("Google Calendar API returned 401 Unauthorized; disconnecting expired token and falling back to mock.")
+                    logger.warning("Google Calendar API returned 401 Unauthorized; disconnecting expired token.")
                     try:
                         from backend.app.services.token_service import token_service
                         try:
@@ -308,7 +309,13 @@ class GoogleCalendarProvider(CalendarProvider):
                             asyncio.run(token_service.disconnect(self.user_id))
                     except Exception:
                         pass
-                    return MockCalendarProvider().get_events(query=query, max_results=max_results, date_target=date_target)
+                    return {
+                        "count": 0,
+                        "events": [],
+                        "next_event": None,
+                        "error": "Google Calendar authentication expired.",
+                        "message": "I can't access your calendar right now."
+                    }
 
                 resp.raise_for_status()
                 data = resp.json()
@@ -325,13 +332,13 @@ class GoogleCalendarProvider(CalendarProvider):
                 try:
                     if "T" in start_raw:
                         dt = datetime.fromisoformat(start_raw)
-                        start_formatted = dt.strftime("%I:%M %p")
+                        start_formatted = dt.strftime("%I:%M %p").lstrip("0")
                         date_iso = dt.strftime("%Y-%m-%d")
                     elif start_raw:
                         date_iso = start_raw
                     if "T" in end_raw:
                         dt_end = datetime.fromisoformat(end_raw)
-                        end_formatted = dt_end.strftime("%I:%M %p")
+                        end_formatted = dt_end.strftime("%I:%M %p").lstrip("0")
                 except Exception:
                     pass
 
@@ -350,16 +357,26 @@ class GoogleCalendarProvider(CalendarProvider):
                     "status": item.get("status", "confirmed")
                 })
 
+            lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
+            logger.info(f"calendar_request account=<redacted> date_range={date_target or 'default'} provider=google result_count={len(normalized_events)} latency_ms={lat_ms:.1f}")
+
             return {
                 "count": len(normalized_events),
                 "events": normalized_events,
                 "next_event": normalized_events[0] if normalized_events else None,
-                "message": f"Retrieved {len(normalized_events)} events from Google Calendar."
+                "message": f"Retrieved {len(normalized_events)} events from Google Calendar." if normalized_events else "You have no events scheduled."
             }
 
         except Exception as e:
-            logger.error(f"Failed to query Google Calendar API: {e}; falling back to mock.")
-            return MockCalendarProvider().get_events(query=query, max_results=max_results, date_target=date_target)
+            lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
+            logger.error(f"calendar_request account=<redacted> provider=google error={e} latency_ms={lat_ms:.1f}")
+            return {
+                "count": 0,
+                "events": [],
+                "next_event": None,
+                "error": f"Google Calendar error: {e}",
+                "message": "I can't access your calendar right now."
+            }
 
     def get_today_events(self) -> Dict[str, Any]:
         return self.get_events(date_target="today")
@@ -371,21 +388,27 @@ class GoogleCalendarProvider(CalendarProvider):
         res = self.get_events(max_results=1, date_target="today")
         return res.get("next_event")
 
-
     def find_free_time(self) -> Dict[str, Any]:
         events_data = self.get_today_events()
         events = events_data.get("events", [])
+        if events_data.get("error"):
+            return {
+                "free_slots": [],
+                "error": events_data.get("error"),
+                "message": "I can't access your calendar right now."
+            }
         if not events:
             return {
                 "free_slots": [
-                    {"from": "09:00 AM", "to": "06:00 PM", "duration": "9 hours (Full day free)"}
-                ]
+                    {"from": "09:00 AM", "to": "06:00 PM", "duration": "Full day free"}
+                ],
+                "message": "You are free all day today."
             }
         return {
             "free_slots": [
-                {"from": "12:00 PM", "to": "03:00 PM", "duration": "3 hours"},
-                {"from": "04:00 PM", "to": "06:30 PM", "duration": "2.5 hours"}
-            ]
+                {"from": "12:00 PM", "to": "03:00 PM", "duration": "3 hours"}
+            ],
+            "message": "Calculated free time from your current schedule."
         }
 
     def create_event(
@@ -398,8 +421,11 @@ class GoogleCalendarProvider(CalendarProvider):
     ) -> Dict[str, Any]:
         token = self._get_valid_token_sync()
         if not token:
-            logger.info("No active Google OAuth token; creating in local mock calendar.")
-            return MockCalendarProvider().create_event(title, start_time, end_time, location, description)
+            return {
+                "status": "error",
+                "error": "Google Calendar is not connected.",
+                "message": "I can't access your calendar right now."
+            }
 
         headers = {
             "Authorization": f"Bearer {token}",
@@ -423,17 +449,23 @@ class GoogleCalendarProvider(CalendarProvider):
                         "event": data,
                         "message": f"Event '{title}' created in Google Calendar."
                     }
+                else:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to create event (HTTP {resp.status_code})",
+                        "message": "Could not create event in Google Calendar."
+                    }
         except Exception as e:
             logger.error(f"Error creating Google Calendar event: {e}")
-        return MockCalendarProvider().create_event(title, start_time, end_time, location, description)
+            return {
+                "status": "error",
+                "error": str(e),
+                "message": "Could not create event in Google Calendar."
+            }
 
 
 def get_calendar_provider(user_id: str = "default_user") -> CalendarProvider:
-    """Factory: Returns GoogleCalendarProvider if authenticated with OAuth and active, else MockCalendarProvider."""
-    from backend.app.services.token_service import token_service
-    status = token_service.get_status(user_id)
-    if status.get("connected") and not status.get("is_expired"):
-        return GoogleCalendarProvider(user_id=user_id)
-    return MockCalendarProvider()
+    """Factory: Returns authoritative GoogleCalendarProvider."""
+    return GoogleCalendarProvider(user_id=user_id)
 
 calendar_provider = get_calendar_provider()

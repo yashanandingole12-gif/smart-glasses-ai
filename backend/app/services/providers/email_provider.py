@@ -1,6 +1,7 @@
 import logging
 import httpx
 import asyncio
+from datetime import datetime
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 
@@ -87,6 +88,7 @@ class GoogleGmailProvider(EmailProvider):
     """
     Real Google Gmail API provider connecting via backend OAuth 2.0 token.
     Uses read-only scope (https://www.googleapis.com/auth/gmail.readonly).
+    Never exposes raw tokens to client or LLM.
     """
 
     def __init__(self, user_id: str = "default_user"):
@@ -108,12 +110,18 @@ class GoogleGmailProvider(EmailProvider):
         except Exception:
             return None
 
-
     def search(self, query: Optional[str] = None) -> Dict[str, Any]:
+        t_start = datetime.now()
         token = self._get_valid_token_sync()
         if not token:
-            logger.info("No active Google OAuth token for %s; falling back to mock emails.", self.user_id)
-            return LaptopEmailProvider().search(query)
+            logger.info(f"gmail_request account=<redacted> provider=google status=unauthenticated")
+            return {
+                "count": 0,
+                "unread_count": 0,
+                "messages": [],
+                "error": "Gmail is not connected.",
+                "message": "I can't access your email right now."
+            }
 
         q_param = query if query else "is:unread"
         headers = {"Authorization": f"Bearer {token}"}
@@ -123,18 +131,50 @@ class GoogleGmailProvider(EmailProvider):
                 # 1. List messages
                 list_url = "https://gmail.googleapis.com/gmail/v1/users/me/messages"
                 resp = client.get(list_url, headers=headers, params={"q": q_param, "maxResults": 5})
-                if resp.status_code != 200:
-                    logger.warning("Gmail API list returned %d: %s", resp.status_code, resp.text)
-                    return LaptopEmailProvider().search(query)
-
-                data = resp.json()
-                msg_ids = [m["id"] for m in data.get("messages", [])]
-                if not msg_ids:
+                if resp.status_code == 401:
+                    logger.warning("Gmail API returned 401 Unauthorized; disconnecting expired token.")
+                    try:
+                        from backend.app.services.token_service import token_service
+                        try:
+                            loop = asyncio.get_running_loop()
+                        except RuntimeError:
+                            loop = None
+                        if loop and loop.is_running():
+                            import concurrent.futures
+                            with concurrent.futures.ThreadPoolExecutor() as pool:
+                                pool.submit(asyncio.run, token_service.disconnect(self.user_id)).result()
+                        else:
+                            asyncio.run(token_service.disconnect(self.user_id))
+                    except Exception:
+                        pass
                     return {
                         "count": 0,
                         "unread_count": 0,
                         "messages": [],
-                        "status": "inbox_zero"
+                        "error": "Gmail authentication expired.",
+                        "message": "I can't access your email right now."
+                    }
+                elif resp.status_code != 200:
+                    logger.warning("Gmail API list returned %d: %s", resp.status_code, resp.text)
+                    return {
+                        "count": 0,
+                        "unread_count": 0,
+                        "messages": [],
+                        "error": f"Gmail API error (HTTP {resp.status_code})",
+                        "message": "I can't access your email right now."
+                    }
+
+                data = resp.json()
+                msg_ids = [m["id"] for m in data.get("messages", [])]
+                if not msg_ids:
+                    lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
+                    logger.info(f"gmail_request account=<redacted> provider=google result_count=0 latency_ms={lat_ms:.1f}")
+                    return {
+                        "count": 0,
+                        "unread_count": 0,
+                        "messages": [],
+                        "status": "inbox_zero",
+                        "message": "You have no unread emails."
                     }
 
                 # 2. Fetch metadata for each message
@@ -159,19 +199,29 @@ class GoogleGmailProvider(EmailProvider):
                         })
 
                 unread_cnt = sum(1 for m in parsed_messages if not m.get("read", True))
+                lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
+                logger.info(f"gmail_request account=<redacted> provider=google result_count={len(parsed_messages)} latency_ms={lat_ms:.1f}")
                 return {
                     "count": len(parsed_messages),
                     "unread_count": unread_cnt if unread_cnt > 0 else len(parsed_messages),
-                    "messages": parsed_messages
+                    "messages": parsed_messages,
+                    "message": f"Retrieved {len(parsed_messages)} emails from Gmail."
                 }
         except Exception as e:
-            logger.error("Error communicating with Gmail API: %s", e)
-            return LaptopEmailProvider().search(query)
+            lat_ms = (datetime.now() - t_start).total_seconds() * 1000.0
+            logger.error(f"gmail_request account=<redacted> provider=google error={e} latency_ms={lat_ms:.1f}")
+            return {
+                "count": 0,
+                "unread_count": 0,
+                "messages": [],
+                "error": str(e),
+                "message": "I can't access your email right now."
+            }
 
     def read(self, message_id: Optional[str] = None, index: Optional[int] = None) -> Dict[str, Any]:
         token = self._get_valid_token_sync()
         if not token:
-            return LaptopEmailProvider().read(message_id, index)
+            return {"status": "not_found", "error": "Gmail is not connected.", "message": "I can't access your email right now."}
 
         headers = {"Authorization": f"Bearer {token}"}
         try:
@@ -183,7 +233,7 @@ class GoogleGmailProvider(EmailProvider):
                     target_id = msgs[index - 1]["id"]
 
             if not target_id:
-                return {"status": "not_found", "message": "Email not found"}
+                return {"status": "not_found", "message": "Email not found."}
 
             with httpx.Client(timeout=10.0) as client:
                 msg_url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{target_id}"
@@ -201,10 +251,10 @@ class GoogleGmailProvider(EmailProvider):
                             "timestamp": headers_dict.get("Date", "")
                         }
                     }
-            return {"status": "not_found", "message": "Email not found"}
+            return {"status": "not_found", "message": "Email not found."}
         except Exception as e:
             logger.error("Error reading email from Gmail API: %s", e)
-            return LaptopEmailProvider().read(message_id, index)
+            return {"status": "error", "error": str(e), "message": "I can't access your email right now."}
 
     def get_unread_count(self) -> int:
         res = self.search("is:unread")
@@ -212,10 +262,6 @@ class GoogleGmailProvider(EmailProvider):
 
 
 def get_email_provider(user_id: str = "default_user") -> EmailProvider:
-    """Factory to retrieve appropriate email provider based on OAuth connection status."""
-    from backend.app.services.token_service import token_service
-    status = token_service.get_status(user_id=user_id)
-    if status.get("connected") and not status.get("is_expired"):
-        return GoogleGmailProvider(user_id=user_id)
-    return LaptopEmailProvider()
+    """Factory: Returns authoritative GoogleGmailProvider."""
+    return GoogleGmailProvider(user_id=user_id)
 

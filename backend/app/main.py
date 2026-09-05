@@ -78,6 +78,24 @@ async def create_session(req: SessionCreateRequest = SessionCreateRequest()):
         device_type=req.device_type or "SIMULATOR"
     )
 
+@app.get("/api/v1/diagnostics/integrations")
+async def get_integrations_diagnostics(user_id: str = "default_user"):
+    """
+    Diagnostic integration health status endpoint.
+    Safely returns connectivity state without exposing tokens or secrets.
+    """
+    from backend.app.services.token_service import token_service
+    status = token_service.get_status(user_id)
+    is_google_connected = bool(status.get("connected") and not status.get("is_expired"))
+    gemini_configured = bool(settings.GEMINI_API_KEY or (settings.LLM_PROVIDER == "gemini" and settings.LLM_API_KEY))
+
+    return {
+        "gemini": "available" if gemini_configured else "unavailable",
+        "google": "connected" if is_google_connected else "disconnected",
+        "gmail": "available" if is_google_connected else "unavailable",
+        "calendar": "available" if is_google_connected else "unavailable"
+    }
+
 @app.get("/api/v1/context", response_model=FullContextPayload)
 async def get_current_context(timezone_str: str = settings.DEFAULT_TIMEZONE):
     """Retrieve freshly computed context engine payload."""
@@ -167,11 +185,12 @@ async def process_agent_message(req: AgentMessageRequest):
     if temporal_intent.is_calendar_query and not is_mutation:
         t_cal_start = time.time()
         raw_events_data = calendar_get_events(date_target=temporal_intent.date_target)
-        events_list = raw_events_data.get("events", [])
-
-        # Filter events according to temporal intent
-        filtered_events = temporal_resolver.filter_events(events_list, temporal_intent)
-        cal_reply = temporal_resolver.format_calendar_response(temporal_intent, filtered_events)
+        if raw_events_data.get("error"):
+            cal_reply = raw_events_data.get("message") or "I can't access your calendar right now."
+        else:
+            events_list = raw_events_data.get("events", [])
+            filtered_events = temporal_resolver.filter_events(events_list, temporal_intent)
+            cal_reply = temporal_resolver.format_calendar_response(temporal_intent, filtered_events)
 
         # Persist conversation session memory
         memory_repository.add_message(req.session_id, "user", req.message)

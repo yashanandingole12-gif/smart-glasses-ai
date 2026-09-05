@@ -320,11 +320,15 @@ class TemporalResolver:
     def format_calendar_response(
         self,
         intent: TemporalIntent,
-        events: List[Dict[str, Any]]
+        events: List[Dict[str, Any]],
+        error_message: Optional[str] = None
     ) -> str:
         """
         Generates a concise, voice-optimized wearable response without event fabrication.
         """
+        if error_message:
+            return error_message
+
         day_label = "tomorrow" if intent.date_target == "tomorrow" else "today"
 
         # Case 1: Filter mode is 'exact' (e.g. "What about 8 am?")

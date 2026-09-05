@@ -3,6 +3,7 @@ package com.smartglasses.ai.presentation.home
 import com.smartglasses.ai.core.bluetooth.DeviceConnectionState
 import com.smartglasses.ai.core.network.ConnectionState
 import com.smartglasses.ai.core.network.NetworkDiagnostics
+import com.smartglasses.ai.domain.models.AiAvailabilityState
 import com.smartglasses.ai.domain.models.AssistantState
 import com.smartglasses.ai.domain.models.ChatMessage
 import com.smartglasses.ai.domain.models.IntegrationState
@@ -16,6 +17,8 @@ data class WearableHomeState(
     val batteryPercentage: Int = 85,
     val isCharging: Boolean = false,
     val connectionState: ConnectionState = ConnectionState.CONNECTING,
+    val aiAvailabilityState: AiAvailabilityState = AiAvailabilityState.CLOUD_AVAILABLE,
+    val activeAiProvider: String = "Gemini Flash",
     val aiConnected: Boolean = false,
     val llmConnected: Boolean = false,
     val googleConnected: Boolean = false,
@@ -37,6 +40,7 @@ data class WearableHomeState(
     val textInput: String = "",
     val isSendingText: Boolean = false,
     val lastResponseLatencyMs: Double? = null,
+    val timeToFirstAudioMs: Long? = null,
     val sttDurationMs: Long? = null,
     val ttsDurationMs: Long? = null,
     val pendingConfirmation: WearableResponse? = null,

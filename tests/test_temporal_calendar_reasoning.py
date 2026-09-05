@@ -108,6 +108,29 @@ def test_calendar_provider_multi_event_filtering():
 # Acceptance Tests for the 7 Required User Queries via Backend API
 # =========================================================================
 
+@pytest.fixture(autouse=True)
+def mock_calendar_events(monkeypatch):
+    """Provide a predictable test schedule for temporal reasoning verification."""
+    test_today = [
+        {"id": "evt_1", "title": "Machine Learning Class", "start_time": "10:30 AM", "day_tag": "today", "date_iso": "2026-09-05"},
+        {"id": "evt_2", "title": "Project Team Sync", "start_time": "03:00 PM", "day_tag": "today", "date_iso": "2026-09-05"},
+        {"id": "evt_3", "title": "Gym / Workout", "start_time": "06:30 PM", "day_tag": "today", "date_iso": "2026-09-05"}
+    ]
+    test_tomorrow = [
+        {"id": "evt_4", "title": "Operating Systems Lab", "start_time": "09:00 AM", "day_tag": "tomorrow", "date_iso": "2026-09-06"},
+        {"id": "evt_5", "title": "Database Systems Lecture", "start_time": "11:30 AM", "day_tag": "tomorrow", "date_iso": "2026-09-06"},
+        {"id": "evt_6", "title": "AI Seminar", "start_time": "04:00 PM", "day_tag": "tomorrow", "date_iso": "2026-09-06"}
+    ]
+
+    def mock_get(query=None, user_id="default_user", date_target=None):
+        if date_target == "tomorrow":
+            ev = test_tomorrow
+        else:
+            ev = test_today
+        return {"count": len(ev), "events": ev, "next_event": ev[0]}
+
+    monkeypatch.setattr("backend.app.main.calendar_get_events", mock_get)
+
 @pytest.mark.asyncio
 async def test_acceptance_query_1_what_do_i_have_today():
     """Acceptance Query 1: 'What do I have today?'"""
