@@ -42,6 +42,9 @@ object BackendConfig {
         if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
             clean = "http://$clean"
         }
+        // Auto-fix accidental trailing numbers after port (e.g. :8001/0 or :8001/0/)
+        clean = clean.replace(Regex("""(:\d+)/[0-9]+/?$"""), "$1/")
+
         if (!clean.endsWith("/")) {
             clean = "$clean/"
         }
