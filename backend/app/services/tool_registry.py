@@ -13,6 +13,8 @@ from backend.app.tools import (
     calendar_create_event,
     gmail_search,
     gmail_read,
+    gmail_send_message,
+    gmail_reply_message,
     sms_read_recent,
     sms_search,
     sms_send_message,
@@ -240,6 +242,24 @@ def _tool_gmail_search(query: str = None):
 )
 def _tool_gmail_read(message_id: str = None, index: int = None):
     return gmail_read(message_id, index)
+
+@registry.register(
+    name="gmail_send_message",
+    description="Send an email message via Gmail. Requires explicit confirmation.",
+    risk_level=RiskLevel.HIGH_RISK_WRITE,
+    requires_confirmation=True
+)
+def _tool_gmail_send_message(recipient: str, subject: str, body: str):
+    return gmail_send_message(recipient=recipient, subject=subject, body=body)
+
+@registry.register(
+    name="gmail_reply_message",
+    description="Reply to an existing email thread. Requires explicit confirmation.",
+    risk_level=RiskLevel.HIGH_RISK_WRITE,
+    requires_confirmation=True
+)
+def _tool_gmail_reply_message(message_id: str, body: str):
+    return gmail_reply_message(message_id=message_id, body=body)
 
 @registry.register(
     name="sms_read_recent",

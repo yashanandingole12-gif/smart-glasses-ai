@@ -197,6 +197,14 @@ async def execute_tool_node(state: AgentState) -> Dict[str, Any]:
                 recip = tool_input.get("recipient", "contact")
                 txt = tool_input.get("text", "")
                 conf_prompt = f"Ready to send this SMS to {recip}: '{txt}'. Confirm?"
+            elif tool_name == "gmail_send_message":
+                recip = tool_input.get("recipient", "contact")
+                subj = tool_input.get("subject", "Update")
+                txt = tool_input.get("body", "")
+                conf_prompt = f"I have drafted an email to {recip} with subject '{subj}'. Send it?"
+            elif tool_name == "gmail_reply_message":
+                txt = tool_input.get("body", "")
+                conf_prompt = f"I have drafted a reply saying: '{txt}'. Send it?"
             else:
                 conf_prompt = f"I am ready to run {tool_name} with {tool_input}. Should I proceed?"
 
@@ -313,6 +321,11 @@ async def run_agent(
             if pending.tool_name == "sms_send_message":
                 recip = pending.tool_input.get("recipient", "contact")
                 resp_text = f"Message sent to {recip}."
+            elif pending.tool_name == "gmail_send_message":
+                recip = pending.tool_input.get("recipient", "contact")
+                resp_text = f"Email sent to {recip}."
+            elif pending.tool_name == "gmail_reply_message":
+                resp_text = "Reply sent."
             elif pending.tool_name == "calendar_create_event":
                 title = pending.tool_input.get("title", "Event")
                 resp_text = f"Event '{title}' scheduled."

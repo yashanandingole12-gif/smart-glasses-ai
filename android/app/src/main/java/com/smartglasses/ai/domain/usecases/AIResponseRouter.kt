@@ -49,7 +49,7 @@ class AIResponseRouter(
 
         // 2. LAYER 1.5 — Local Android SMS Queries (<50ms on-device)
         if (isSmsQuery(qLower)) {
-            return handleLocalSmsQuery(sessionId, tStart)
+            return handleLocalSmsQuery(q, sessionId, tStart)
         }
 
         // 3. Check if the query strictly requires cloud access (Gmail, Google Calendar, Web Search, Vision)
@@ -131,6 +131,15 @@ class AIResponseRouter(
         }
     }
 
+    private val contactSmsPatterns = listOf(
+        Regex("""(?:did|has)\s+([a-zA-Z0-9\s]+?)\s+(?:message|text|sms)(?:\s+me)?\??$"""),
+        Regex("""(?:any\s+(?:new\s+)?(?:messages?|sms|texts?)\s+(?:from|by)\s+([a-zA-Z0-9\s]+?))\??$"""),
+        Regex("""(?:read|check|show)\s+(?:recent\s+|latest\s+)?(?:messages?|sms|texts?)\s+(?:from|by)\s+([a-zA-Z0-9\s]+?)\??$"""),
+        Regex("""(?:messages?|sms|texts?)\s+(?:from|by)\s+([a-zA-Z0-9\s]+?)\??$"""),
+        Regex("""([a-zA-Z0-9\s]+?)\s+(?:ka|se)\s+(?:sms|message|text)"""),
+        Regex("""([a-zA-Z0-9\s]+?)\s+ne\s+(?:sms|message|text)\s+(?:bheja|bheja\s+kya)""")
+    )
+
     private fun isSmsQuery(qLower: String): Boolean {
         val smsKeywords = listOf(
             "read my sms", "read my messages", "read sms", "read recent messages",
@@ -140,10 +149,10 @@ class AIResponseRouter(
         if (smsKeywords.any { qLower.contains(it) } || qLower == "sms" || qLower == "messages") {
             return true
         }
-        return false
+        return contactSmsPatterns.any { it.containsMatchIn(qLower) }
     }
 
-    private fun handleLocalSmsQuery(sessionId: String, tStart: Long): WearableResponse {
+    private fun handleLocalSmsQuery(query: String, sessionId: String, tStart: Long): WearableResponse {
         val ctx = context
         if (ctx == null) {
             return WearableResponse(
@@ -167,9 +176,67 @@ class AIResponseRouter(
             )
         }
 
-        val messages = SmsManagerHelper.readRecentMessages(ctx, limit = 3)
+        val qLower = query.lowercase().trim()
+        var targetContact: String? = null
+        for (pattern in contactSmsPatterns) {
+            val match = pattern.find(qLower)
+            if (match != null) {
+                targetContact = match.groupValues[1].trim()
+                break
+            }
+        }
+
         val latMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
 
+        // Contact-specific query
+        if (!targetContact.isNullOrBlank()) {
+            // Check for multiple contact matches (disambiguation)
+            val matchedContacts = SmsManagerHelper.findPhoneNumbersForContact(ctx, targetContact)
+            val distinctNames = matchedContacts.map { it.first }.distinct()
+            if (distinctNames.size > 1) {
+                val namesList = distinctNames.joinToString(" and ")
+                return WearableResponse(
+                    text = "I found multiple contacts matching '$targetContact': $namesList. Which one would you like to check?",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.TOOL,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = latMs
+                )
+            }
+
+            val messages = SmsManagerHelper.searchMessages(ctx, targetContact, limit = 3)
+            if (messages.isEmpty()) {
+                return WearableResponse(
+                    text = "No messages found from $targetContact.",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.TOOL,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = latMs
+                )
+            }
+
+            val latest = messages.first()
+            val sender = latest.contactName ?: latest.address
+            val text = if (messages.size == 1) {
+                "Message from $sender: ${latest.body}"
+            } else {
+                "You have ${messages.size} messages from $sender. Latest: ${latest.body}"
+            }
+
+            return WearableResponse(
+                text = text,
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.TOOL,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = latMs
+            )
+        }
+
+        // General recent messages query
+        val messages = SmsManagerHelper.readRecentMessages(ctx, limit = 3)
         if (messages.isEmpty()) {
             return WearableResponse(
                 text = "You don't have any messages I can read.",
@@ -182,10 +249,11 @@ class AIResponseRouter(
         }
 
         val latest = messages.first()
+        val sender = latest.contactName ?: latest.address
         val text = if (messages.size == 1) {
-            "You have 1 message from ${latest.address}: ${latest.body}"
+            "You have 1 message from $sender: ${latest.body}"
         } else {
-            "You have ${messages.size} messages. Most recent from ${latest.address}: ${latest.body}"
+            "You have ${messages.size} messages. Most recent from $sender: ${latest.body}"
         }
 
         return WearableResponse(

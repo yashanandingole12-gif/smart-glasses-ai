@@ -27,8 +27,10 @@ from backend.app.services.tool_registry import registry
 from backend.app.services.temporal_resolver import temporal_resolver
 from backend.app.services.memory_repository import memory_repository
 from backend.app.services.llm_router import llm_router, RoutingTier
+from backend.app.services.math_engine import math_engine
+from backend.app.services.personality_engine import personality_engine
 from backend.app.tools.calendar_tools import calendar_get_events
-from backend.app.tools.gmail_tools import gmail_search, gmail_read
+from backend.app.tools.gmail_tools import gmail_search, gmail_read, gmail_send_message, gmail_reply_message
 from backend.app.tools.sms_tools import sms_read_recent
 from backend.app.tools.search_tools import web_search, product_search, academic_research_search
 from backend.app.logging_service import LatencyMetrics, log_request_metrics
@@ -181,6 +183,36 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
+    # 1.1 Deterministic Math Engine Fast-Path (<50ms, Zero-LLM Evaluation)
+    math_eval = math_engine.evaluate(msg_raw)
+    if math_eval is not None:
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        math_reply = math_eval.get("text_response", "Calculation completed.")
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", math_reply)
+
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response=math_reply,
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["deterministic_math_engine"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "math_operation": math_eval.get("operation"),
+                "timings": metrics.to_dict(),
+                "llm_provider": "deterministic_math",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
     # Detect mutation / high-risk action intent requiring 2-step confirmation or LangGraph execution
     is_mutation = bool(
         req.confirmed_action_id or
@@ -189,7 +221,7 @@ async def process_agent_message(req: AgentMessageRequest):
             for kw in [
                 "create event", "add event", "schedule a", "book a", "book an", "cancel event",
                 "delete event", "send sms", "send text", "send a message", "text to", "sms to",
-                "send email", "compose email", "email to"
+                "send email", "compose email", "email to", "send an email", "reply to"
             ]
         )
     )
@@ -240,41 +272,45 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 3. Direct Gmail Retrieval Fast-Track (<500ms)
-    email_keywords = ["email", "emails", "gmail", "inbox", "mail", "mails", "ईमेल", "इमेल", "मेल"]
+    # 3. Direct Gmail Retrieval & Reading Fast-Track (<500ms)
+    email_keywords = ["email", "emails", "gmail", "inbox", "mail", "mails", "ईमेल", "इमेल", "मेल", "linkedin", "github"]
     is_email_read = any(kw in msg_lower for kw in email_keywords) and not is_mutation
     if is_email_read:
         t_gmail_start = time.time()
-        raw_email_data = gmail_search()
         lang = req.language or "auto"
         is_hi = lang == "hi" or any("\u0900" <= c <= "\u097f" for c in msg_raw)
         is_mr = lang == "mr"
 
-        if raw_email_data.get("error"):
-            if is_hi:
-                email_reply = "मैं अभी आपके ईमेल एक्सेस नहीं कर सकता।"
-            elif is_mr:
-                email_reply = "मी आता तुमचे ईमेल ऍक्सेस करू शकत नाही."
+        # Check if user is asking to read full content of an email (Stage 2)
+        is_read_content = any(rw in msg_lower for rw in ["read", "say", "body", "content", "what does", "what did", "वाचा", "पढ़ो"])
+        
+        # Check for specific entity
+        entity_query = None
+        for ent in ["linkedin", "github", "amazon", "swiggy", "zomato", "college", "professor", "university"]:
+            if ent in msg_lower:
+                entity_query = ent
+                break
+
+        if is_read_content:
+            raw_email_data = gmail_read(index=1) if not entity_query else gmail_search(query=entity_query)
+            if entity_query and raw_email_data.get("messages"):
+                # Fetch full content of first matching entity email
+                first_id = raw_email_data["messages"][0]["id"]
+                read_detail = gmail_read(message_id=first_id)
+                email_reply = read_detail.get("message", "I retrieved the email content.")
             else:
-                email_reply = raw_email_data.get("message") or "I can't access your email right now. Please connect your Google account in Settings."
+                email_reply = raw_email_data.get("message", "I couldn't find that email.")
         else:
-            messages = raw_email_data.get("messages", [])
-            if not messages:
+            raw_email_data = gmail_search(query=entity_query)
+            if raw_email_data.get("error"):
                 if is_hi:
-                    email_reply = "आपके पास कोई नया ईमेल नहीं है।"
+                    email_reply = "मैं अभी आपके ईमेल एक्सेस नहीं कर सकता।"
                 elif is_mr:
-                    email_reply = "तुमच्याकडे कोणतेही नवीन ईमेल नाहीत."
+                    email_reply = "मी आता तुमचे ईमेल ऍक्सेस करू शकत नाही."
                 else:
-                    email_reply = "Your inbox is clear. You have no recent emails."
+                    email_reply = raw_email_data.get("message") or "I can't access your email right now. Please connect your Google account in Settings."
             else:
-                lines = [f"{i+1}. From {m.get('sender', 'Unknown')}: '{m.get('subject', 'No Subject')}'" for i, m in enumerate(messages[:3])]
-                count = len(messages)
-                if is_hi:
-                    email_reply = f"आपके पास {count} हालिया ईमेल हैं: " + "; ".join(lines)
-                elif is_mr:
-                    email_reply = f"तुमच्याकडे {count} नवीन ईमेल आहेत: " + "; ".join(lines)
-                else:
-                    email_reply = f"You have {count} recent email{'s' if count > 1 else ''}: " + "; ".join(lines)
+                email_reply = raw_email_data.get("message", "Retrieved your emails.")
 
         memory_repository.add_message(req.session_id, "user", msg_raw)
         memory_repository.add_message(req.session_id, "assistant", email_reply)
@@ -446,11 +482,11 @@ async def process_agent_message(req: AgentMessageRequest):
         loc_str = local_ctx.location.city if (local_ctx.location and local_ctx.location.city != "Unknown") else "Local"
         bat_str = f"{local_ctx.device.battery}%" if (local_ctx.device and local_ctx.device.battery is not None) else "85%"
 
+        core_prompt = personality_engine.build_system_prompt(msg_raw)
         system_prompt = (
-            f"You are LARA — a personal executive companion for smart glasses. "
-            f"You speak concisely, directly, and naturally. Keep responses under 2-3 sentences "
-            f"suitable for wearable audio TTS output. Do NOT format with markdown or bullet points. "
-            f"Context: Time is {time_str}, Location is {loc_str}, Battery is {bat_str}."
+            f"{core_prompt} "
+            f"Context: Time is {time_str}, Location is {loc_str}, Battery is {bat_str}. "
+            f"Do NOT format with markdown or bullet points."
         )
 
         history_msgs = memory_repository.get_session_history(req.session_id, limit=4)

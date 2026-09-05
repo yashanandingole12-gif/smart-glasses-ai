@@ -125,6 +125,162 @@ class LocalDeterministicResolver {
             return buildResponse("System operational. Battery is $bat percent.", sessionId, tStart)
         }
 
+        // 7. Deterministic Math Engine (<5ms on-device)
+        val mathResult = resolveMath(query)
+        if (mathResult != null) {
+            return buildResponse(mathResult, sessionId, tStart)
+        }
+
+        return null
+    }
+
+    private fun resolveMath(raw: String): String? {
+        val q = raw.trim().lowercase(Locale.ROOT)
+
+        // Tables: "table of 7", "7 ka table", "7 times table"
+        val tableMatch = Regex("""(?:table\s+of\s+|table\s+)(\d+)""").find(q)
+            ?: Regex("""(\d+)\s*(?:ka|cha|ke)\s+table""").find(q)
+            ?: Regex("""(\d+)\s+times\s+table""").find(q)
+        if (tableMatch != null) {
+            val n = tableMatch.groupValues[1].toLongOrNull() ?: return null
+            if (n in 1..1000) {
+                val vals = (1..10).map { "$it × $n = ${it * n}" }.joinToString(", ")
+                return "The table of $n is $vals."
+            }
+        }
+
+        // Percentage: "15% of 800", "15 percent of 800"
+        val pctMatch = Regex("""([\d,.]+)\s*(?:%|percent)\s+of\s+([\d,.]+)""").find(q)
+        if (pctMatch != null) {
+            val pct = pctMatch.groupValues[1].replace(",", "").toDoubleOrNull() ?: return null
+            val base = pctMatch.groupValues[2].replace(",", "").toDoubleOrNull() ?: return null
+            val ans = base * (pct / 100.0)
+            val ansFmt = if (ans % 1.0 == 0.0) ans.toLong().toString() else "%.2f".format(ans)
+            return "$pct% of $base is $ansFmt."
+        }
+
+        // Reciprocals: "reciprocal of 5", "1/8"
+        val recipMatch = Regex("""reciprocal\s+of\s+([\d,.]+)""").find(q)
+        if (recipMatch != null) {
+            val v = recipMatch.groupValues[1].replace(",", "").toDoubleOrNull() ?: return null
+            if (v == 0.0) return "The reciprocal of zero is undefined."
+            val ans = 1.0 / v
+            val ansFmt = if (ans % 1.0 == 0.0) ans.toLong().toString() else "$ans"
+            return "The reciprocal of $v is $ansFmt."
+        }
+        if (Regex("""1\s*/\s*([\d,.]+)""").matches(q)) {
+            val v = q.substringAfter("/").trim().replace(",", "").toDoubleOrNull() ?: return null
+            if (v == 0.0) return "1 divided by zero is undefined."
+            val ans = 1.0 / v
+            return "1 divided by $v is $ans."
+        }
+
+        // Square root / Roots: "square root of 144", "sqrt 144"
+        val sqrtMatch = Regex("""(?:square\s+root\s+of|sqrt)\s*\(?\s*([\d,.]+)\s*\)?""").find(q)
+        if (sqrtMatch != null) {
+            val v = sqrtMatch.groupValues[1].replace(",", "").toDoubleOrNull() ?: return null
+            if (v < 0.0) return "Square root of a negative number is not real."
+            val ans = Math.sqrt(v)
+            val ansFmt = if (ans % 1.0 == 0.0) ans.toLong().toString() else "%.2f".format(ans)
+            return "Square root of $v is $ansFmt."
+        }
+
+        // Powers: "2 squared", "5 cubed", "2^10"
+        val sqMatch = Regex("""([\d,.]+)\s+squared""").find(q)
+        if (sqMatch != null) {
+            val v = sqMatch.groupValues[1].replace(",", "").toDoubleOrNull() ?: return null
+            val ans = v * v
+            val ansFmt = if (ans % 1.0 == 0.0) ans.toLong().toString() else "$ans"
+            return "$v squared is $ansFmt."
+        }
+        val cbMatch = Regex("""([\d,.]+)\s+cubed""").find(q)
+        if (cbMatch != null) {
+            val v = cbMatch.groupValues[1].replace(",", "").toDoubleOrNull() ?: return null
+            val ans = v * v * v
+            val ansFmt = if (ans % 1.0 == 0.0) ans.toLong().toString() else "$ans"
+            return "$v cubed is $ansFmt."
+        }
+        val powMatch = Regex("""([\d,.]+)\s*(?:\^|\*\*|\braised\s+to\s+)\s*([\d,.]+)""").find(q)
+        if (powMatch != null) {
+            val base = powMatch.groupValues[1].replace(",", "").toDoubleOrNull() ?: return null
+            val exp = powMatch.groupValues[2].replace(",", "").toDoubleOrNull() ?: return null
+            if (Math.abs(exp) > 100) return "Exponent is too large."
+            val ans = Math.pow(base, exp)
+            val ansFmt = if (ans % 1.0 == 0.0) ans.toLong().toString() else "$ans"
+            return "$base to the power of $exp is $ansFmt."
+        }
+
+        // Fractions: "3/4 + 1/2"
+        val fracMatch = Regex("""(\d+)\s*/\s*(\d+)\s*([+\-*x×/])\s*(\d+)\s*/\s*(\d+)""").find(q)
+        if (fracMatch != null) {
+            val n1 = fracMatch.groupValues[1].toDoubleOrNull() ?: return null
+            val d1 = fracMatch.groupValues[2].toDoubleOrNull() ?: return null
+            val op = fracMatch.groupValues[3]
+            val n2 = fracMatch.groupValues[4].toDoubleOrNull() ?: return null
+            val d2 = fracMatch.groupValues[5].toDoubleOrNull() ?: return null
+            if (d1 == 0.0 || d2 == 0.0) return "Denominator cannot be zero."
+            val v1 = n1 / d1
+            val v2 = n2 / d2
+            val res = when (op) {
+                "+" -> v1 + v2
+                "-" -> v1 - v2
+                "*", "x", "×" -> v1 * v2
+                "/" -> if (v2 != 0.0) v1 / v2 else return "Division by zero is undefined."
+                else -> return null
+            }
+            return "${n1.toLong()}/${d1.toLong()} $op ${n2.toLong()}/${d2.toLong()} is $res."
+        }
+
+        // General arithmetic: "27 × 38", "125 * 16", "144 / 12", "25 + 37", "100 - 43", "27 into 38 kitna hota hai"
+        var clean = q.replace(Regex("""[?!.,;]"""), " ").trim()
+        clean = clean
+            .replace(Regex("""^(?:what\s+is|whats|calculate|compute|solve|bhai|batao|bataiye)\s+"""), "")
+            .replace(Regex("""\s+(?:kitna\s+hota\s+hai|kitna\s+hoga|kitna\s+hai|hoga|batao|bataiye)$"""), "")
+            .replace("multiplied by", "*")
+            .replace("divided by", "/")
+            .replace("plus", "+")
+            .replace("minus", "-")
+            .replace("into", "*")
+            .replace("times", "*")
+            .replace("×", "*")
+            .replace("÷", "/")
+            .replace("aur", "+")
+            .replace("and", "+")
+            .replace("jodo", "+")
+            .replace("me se", "-")
+            .replace("se", "-")
+            .replace("ghatao", "-")
+            .replace("guna", "*")
+            .replace("bhag", "/")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+
+        val arithMatch = Regex("""^([\d,.]+)\s*([+\-*/%])\s*([\d,.]+)$""").find(clean)
+        if (arithMatch != null) {
+            val a = arithMatch.groupValues[1].replace(",", "").toDoubleOrNull() ?: return null
+            val op = arithMatch.groupValues[2]
+            val b = arithMatch.groupValues[3].replace(",", "").toDoubleOrNull() ?: return null
+            val res = when (op) {
+                "+" -> a + b
+                "-" -> a - b
+                "*" -> a * b
+                "/" -> if (b != 0.0) a / b else return "Division by zero is undefined."
+                "%" -> a % b
+                else -> return null
+            }
+            val aFmt = if (a % 1.0 == 0.0) a.toLong().toString() else "$a"
+            val bFmt = if (b % 1.0 == 0.0) b.toLong().toString() else "$b"
+            val resFmt = if (res % 1.0 == 0.0) res.toLong().toString() else "%.2f".format(res)
+            val opName = when (op) {
+                "*" -> "times"
+                "/" -> "divided by"
+                "+" -> "plus"
+                "-" -> "minus"
+                else -> op
+            }
+            return "$aFmt $opName $bFmt is $resFmt."
+        }
+
         return null
     }
 
