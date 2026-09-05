@@ -317,6 +317,27 @@ class GoogleCalendarProvider(CalendarProvider):
                         "message": "I can't access your calendar right now."
                     }
 
+                if resp.status_code == 403:
+                    error_detail = ""
+                    try:
+                        err_json = resp.json().get("error", {})
+                        error_detail = err_json.get("message", resp.text)
+                    except Exception:
+                        error_detail = resp.text
+                    logger.error(
+                        f"Google Calendar API returned 403 Forbidden: {error_detail}. "
+                        "Action required: (1) Enable 'Google Calendar API' in Google Cloud Console: "
+                        "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com "
+                        "(2) Re-authorize via http://localhost:8001/api/v1/auth/google to grant calendar permissions."
+                    )
+                    return {
+                        "count": 0,
+                        "events": [],
+                        "next_event": None,
+                        "error": f"Google Calendar API 403: {error_detail}",
+                        "message": "I can't access your calendar right now."
+                    }
+
                 resp.raise_for_status()
                 data = resp.json()
 

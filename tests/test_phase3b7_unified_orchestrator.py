@@ -37,7 +37,8 @@ def test_production_email_provider_is_google():
 
 def test_unauthenticated_gmail_returns_honest_error_zero_mock():
     """Verify that searching emails when unauthenticated returns honest error and zero mock emails."""
-    res = gmail_search()
+    provider = get_email_provider("unauthenticated_user_xyz")
+    res = provider.search()
     assert res.get("count") == 0
     assert len(res.get("messages", [])) == 0
     assert "error" in res or "not connected" in res.get("message", "").lower()

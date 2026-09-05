@@ -154,6 +154,26 @@ class GoogleGmailProvider(EmailProvider):
                         "error": "Gmail authentication expired.",
                         "message": "I can't access your email right now."
                     }
+                elif resp.status_code == 403:
+                    error_detail = ""
+                    try:
+                        err_json = resp.json().get("error", {})
+                        error_detail = err_json.get("message", resp.text)
+                    except Exception:
+                        error_detail = resp.text
+                    logger.error(
+                        f"Gmail API returned 403 Forbidden: {error_detail}. "
+                        "Action required: (1) Enable 'Gmail API' in Google Cloud Console: "
+                        "https://console.cloud.google.com/apis/library/gmail.googleapis.com "
+                        "(2) Re-authorize via http://localhost:8001/api/v1/auth/google to grant email permissions."
+                    )
+                    return {
+                        "count": 0,
+                        "unread_count": 0,
+                        "messages": [],
+                        "error": f"Gmail API 403: {error_detail}",
+                        "message": "I can't access your email right now."
+                    }
                 elif resp.status_code != 200:
                     logger.warning("Gmail API list returned %d: %s", resp.status_code, resp.text)
                     return {
