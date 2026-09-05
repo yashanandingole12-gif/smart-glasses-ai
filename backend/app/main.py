@@ -310,10 +310,20 @@ async def analyze_vision(req: VisionAnalyzeRequest):
 
 @app.post("/api/v1/search")
 async def search_endpoint(query: str, search_type: str = "web"):
-    """Search endpoint for web or product queries."""
+    """Search endpoint for web, product, or academic research queries."""
     if search_type == "product":
         return product_search(category="pants", color="black", style="cargo")
+    elif search_type == "academic" or search_type == "research":
+        from backend.app.tools.search_tools import academic_research_search
+        return academic_research_search(query=query)
     return web_search(query)
+
+@app.get("/api/v1/research/search")
+@app.post("/api/v1/research/search")
+async def research_search_endpoint(query: str, limit: int = 5, translate_back: bool = False):
+    """Academic paper search endpoint using arXiv, Semantic Scholar, CrossRef, and PubMed."""
+    from backend.app.tools.search_tools import academic_research_search
+    return academic_research_search(query=query, limit=limit)
 
 @app.websocket("/ws/assistant")
 async def websocket_assistant(websocket: WebSocket):

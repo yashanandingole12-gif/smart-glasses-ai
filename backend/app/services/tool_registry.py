@@ -17,7 +17,8 @@ from backend.app.tools import (
     sms_search,
     sms_send_message,
     web_search,
-    product_search
+    product_search,
+    academic_research_search
 )
 
 logger = logging.getLogger("SmartGlasses.ToolRegistry")
@@ -284,3 +285,13 @@ def _tool_web_search(query: str):
 )
 def _tool_product_search(category: str, color: str = None, style: str = None):
     return product_search(category, color, style)
+
+@registry.register(
+    name="academic_research_search",
+    description="Search across academic research databases (arXiv, Semantic Scholar, CrossRef, PubMed) for scientific research papers.",
+    risk_level=RiskLevel.READ,
+    requires_confirmation=False
+)
+def _tool_academic_research_search(query: str, limit: int = 5):
+    return academic_research_search(query=query, limit=limit)
+
