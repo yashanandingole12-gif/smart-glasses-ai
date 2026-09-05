@@ -9,7 +9,7 @@ ENV_FILE = PROJECT_ROOT / ".env"
 class Settings(BaseSettings):
     # LLM Settings & Multi-Tier Router
     LLM_PROVIDER: str = "mock"  # "mock", "openai", "gemini", "anthropic", "ollama"
-    LLM_MODEL: str = "gemini-flash-latest"
+    LLM_MODEL: str = "gemini-2.0-flash"
     LLM_API_KEY: Optional[str] = None
     LLM_BASE_URL: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
@@ -17,9 +17,9 @@ class Settings(BaseSettings):
 
     # Multi-Tier Routing & Secondary Cloud Provider (Phase 3B.6)
     FAST_LLM_PROVIDER: str = "gemini"
-    FAST_LLM_MODEL: str = "gemini-flash-latest"
+    FAST_LLM_MODEL: str = "gemini-2.0-flash"
     PRIMARY_LLM_PROVIDER: str = "gemini"
-    PRIMARY_LLM_MODEL: str = "gemini-flash-latest"
+    PRIMARY_LLM_MODEL: str = "gemini-2.0-flash"
     SECONDARY_LLM_PROVIDER: Optional[str] = None  # "openai", "groq", "anthropic", "ollama", "mock"
     SECONDARY_LLM_MODEL: Optional[str] = None
     SECONDARY_LLM_API_KEY: Optional[str] = None

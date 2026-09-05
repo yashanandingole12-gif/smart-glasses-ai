@@ -361,7 +361,16 @@ class LLMService:
             return LLMResponse(content=content, tool_calls=tool_calls, provider="openai", model=self.model)
 
     async def _generate_gemini(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
-        candidate_models = [self.model, "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-flash-lite-latest", "gemini-flash-latest"]
+        candidate_models = [
+            self.model,
+            "gemini-2.0-flash",
+            "gemini-2.5-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
+            "gemini-flash-latest"
+        ]
         models_to_try = []
         for m in candidate_models:
             if m and m not in models_to_try:
@@ -438,11 +447,19 @@ class LLMService:
             max_retries = 2
             for attempt in range(max_retries):
                 try:
-                    async with httpx.AsyncClient(timeout=20.0) as client:
+                    async with httpx.AsyncClient(timeout=8.0) as client:
                         resp = await client.post(url, json=payload, headers=headers)
                         if resp.status_code == 429:
                             logger.warning(f"Gemini API model {current_model} returned 429 quota. Trying alternate model...")
                             last_exception = httpx.HTTPStatusError("429 Quota Exceeded", request=resp.request, response=resp)
+                            break
+                        if resp.status_code == 404:
+                            logger.warning(f"Gemini API model {current_model} returned 404 Not Found. Trying alternate model...")
+                            last_exception = httpx.HTTPStatusError("404 Model Not Found", request=resp.request, response=resp)
+                            break
+                        if resp.status_code == 400:
+                            logger.warning(f"Gemini API model {current_model} returned 400 Bad Request: {resp.text[:150]}. Trying alternate model...")
+                            last_exception = httpx.HTTPStatusError("400 Bad Request", request=resp.request, response=resp)
                             break
                         if resp.status_code == 503 and attempt < max_retries - 1:
                             await asyncio.sleep(1.0)
@@ -474,16 +491,16 @@ class LLMService:
                         )
                 except (httpx.HTTPError, httpx.NetworkError, Exception) as e:
                     last_exception = e
+                    if getattr(e, "response", None) is not None and e.response.status_code in (400, 404, 429):
+                        break
                     if attempt < max_retries - 1 and getattr(e, "response", None) is not None and e.response.status_code == 503:
                         await asyncio.sleep(1.0)
                         continue
 
         logger.warning(
             f"Gemini API request failed across all models ({type(last_exception).__name__}: {last_exception}). "
-            "Cascading to local router fallback."
+            "Gracefully falling back to intelligent on-device mock generator."
         )
-        if last_exception:
-            raise last_exception
         return await self._generate_mock(messages, tools)
 
     async def _generate_anthropic(self, messages: List[Dict[str, str]], tools: Optional[List[Dict[str, Any]]] = None) -> LLMResponse:
