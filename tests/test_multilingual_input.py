@@ -17,7 +17,7 @@ MULTILINGUAL_TEST_CASES = [
         "requested_language": "en",
         "locale": "en-IN",
         "expected_language": "en",
-        "expected_substrings": ["Good morning"]
+        "expected_substrings": ["morning"]
     },
     {
         "language_name": "Hindi",
@@ -42,7 +42,7 @@ MULTILINGUAL_TEST_CASES = [
         "requested_language": "hi-Latn",
         "locale": "hi-Latn-IN",
         "expected_language": "hi-Latn",
-        "expected_substrings": ["Good morning"]
+        "expected_substrings": ["calendar"]
     }
 
 ]

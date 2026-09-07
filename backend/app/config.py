@@ -8,18 +8,18 @@ ENV_FILE = PROJECT_ROOT / ".env"
 
 class Settings(BaseSettings):
     # LLM Settings & Multi-Tier Router
-    LLM_PROVIDER: str = "mock"  # "mock", "openai", "gemini", "anthropic", "ollama"
-    LLM_MODEL: str = "gemini-2.0-flash"
+    LLM_PROVIDER: str = "gemini"  # "mock", "openai", "gemini", "anthropic", "deepseek", "ollama"
+    LLM_MODEL: str = "gemini-flash-lite-latest"
     LLM_API_KEY: Optional[str] = None
     LLM_BASE_URL: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
-    GEMINI_MODEL: Optional[str] = None
+    GEMINI_MODEL: Optional[str] = "gemini-flash-lite-latest"
 
     # Multi-Tier Routing & Secondary Cloud Provider (Phase 3B.6)
     FAST_LLM_PROVIDER: str = "gemini"
-    FAST_LLM_MODEL: str = "gemini-2.0-flash"
+    FAST_LLM_MODEL: str = "gemini-flash-lite-latest"
     PRIMARY_LLM_PROVIDER: str = "gemini"
-    PRIMARY_LLM_MODEL: str = "gemini-2.0-flash"
+    PRIMARY_LLM_MODEL: str = "gemini-flash-lite-latest"
     SECONDARY_LLM_PROVIDER: Optional[str] = "deepseek"  # "deepseek", "openai", "groq", "anthropic", "ollama", "mock"
     SECONDARY_LLM_MODEL: Optional[str] = "deepseek-chat"
     SECONDARY_LLM_API_KEY: Optional[str] = None
@@ -33,11 +33,11 @@ class Settings(BaseSettings):
     FALLBACK_LLM_PROVIDER: str = "mock"
     FALLBACK_LLM_MODEL: str = "mock-glasses-v1"
 
-    # Latency Budget & Hard Deadlines (Phase 3B.6)
-    CLOUD_TIMEOUT_SECONDS: float = 2.5
-    LLM_TIMEOUT_SECONDS: float = 2.5
-    REQUEST_DEADLINE_SECONDS: float = 6.0
-    MAX_OUTPUT_TOKENS: int = 120
+    # Latency Budget & Hard Deadlines (Phase 3B.6 / 3B.10)
+    CLOUD_TIMEOUT_SECONDS: float = 10.0
+    LLM_TIMEOUT_SECONDS: float = 10.0
+    REQUEST_DEADLINE_SECONDS: float = 15.0
+    MAX_OUTPUT_TOKENS: int = 180
     MAX_INPUT_TOKENS: int = 2048
     VOICE_RESPONSE_MODE: bool = True
 

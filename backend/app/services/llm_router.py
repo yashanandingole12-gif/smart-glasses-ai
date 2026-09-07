@@ -69,8 +69,8 @@ class LLMRouter:
         Executes multi-tier cascade (FAST -> PRIMARY -> SECONDARY -> FALLBACK) with strict global deadline
         and per-attempt timeouts. Never blocks indefinitely or returns empty successful text.
         """
-        deadline_sec = global_deadline_seconds or settings.REQUEST_DEADLINE_SECONDS
-        attempt_timeout_sec = per_attempt_timeout or settings.LLM_TIMEOUT_SECONDS
+        deadline_sec = global_deadline_seconds if global_deadline_seconds is not None else settings.REQUEST_DEADLINE_SECONDS
+        attempt_timeout_sec = per_attempt_timeout if per_attempt_timeout is not None else settings.LLM_TIMEOUT_SECONDS
         start_time = time.time()
         global_deadline = start_time + deadline_sec
 
@@ -90,7 +90,7 @@ class LLMRouter:
         else:
             tier_order = [RoutingTier.PRIMARY, RoutingTier.FAST]
 
-        if settings.SECONDARY_LLM_PROVIDER:
+        if settings.SECONDARY_LLM_PROVIDER and settings.SECONDARY_LLM_PROVIDER != "none":
             tier_order.append(RoutingTier.SECONDARY)
 
         tier_order.append(RoutingTier.FALLBACK)
@@ -98,6 +98,7 @@ class LLMRouter:
         fallback_chain: List[Dict[str, Any]] = []
         last_failure_cat = FailureCategory.NONE
         working_messages = list(messages)
+        attempted_configs = set()
 
         for tier in tier_order:
             # Check cancellation
@@ -115,7 +116,7 @@ class LLMRouter:
 
             # Check remaining global deadline budget
             time_left = global_deadline - time.time()
-            if time_left <= 0.25 and tier != RoutingTier.FALLBACK:
+            if time_left <= 0.5 and tier != RoutingTier.FALLBACK:
                 logger.warning(f"Global deadline budget ({deadline_sec}s) nearly exhausted. Jumping to FALLBACK tier.")
                 continue
 
@@ -125,9 +126,15 @@ class LLMRouter:
             if tier == RoutingTier.FAST:
                 provider = settings.FAST_LLM_PROVIDER
                 model = settings.FAST_LLM_MODEL
+                # If PRIMARY already attempted this model, degrade to companion flash model
+                if (provider, model) in attempted_configs:
+                    model = "gemini-3.5-flash-lite" if "lite" not in model else "gemini-flash-latest"
             elif tier == RoutingTier.PRIMARY:
                 provider = settings.PRIMARY_LLM_PROVIDER
                 model = settings.PRIMARY_LLM_MODEL
+                # If FAST already attempted this model, degrade to companion flash model
+                if (provider, model) in attempted_configs:
+                    model = "gemini-3.5-flash-lite" if "lite" not in model else "gemini-flash-latest"
             elif tier == RoutingTier.SECONDARY:
                 provider = settings.SECONDARY_LLM_PROVIDER or "deepseek"
                 model = settings.SECONDARY_LLM_MODEL or settings.DEEPSEEK_MODEL or "deepseek-chat"
@@ -137,7 +144,13 @@ class LLMRouter:
                 provider = settings.FALLBACK_LLM_PROVIDER
                 model = settings.FALLBACK_LLM_MODEL
 
-            tier_timeout = min(attempt_timeout_sec, max(0.5, time_left))
+            config_key = (provider, model)
+            if config_key in attempted_configs and tier != RoutingTier.FALLBACK:
+                logger.debug("Skipping already-attempted provider configuration: %s", config_key)
+                continue
+            attempted_configs.add(config_key)
+
+            tier_timeout = min(attempt_timeout_sec, max(1.0, time_left))
             t_tier_start = time.time()
 
             try:

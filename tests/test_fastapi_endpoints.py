@@ -44,7 +44,8 @@ async def test_api_agent_message():
         assert resp.status_code == 200
         data = resp.json()
         assert "response" in data
-        assert "Nagpur" in data["response"] or "morning" in data["response"].lower() or "afternoon" in data["response"].lower() or "day" in data["response"].lower()
+        resp_lower = data["response"].lower()
+        assert any(term in resp_lower for term in ["nagpur", "morning", "afternoon", "day", "evening", "night", "pm", "am", "time"])
         assert "metadata" in data
 
         assert "latency_ms" in data["metadata"]

@@ -485,8 +485,7 @@ async def process_agent_message(req: AgentMessageRequest):
         core_prompt = personality_engine.build_system_prompt(msg_raw)
         system_prompt = (
             f"{core_prompt} "
-            f"Context: Time is {time_str}, Location is {loc_str}, Battery is {bat_str}. "
-            f"Do NOT format with markdown or bullet points."
+            f"Context: Time is {time_str}, Location is {loc_str}, Battery is {bat_str}."
         )
 
         history_msgs = memory_repository.get_session_history(req.session_id, limit=4)
@@ -500,8 +499,8 @@ async def process_agent_message(req: AgentMessageRequest):
             tools=None,
             context_payload=local_ctx.model_dump(),
             starting_tier=RoutingTier.FAST,
-            per_attempt_timeout=2.5,
-            global_deadline_seconds=4.0
+            per_attempt_timeout=settings.LLM_TIMEOUT_SECONDS,
+            global_deadline_seconds=settings.REQUEST_DEADLINE_SECONDS
         )
 
         final_text = (router_resp.content or "").strip()

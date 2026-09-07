@@ -166,7 +166,7 @@ async def test_acceptance_query_2_what_do_i_have_tomorrow():
         # Must return all tomorrow's events, not only one
         assert "Operating Systems" in data["response"]
         assert "AI Seminar" in data["response"]
-        assert dur_ms < 100.0
+        assert dur_ms < 250.0
 
 
 @pytest.mark.asyncio

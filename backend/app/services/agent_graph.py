@@ -11,6 +11,7 @@ from backend.app.services.llm_router import llm_router, RoutingTier, FailureCate
 from backend.app.services.tool_registry import registry, PendingAction
 from backend.app.services.context_engine import context_engine
 from backend.app.services.memory_repository import memory_repository
+from backend.app.services.personality_engine import personality_engine
 from backend.app.models.schemas import RiskLevel, AgentAction
 
 logger = logging.getLogger("SmartGlasses.AgentGraph")
@@ -42,28 +43,26 @@ def load_session_and_context(state: AgentState) -> Dict[str, Any]:
     history = memory_repository.get_session_history(session_id, limit=settings.RECENT_MESSAGES_LIMIT)
     messages = list(history)
 
-    # Minimal system prompt
+    # Dynamic canonical system prompt
+    system_prompt = personality_engine.build_system_prompt(user_msg)
+
+    # Add minimal environmental context (time, location, next event)
     ctx = state.get("context_payload") or {}
     t_info = ctx.get("time", {})
     l_info = ctx.get("location", {})
     c_info = ctx.get("calendar", {})
 
-    lang_instructions = (
-        "Respond concisely in 1-2 sentences in the same language and script as user query. "
-        "Keep responses brief, wearable-friendly, and voice-optimized.\n"
-    )
-
-    system_prompt = (
-        f"You are the AI assistant inside smart glasses.\n"
-        f"{lang_instructions}"
-        f"Time: {t_info.get('local_time', '08:15 AM')} ({t_info.get('period', 'morning')})\n"
-    )
+    context_lines = []
+    if t_info.get("local_time"):
+        context_lines.append(f"Current Time: {t_info.get('local_time')} ({t_info.get('period', 'day')})")
     if l_info.get("is_available") and l_info.get("city") not in ["Unavailable", "Unknown", None]:
-        system_prompt += f"Location: {l_info.get('city')}\n"
-
+        context_lines.append(f"Location: {l_info.get('city')}")
     if c_info.get("next_event"):
         ne = c_info["next_event"]
-        system_prompt += f"Next Event: {ne.get('title')} at {ne.get('start_time')}\n"
+        context_lines.append(f"Next Event: {ne.get('title')} at {ne.get('start_time')}")
+
+    if context_lines:
+        system_prompt += "\n\nContext:\n" + "\n".join(context_lines)
 
     messages = [{"role": "system", "content": system_prompt}] + messages
     messages.append({"role": "user", "content": user_msg})

@@ -61,7 +61,7 @@ async def discover_valid_gemini_model(api_key: str) -> Optional[str]:
     now = time.time()
     if api_key in _discovery_cache:
         cached_time, cached_model = _discovery_cache[api_key]
-        if now - cached_time < _DISCOVERY_TTL_SECONDS:
+        if now - cached_time < _DISCOVERY_TTL_SECONDS and cached_model:
             return cached_model
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
@@ -71,8 +71,15 @@ async def discover_valid_gemini_model(api_key: str) -> Optional[str]:
             if resp.status_code == 200:
                 data = resp.json()
                 models = [m.get("name", "").replace("models/", "") for m in data.get("models", [])]
-                gen_models = [m for m in models if "flash" in m or "pro" in m]
-                for preferred in ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-flash-latest", "gemini-1.5-flash", "gemini-pro"]:
+                gen_models = [m for m in models if "flash" in m or "lite" in m]
+                for preferred in [
+                    "gemini-flash-lite-latest",
+                    "gemini-flash-latest",
+                    "gemini-3.6-flash",
+                    "gemini-3.5-flash-lite",
+                    "gemini-3.5-flash",
+                    "gemini-3.7-flash"
+                ]:
                     if preferred in gen_models:
                         logger.info("Gemini Model Discovery: Selected '%s' from %d available models.", preferred, len(gen_models))
                         _discovery_cache[api_key] = (now, preferred)
@@ -83,8 +90,8 @@ async def discover_valid_gemini_model(api_key: str) -> Optional[str]:
                     return gen_models[0]
     except Exception as e:
         logger.debug("Gemini model discovery skipped/failed: %s", e)
-    _discovery_cache[api_key] = (now, None)
-    return None
+    _discovery_cache[api_key] = (now, "gemini-flash-lite-latest")
+    return "gemini-flash-lite-latest"
 
 class ToolCall(BaseModel):
     name: str
@@ -455,15 +462,18 @@ class LLMService:
         payload: Dict[str, Any] = {
             "model": self.model or "deepseek-chat",
             "messages": messages,
-            "max_tokens": settings.MAX_OUTPUT_TOKENS or 120,
+            "max_tokens": settings.MAX_OUTPUT_TOKENS or 180,
             "temperature": 0.2
         }
         if tools:
             payload["tools"] = [{"type": "function", "function": t} for t in tools]
 
-        timeout_sec = min(settings.LLM_TIMEOUT_SECONDS or 2.5, 5.0)
+        timeout_sec = min(settings.LLM_TIMEOUT_SECONDS or 10.0, 12.0)
         async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code in [402, 429, 401, 403]:
+                logger.warning(f"DeepSeek returned HTTP {resp.status_code}: {resp.text[:200]}")
+                raise httpx.HTTPStatusError(f"{resp.status_code} DeepSeek Error", request=resp.request, response=resp)
             resp.raise_for_status()
             data = resp.json()
             choice = data.get("choices", [{}])[0].get("message", {})
@@ -495,22 +505,32 @@ class LLMService:
             if discovered:
                 gemini_circuit_breaker.discovered_model = discovered
 
-        primary_model = gemini_circuit_breaker.discovered_model or self.model or "gemini-flash-latest"
+        primary_model = gemini_circuit_breaker.discovered_model or self.model or "gemini-flash-lite-latest"
 
         candidate_models = [
             primary_model,
+            "gemini-flash-lite-latest",
+            "gemini-3.5-flash-lite",
             "gemini-flash-latest",
-            "gemini-pro-latest",
-            "gemini-2.0-flash",
-            "gemini-2.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-flash",
-            "gemini-pro"
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
+            "gemini-3.7-flash"
         ]
-        models_to_try = [m for m in candidate_models if m and m not in gemini_circuit_breaker._invalid_models]
+        seen = set()
+        deduped_candidates = []
+        for m in candidate_models:
+            if m and m not in seen:
+                seen.add(m)
+                deduped_candidates.append(m)
+
+        models_to_try = [m for m in deduped_candidates if m not in gemini_circuit_breaker._invalid_models]
         if not models_to_try:
             gemini_circuit_breaker._invalid_models.clear()
-            models_to_try = [primary_model]
+            models_to_try = [primary_model or "gemini-flash-lite-latest"]
+
+        # In HALF_OPEN probe mode, only test a single candidate model to avoid burst probes
+        if gemini_circuit_breaker.state == CircuitState.HALF_OPEN:
+            models_to_try = models_to_try[:1]
 
         # 2. Extract system instructions
         system_prompts = [m["content"] for m in messages if m.get("role") == "system"]
@@ -565,9 +585,9 @@ class LLMService:
                 })
             payload["tools"] = [{"functionDeclarations": gemini_tools}]
 
-        # 5. Wearable Ultra-Low-Latency Constraints (Cap tokens to 120 for instant response)
+        # 5. Wearable Output Constraints (Configurable tokens for conversational & knowledge responses)
         payload["generationConfig"] = {
-            "maxOutputTokens": 120,
+            "maxOutputTokens": settings.MAX_OUTPUT_TOKENS or 180,
             "temperature": 0.2,
             "topP": 0.8
         }
@@ -578,11 +598,13 @@ class LLMService:
         }
 
         last_exception = None
+        timeout_sec = min(settings.LLM_TIMEOUT_SECONDS or 10.0, 12.0)
+
         for current_model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent"
             hit_rate_limit = False
             try:
-                async with httpx.AsyncClient(timeout=2.5) as client:
+                async with httpx.AsyncClient(timeout=timeout_sec) as client:
                     resp = await client.post(url, json=payload, headers=headers)
                     if resp.status_code == 429:
                         gemini_circuit_breaker.record_429()
@@ -593,6 +615,10 @@ class LLMService:
                         gemini_circuit_breaker.record_404(current_model)
                         last_exception = httpx.HTTPStatusError("404 Model Not Found", request=resp.request, response=resp)
                         continue
+                    if resp.status_code in [401, 403]:
+                        logger.error(f"Gemini API authentication failed with HTTP {resp.status_code}: {resp.text[:200]}")
+                        last_exception = httpx.HTTPStatusError(f"{resp.status_code} Auth Error", request=resp.request, response=resp)
+                        break
                     if resp.status_code == 400:
                         gemini_circuit_breaker.record_404(current_model)
                         last_exception = httpx.HTTPStatusError("400 Bad Request", request=resp.request, response=resp)
@@ -633,8 +659,8 @@ class LLMService:
                 break
 
         logger.warning(
-            f"Gemini API request failed across all models ({type(last_exception).__name__}: {last_exception}). "
-            "Gracefully falling back to intelligent on-device mock generator."
+            f"Gemini API request failed across all candidate models ({type(last_exception).__name__}: {last_exception}). "
+            "Gracefully falling back to secondary / local generator."
         )
         return await self._generate_mock(messages, tools)
 
