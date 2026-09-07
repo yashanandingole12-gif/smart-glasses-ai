@@ -26,22 +26,7 @@ wheels/
 .coverage
 htmlcov/
 *.sqlite3
-*.sqlite
 *.db
-
-# Research-generated outputs
-experiment_results.json
-experiment_run_output*.txt
-smoke_factory.sqlite
-factory_hmri_dashboard.html
-factory_hmri_data.csv
-
-# Legacy prototype artifacts not used by research_dashboard.py
-streamlit_app.py
-streamlit_factory_hmri.sqlite
-virtual_car_factory_hmri_simulation.py
-research_paper_virtual_car_factory_hmri.md
-research_paper_wearable_hmi_hri.md
 
 # Mandatory Security Exclusions: Secrets & OAuth Credentials
 .env
