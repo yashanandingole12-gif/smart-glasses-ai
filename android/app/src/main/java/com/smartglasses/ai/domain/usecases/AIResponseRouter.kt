@@ -21,7 +21,7 @@ class AIResponseRouter(
     private val localAiEngine: LocalAiEngine,
     private val context: Context? = null
 ) {
-    var conversationalCloudTimeoutMs: Long = 2500L
+    var conversationalCloudTimeoutMs: Long = 10000L
 
     suspend fun routeQuery(
         sessionId: String,
