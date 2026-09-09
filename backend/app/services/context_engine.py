@@ -222,6 +222,16 @@ class ContextEngine:
             d_str = context.time.date_str or "Today"
             return f"Today is {d_str}."
 
+        # 5. Greetings & Status
+        if msg in ["good morning", "morning", "good morning.", "सुप्रभात", "शुभ सकाळ"]:
+            cal_info = ""
+            if context.calendar and hasattr(context.calendar, "today_events"):
+                if not context.calendar.today_events:
+                    cal_info = " You have no upcoming events scheduled for today."
+                else:
+                    cal_info = f" You have {len(context.calendar.today_events)} events today."
+            return f"Good morning!{cal_info} How can I help you today?"
+
         return None
 
 context_engine = ContextEngine()

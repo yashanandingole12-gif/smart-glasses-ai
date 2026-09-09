@@ -604,7 +604,10 @@ class GoogleCalendarProvider(CalendarProvider):
 
 
 def get_calendar_provider(user_id: str = "default_user") -> CalendarProvider:
-    """Factory: Returns authoritative GoogleCalendarProvider."""
+    """Factory: Returns authoritative GoogleCalendarProvider (or MockCalendarProvider when USE_MOCK_CALENDAR=1)."""
+    import os
+    if os.environ.get("USE_MOCK_CALENDAR") == "1":
+        return MockCalendarProvider()
     return GoogleCalendarProvider(user_id=user_id)
 
 calendar_provider = get_calendar_provider()

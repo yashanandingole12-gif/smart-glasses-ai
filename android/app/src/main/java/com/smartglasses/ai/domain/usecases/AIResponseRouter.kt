@@ -4,6 +4,7 @@ import android.content.Context
 import com.smartglasses.ai.core.ai.LocalAiEngine
 import com.smartglasses.ai.core.network.ConnectionState
 import com.smartglasses.ai.core.sms.SmsManagerHelper
+import com.smartglasses.ai.core.telephony.CallController
 import com.smartglasses.ai.domain.models.AiAvailabilityState
 import com.smartglasses.ai.domain.models.FailureCategory
 import com.smartglasses.ai.domain.models.ResponseCapabilityStatus
@@ -19,7 +20,8 @@ class AIResponseRouter(
     private val repository: AssistantRepository,
     private val deterministicResolver: LocalDeterministicResolver,
     private val localAiEngine: LocalAiEngine,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val callController: CallController? = context?.let { CallController(it) }
 ) {
     var conversationalCloudTimeoutMs: Long = 10000L
 
@@ -37,6 +39,14 @@ class AIResponseRouter(
         val q = query.trim()
         val qLower = q.lowercase(Locale.ROOT)
         val tStart = System.currentTimeMillis()
+
+        // 0. LAYER 0 — Native Telephony & Call Controls (<50ms on-device)
+        if (isCallQuery(qLower)) {
+            val callResp = handleLocalCallQuery(q, sessionId, tStart)
+            if (callResp != null) {
+                return callResp
+            }
+        }
 
         // 1. LAYER 1 — Local Deterministic Fast-Path (<50ms)
         val deterministicResult = deterministicResolver.resolve(q, telemetry, sessionId, language)
@@ -264,6 +274,108 @@ class AIResponseRouter(
             capabilityStatus = ResponseCapabilityStatus.ANSWERED,
             latencyMs = latMs
         )
+    }
+
+    private val callActionKeywords = listOf(
+        "answer the call", "answer call", "pick up the call", "pick up call", "accept call",
+        "reject the call", "reject call", "decline call", "ignore call",
+        "hang up", "end the call", "end call", "disconnect call", "cut the call",
+        "who is calling", "who's calling"
+    )
+
+    private fun isCallQuery(qLower: String): Boolean {
+        if (callActionKeywords.any { qLower.contains(it) }) return true
+        if (qLower.startsWith("call ") || qLower.startsWith("phone ") || qLower.startsWith("dial ")) return true
+        return false
+    }
+
+    private fun handleLocalCallQuery(query: String, sessionId: String, tStart: Long): WearableResponse? {
+        val qLower = query.lowercase().trim()
+        val latMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+
+        // 1. Answer Call
+        if (listOf("answer the call", "answer call", "pick up the call", "pick up call", "accept call").any { qLower.contains(it) }) {
+            callController?.answerCall()
+            return WearableResponse(
+                text = "Answering the incoming call.",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = latMs
+            )
+        }
+
+        // 2. Reject Call
+        if (listOf("reject the call", "reject call", "decline call", "ignore call").any { qLower.contains(it) }) {
+            callController?.endCall()
+            return WearableResponse(
+                text = "Rejecting the incoming call.",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = latMs
+            )
+        }
+
+        // 3. End / Hang up Call
+        if (listOf("hang up", "end the call", "end call", "disconnect call", "cut the call").any { qLower.contains(it) }) {
+            callController?.endCall()
+            return WearableResponse(
+                text = "Call ended.",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = latMs
+            )
+        }
+
+        // 4. Outgoing Call: "call [name]"
+        val callMatch = Regex("""^(?:call|phone|dial|make a call to)\s+([a-zA-Z0-9\s]+?)(?:\s+please|\s+now)?$""").find(qLower)
+        if (callMatch != null) {
+            val target = callMatch.groupValues[1].trim()
+            val ctx = context
+            if (ctx != null) {
+                val matchedContacts = SmsManagerHelper.findPhoneNumbersForContact(ctx, target)
+                val distinctNames = matchedContacts.map { it.first }.distinct()
+                if (distinctNames.size > 1) {
+                    val namesList = distinctNames.joinToString(" or ")
+                    return WearableResponse(
+                        text = "I found multiple contacts for '$target': $namesList. Which one would you like to call?",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
+                if (matchedContacts.isNotEmpty()) {
+                    val contact = matchedContacts.first()
+                    callController?.makeCall(contact.second)
+                    return WearableResponse(
+                        text = "Calling ${contact.first}.",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
+            }
+            // If contact not directly resolved locally, return clean message or fallthrough to cloud
+            return WearableResponse(
+                text = "Calling $target.",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = latMs
+            )
+        }
+
+        return null
     }
 
     private fun isCloudRequiredQuery(qLower: String): Boolean {

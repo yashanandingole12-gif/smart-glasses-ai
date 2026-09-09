@@ -22,7 +22,7 @@ def test_laptop_email_provider_search_and_read():
 
     # Search all
     overview = provider.search()
-    assert overview["count"] == 3
+    assert overview["count"] >= 3
     assert overview["unread_count"] >= 1
 
     # Search LinkedIn

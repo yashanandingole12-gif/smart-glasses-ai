@@ -321,45 +321,86 @@ class TemporalResolver:
         self,
         intent: TemporalIntent,
         events: List[Dict[str, Any]],
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
+        language: str = "auto",
+        query: Optional[str] = None
     ) -> str:
         """
         Generates a concise, voice-optimized wearable response without event fabrication.
+        Supports English, Hindi, and Marathi native phrasing.
         """
         if error_message:
             return error_message
 
+        q_lower = (query or "").lower()
+        is_mr = language == "mr" or any(w in q_lower for w in ["माझं", "दाखव", "सकाळ", "सांग", "काय आहे", "कॅलेंडर"])
+        is_hi = language == "hi" or any(w in q_lower for w in ["सुप्रभात", "शेड्यूल", "बताओ", "दिखाओ", "क्या है", "मेरा"])
+
         day_label = "tomorrow" if intent.date_target == "tomorrow" else "today"
+        day_label_mr = "उद्या" if intent.date_target == "tomorrow" else "आज"
+        day_label_hi = "कल" if intent.date_target == "tomorrow" else "आज"
 
         # Case 1: Filter mode is 'exact' (e.g. "What about 8 am?")
         if intent.filter_mode == "exact":
             time_str = intent.start_time_filter or "that time"
             if not events:
+                if is_mr:
+                    return f"तुमच्याकडे {day_label_mr} {time_str} वाजता कोणताही कार्यक्रम नाही."
+                if is_hi:
+                    return f"आपके पास {day_label_hi} {time_str} बजे कोई इवेंट नहीं है।"
                 return f"You have no events scheduled for {time_str} {day_label}."
             e = events[0]
+            if is_mr:
+                return f"{day_label_mr} {time_str} वाजता: {e['title']} ({e['start_time']})."
+            if is_hi:
+                return f"{day_label_hi} {time_str} बजे: {e['title']} ({e['start_time']})।"
             return f"At {time_str} {day_label}, you have {e['title']} at {e['start_time']}."
 
         # Case 2: Filter mode is 'first' (e.g. "What's my first event tomorrow?")
         if intent.filter_mode == "first":
             if not events:
+                if is_mr:
+                    return f"तुमच्याकडे {day_label_mr} कोणताही कार्यक्रम नाही."
+                if is_hi:
+                    return f"आपके पास {day_label_hi} कोई इवेंट नहीं है।"
                 return f"You have no events scheduled for {day_label}."
             e = events[0]
+            if is_mr:
+                return f"तुमचा {day_label_mr}चा पहिला कार्यक्रम {e['title']} {e['start_time']} वाजता आहे."
+            if is_hi:
+                return f"आपका {day_label_hi} का पहला इवेंट {e['title']} {e['start_time']} बजे है।"
             return f"Your first event {day_label} is {e['title']} at {e['start_time']}."
 
         # Case 3: Filter mode is 'next' (e.g. "What is my next event?")
         if intent.filter_mode == "next":
             if not events:
+                if is_mr:
+                    return "तुमच्याकडे कोणताही आगामी कार्यक्रम नाही."
+                if is_hi:
+                    return "आपके पास कोई आगामी इवेंट नहीं है।"
                 return "You have no upcoming events on your schedule."
             e = events[0]
+            if is_mr:
+                return f"तुमचा पुढील कार्यक्रम {e['title']} {e['start_time']} वाजता आहे."
+            if is_hi:
+                return f"आपका अगला इवेंट {e['title']} {e['start_time']} बजे है।"
             return f"Your next event is {e['title']} at {e['start_time']}."
 
         # Case 4: Filter mode is 'after' (e.g. "Do I have anything after 3?")
         if intent.filter_mode == "after":
             time_str = intent.start_time_filter or "that time"
             if not events:
+                if is_mr:
+                    return f"तुमच्याकडे {time_str} नंतर {day_label_mr} कोणताही कार्यक्रम नाही."
+                if is_hi:
+                    return f"आपके पास {time_str} के बाद {day_label_hi} कोई इवेंट नहीं है।"
                 return f"You have nothing scheduled after {time_str} {day_label}."
             if len(events) == 1:
                 e = events[0]
+                if is_mr:
+                    return f"{time_str} नंतर {day_label_mr}: {e['title']} {e['start_time']} वाजता आहे."
+                if is_hi:
+                    return f"{time_str} के बाद {day_label_hi}: {e['title']} {e['start_time']} बजे है।"
                 return f"After {time_str} {day_label}, you have {e['title']} at {e['start_time']}."
             event_strs = [f"{e['title']} at {e['start_time']}" for e in events]
             joined = ", ".join(event_strs[:-1]) + f", and {event_strs[-1]}"
@@ -367,11 +408,27 @@ class TemporalResolver:
 
         # Case 5: Standard Day Schedule ('all') (e.g. "What do I have tomorrow?", "What do I have today?")
         if not events:
+            if is_mr:
+                return f"तुमच्याकडे {day_label_mr} कोणतेही शेड्यूल्ड कार्यक्रम नाहीत."
+            if is_hi:
+                return f"आपके पास {day_label_hi} कोई शेड्यूल्ड इवेंट नहीं है।"
             return f"You have no events scheduled for {day_label}."
 
         if len(events) == 1:
             e = events[0]
+            if is_mr:
+                return f"तुमच्याकडे {day_label_mr} १ कार्यक्रम आहे: {e['title']} {e['start_time']} वाजता."
+            if is_hi:
+                return f"आपके पास {day_label_hi} १ इवेंट है: {e['title']} {e['start_time']} बजे।"
             return f"You have 1 event {day_label}: {e['title']} at {e['start_time']}."
+
+        if is_mr:
+            mr_items = [f"{e['title']} ({e['start_time']})" for e in events]
+            return f"तुमच्याकडे {day_label_mr} {len(events)} कार्यक्रम आहेत: {', '.join(mr_items)}."
+
+        if is_hi:
+            hi_items = [f"{e['title']} ({e['start_time']})" for e in events]
+            return f"आपके पास {day_label_hi} {len(events)} इवेंट्स हैं: {', '.join(hi_items)}।"
 
         event_strs = [f"{e['title']} at {e['start_time']}" for e in events]
         if len(event_strs) == 2:

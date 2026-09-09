@@ -168,10 +168,28 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             }
         }
 
-        // 3. Bluetooth Glasses State
+        // 3. Bluetooth Glasses State & Hardware Push-to-Talk Events
         viewModelScope.launch {
             bleManager.connectionState.collect { bleState ->
                 _uiState.update { it.copy(deviceConnectionState = bleState) }
+            }
+        }
+        viewModelScope.launch {
+            bleManager.talkEvents.collect { talkEvent ->
+                when (talkEvent) {
+                    com.smartglasses.ai.core.bluetooth.BleTalkEvent.TALK_START -> {
+                        startVoiceCapture()
+                    }
+                    com.smartglasses.ai.core.bluetooth.BleTalkEvent.TALK_STOP -> {
+                        stopVoiceCapture()
+                    }
+                    com.smartglasses.ai.core.bluetooth.BleTalkEvent.BUTTON_SHORT_PRESS -> {
+                        onTalkButtonClicked()
+                    }
+                    com.smartglasses.ai.core.bluetooth.BleTalkEvent.BUTTON_LONG_PRESS -> {
+                        cancelPendingAction()
+                    }
+                }
             }
         }
 
@@ -348,7 +366,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun onTalkButtonClicked() {
+    fun startVoiceCapture() {
         if (!PermissionManager.hasAudioPermission(getApplication())) {
             _uiState.update {
                 it.copy(
@@ -358,19 +376,28 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             }
             return
         }
+        textToSpeechManager.stop()
+        _uiState.update {
+            it.copy(
+                assistantState = AssistantState.LISTENING,
+                partialVoiceTranscript = "",
+                errorMessage = null
+            )
+        }
+        speechRecognizerManager?.startListening()
+    }
 
+    fun stopVoiceCapture() {
         if (_uiState.value.assistantState == AssistantState.LISTENING) {
             speechRecognizerManager?.stopListening()
+        }
+    }
+
+    fun onTalkButtonClicked() {
+        if (_uiState.value.assistantState == AssistantState.LISTENING) {
+            stopVoiceCapture()
         } else {
-            textToSpeechManager.stop()
-            _uiState.update {
-                it.copy(
-                    assistantState = AssistantState.LISTENING,
-                    partialVoiceTranscript = "",
-                    errorMessage = null
-                )
-            }
-            speechRecognizerManager?.startListening()
+            startVoiceCapture()
         }
     }
 

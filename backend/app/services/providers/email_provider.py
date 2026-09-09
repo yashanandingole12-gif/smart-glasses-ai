@@ -15,8 +15,8 @@ logger = logging.getLogger("SmartGlasses.EmailProvider")
 
 def resolve_email_search_query(raw_query: Optional[str]) -> str:
     """
-    Intelligently maps natural language email queries and entity mentions
-    to optimized Gmail search queries.
+    Intelligently maps natural language email queries, entity mentions, topics,
+    and temporal filters into optimized, composable Gmail search queries.
     """
     if not raw_query or not raw_query.strip():
         return "is:unread"
@@ -24,7 +24,7 @@ def resolve_email_search_query(raw_query: Optional[str]) -> str:
     q = raw_query.strip().lower()
 
     # If it's already an explicit Gmail query, keep it
-    if any(prefix in q for prefix in ["from:", "to:", "subject:", "is:", "label:", "has:", "after:", "before:"]):
+    if any(prefix in q for prefix in ["from:", "to:", "subject:", "is:", "label:", "has:", "after:", "before:", "newer_than:"]):
         return raw_query.strip()
 
     # Clean conversational filler
@@ -45,19 +45,71 @@ def resolve_email_search_query(raw_query: Optional[str]) -> str:
         "uber": "(uber.com)",
         "swiggy": "(swiggy.in OR swiggy)",
         "zomato": "(zomato.com OR zomato)",
+        "internshala": "(internshala.com OR internshala)",
         "college": "(college OR university OR .edu OR admin)",
         "university": "(university OR .edu OR college)",
         "professor": "(professor OR prof OR sir OR dept)",
+        "iit": "(iit OR iitb OR iitd)",
+        "angel one": "(angelone.in OR angelone)"
     }
 
+    terms = []
+    
+    # 1. Detect Entity / Sender filter
+    sender_found = None
     for entity_key, domain_query in entity_domains.items():
         if entity_key in q_clean or entity_key in q:
-            return f"from:{domain_query} OR subject:{entity_key}"
+            sender_found = domain_query
+            break
+
+    if sender_found:
+        terms.append(f"from:{sender_found}")
+    elif "from " in q:
+        m_from = re.search(r"from\s+([a-zA-Z0-9._%+-]+)", q)
+        if m_from:
+            terms.append(f"from:{m_from.group(1)}")
+
+    # 2. Detect Topic / Subject filter
+    topics = ["internship", "internships", "project", "projects", "exam", "exams", "fees", "ticket", "tickets", "interview", "interviews", "admission", "seminar", "placement", "salary", "invoice", "receipt", "hackathon", "meeting"]
+    topic_found = None
+    for t in topics:
+        if t in q_clean or t in q:
+            topic_found = t
+            break
+
+    if not topic_found:
+        # Check topic pattern: "related to X", "about X", "regarding X"
+        m_rel = re.search(r"(?:related to|about|regarding|for)\s+([a-zA-Z0-9\s]+?)(?:\s+from|\s+this|\s+last|$)", q)
+        if m_rel:
+            cand = m_rel.group(1).strip()
+            cand_clean = re.sub(r"\b(?:my|the|an|a|emails?|mails?)\b", "", cand).strip()
+            if cand_clean and cand_clean not in entity_domains:
+                topic_found = cand_clean
+
+    if topic_found:
+        terms.append(f"(subject:{topic_found} OR {topic_found})")
+
+    # 3. Detect Temporal filters
+    if "last week" in q:
+        terms.append("newer_than:14d")
+    elif "this week" in q:
+        terms.append("newer_than:7d")
+    elif "today" in q or "recent" in q or "latest" in q:
+        terms.append("newer_than:2d")
+    elif "this month" in q:
+        terms.append("newer_than:30d")
+
+    # 4. Detect Unread only filter
+    if "unread" in q or "new" in q:
+        terms.append("is:unread")
+
+    if terms:
+        return " ".join(terms)
 
     if not q_clean or q_clean in ["unread", "latest", "new", "inbox"]:
         return "is:unread"
 
-    # Default to sender or subject search
+    # Default fallback to sender or subject search
     return f"from:({q_clean}) OR subject:({q_clean}) OR {q_clean}"
 
 
@@ -129,8 +181,29 @@ class LaptopEmailProvider(EmailProvider):
                 "body": "Hi Yash, we found 3 new job recommendations matching your profile for Senior Embedded AI Engineer at top tech firms in India.",
                 "timestamp": "Aug 20",
                 "read": False
+            },
+            {
+                "id": "msg_004",
+                "thread_id": "thread_004",
+                "sender": "careers@internshala.com",
+                "subject": "Internship Update: 3 Shortlists for AI Engineering Roles",
+                "snippet": "Your application for Summer AI Internship has been shortlisted by 3 companies.",
+                "body": "Congratulations Yash, your application for the Summer AI Internship has been shortlisted by 3 companies. Please schedule your interviews via your dashboard.",
+                "timestamp": "10:15 AM",
+                "read": False
+            },
+            {
+                "id": "msg_005",
+                "thread_id": "thread_005",
+                "sender": "gsoc-admin@google.com",
+                "subject": "GSoC Project Application: Smart Glasses Context Engine",
+                "snippet": "Your proposal for GSoC Smart Wearables AI has been successfully submitted.",
+                "body": "Hello Yash, your proposal for GSoC Smart Glasses On-Device Context Engine has been received. Mentor reviews will begin next week.",
+                "timestamp": "3 days ago",
+                "read": True
             }
         ]
+        self._last_search_results: List[Dict[str, Any]] = list(self._mock_emails)
 
     def search(self, query: Optional[str] = None) -> Dict[str, Any]:
         results = self._mock_emails
@@ -138,16 +211,23 @@ class LaptopEmailProvider(EmailProvider):
             q = query.lower()
             if "linkedin" in q:
                 results = [m for m in results if "linkedin" in m["sender"].lower() or "linkedin" in m["subject"].lower()]
-            elif "college" in q or "admin" in q:
-                results = [m for m in results if "college" in m["sender"].lower() or "admin" in m["sender"].lower()]
+            elif "internship" in q:
+                results = [m for m in results if "internship" in m["subject"].lower() or "internshala" in m["sender"].lower() or "internship" in m["snippet"].lower()]
+            elif "project" in q:
+                results = [m for m in results if "project" in m["subject"].lower() or "prototype" in m["subject"].lower() or "smart glasses" in m["subject"].lower()]
+            elif "college" in q or "admin" in q or "university" in q:
+                results = [m for m in results if "college" in m["sender"].lower() or "admin" in m["sender"].lower() or "university" in m["sender"].lower()]
             elif "rahul" in q:
                 results = [m for m in results if "rahul" in m["sender"].lower() or "rahul" in m["subject"].lower()]
+            elif "is:unread" in q or q == "unread":
+                results = [m for m in results if not m.get("read", True)]
             else:
                 results = [
                     m for m in results
                     if q in m["subject"].lower() or q in m["sender"].lower() or q in m["snippet"].lower()
                 ]
 
+        self._last_search_results = results
         entity_label = "matching" if query else "inbox"
         msg = f"Retrieved {len(results)} {entity_label} emails." if results else f"I couldn't find any emails matching '{query or 'your inbox'}'."
 
@@ -158,14 +238,21 @@ class LaptopEmailProvider(EmailProvider):
             "message": msg
         }
 
-    def read(self, message_id: Optional[str] = None, index: Optional[int] = None) -> Dict[str, Any]:
-        if index is not None and 1 <= index <= len(self._mock_emails):
-            target = self._mock_emails[index - 1]
-            return {"status": "found", "email": target, "message": f"Email from {target['sender']}: {target['body']}"}
+    def read(self, message_id: Optional[str] = None, index: Optional[int] = None, topic: Optional[str] = None) -> Dict[str, Any]:
+        pool = self._last_search_results if self._last_search_results else self._mock_emails
+        if topic:
+            t = topic.lower()
+            matching = [m for m in pool if t in m["subject"].lower() or t in m["snippet"].lower() or t in m["sender"].lower()]
+            if matching:
+                target = matching[0]
+                return {"status": "found", "email": target, "message": f"Email from {target['sender']}: '{target['subject']}'. {target['body']}"}
+        if index is not None and 1 <= index <= len(pool):
+            target = pool[index - 1]
+            return {"status": "found", "email": target, "message": f"Email from {target['sender']}: '{target['subject']}'. {target['body']}"}
         if message_id:
             for m in self._mock_emails:
                 if m["id"] == message_id:
-                    return {"status": "found", "email": m, "message": f"Email from {m['sender']}: {m['body']}"}
+                    return {"status": "found", "email": m, "message": f"Email from {m['sender']}: '{m['subject']}'. {m['body']}"}
         return {"status": "not_found", "message": "Email not found."}
 
     def get_unread_count(self) -> int:
@@ -709,7 +796,10 @@ class GoogleGmailProvider(EmailProvider):
 
 
 def get_email_provider(user_id: str = "default_user") -> EmailProvider:
-    """Factory: Returns authoritative GoogleGmailProvider."""
+    """Factory: Returns authoritative GoogleGmailProvider (or LaptopEmailProvider when USE_MOCK_EMAIL=1)."""
+    import os
+    if os.environ.get("USE_MOCK_EMAIL") == "1":
+        return LaptopEmailProvider()
     return GoogleGmailProvider(user_id=user_id)
 
 email_provider = get_email_provider()

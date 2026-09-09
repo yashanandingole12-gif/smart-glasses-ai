@@ -24,22 +24,51 @@ class EntityResolutionResult(BaseModel):
 
 # Default test contacts repository
 DEFAULT_CONTACTS: List[Contact] = [
-    Contact(name="Rahul Sharma", phone="+919876543210", relationship="colleague"),
-    Contact(name="Rahul Verma", phone="+919876543219", relationship="classmate"),
-    Contact(name="Sneha Patil", phone="+919876543211", relationship="teammate"),
-    Contact(name="Amit Joshi", phone="+919876543212", relationship="friend"),
-    Contact(name="Priya Rao", phone="+919876543213", relationship="mentor")
+    Contact(name="Rahul Sharma", phone="+919876543210", relationship="colleague", email="rahul.sharma@techcorp.com"),
+    Contact(name="Rahul Verma", phone="+919876543219", relationship="classmate", email="rahul.verma@college.edu"),
+    Contact(name="Sneha Patil", phone="+919876543211", relationship="teammate", email="sneha.patil@techcorp.com"),
+    Contact(name="Amit Joshi", phone="+919876543212", relationship="friend", email="amit.joshi@gmail.com"),
+    Contact(name="Priya Rao", phone="+919876543213", relationship="mentor", email="priya.rao@iit.ac.in")
 ]
+
+COMPANY_DOMAINS: Dict[str, str] = {
+    "linkedin": "linkedin.com",
+    "github": "github.com",
+    "amazon": "amazon.in",
+    "google": "google.com",
+    "swiggy": "swiggy.in",
+    "zomato": "zomato.com",
+    "internshala": "internshala.com",
+    "angel one": "angelone.in",
+    "college": "edu",
+    "university": "edu",
+    "iit": "iit",
+    "apple": "apple.com",
+    "microsoft": "microsoft.com",
+    "uber": "uber.com",
+    "twitter": "x.com"
+}
 
 class EntityResolver:
     """
-    Deterministic entity resolution layer for contacts and parameters.
+    Deterministic entity resolution layer for contacts, companies, and parameters.
     Implements normalization, fuzzy string matching, confidence scoring,
     and ambiguity detection.
     """
 
     def __init__(self, contacts: Optional[List[Contact]] = None):
         self.contacts = contacts if contacts is not None else DEFAULT_CONTACTS
+        self.company_domains = COMPANY_DOMAINS
+
+    def resolve_domain(self, query: str) -> Optional[str]:
+        """Resolves company name to canonical domain query."""
+        if not query:
+            return None
+        q = query.lower().strip()
+        for k, v in self.company_domains.items():
+            if k in q:
+                return v
+        return None
 
     def normalize_name(self, text: str) -> str:
         """Strip honorifics, titles, and non-alphanumeric noise."""

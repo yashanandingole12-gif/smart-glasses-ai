@@ -35,6 +35,7 @@ class ToolDefinition(BaseModel):
 
 class PendingAction(BaseModel):
     action_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: Optional[str] = None
     tool_name: str
     tool_input: Dict[str, Any]
     risk_level: RiskLevel
@@ -111,13 +112,15 @@ class ToolRegistry:
         self,
         tool_name: str,
         tool_input: Dict[str, Any],
-        ttl_seconds: float = 60.0
+        ttl_seconds: float = 60.0,
+        session_id: Optional[str] = None
     ) -> PendingAction:
         """Create short-lived pending action token for high-risk write operations."""
         tool = self.get_tool(tool_name)
         risk = tool.risk_level if tool else RiskLevel.HIGH_RISK_WRITE
         now = time.time()
         action = PendingAction(
+            session_id=session_id,
             tool_name=tool_name,
             tool_input=self.sanitize_result(tool_input),
             risk_level=risk,
@@ -127,6 +130,14 @@ class ToolRegistry:
         )
         self._pending_actions[action.action_id] = action
         return action
+
+    def get_pending_action_for_session(self, session_id: str) -> Optional[PendingAction]:
+        """Find the latest unexpired pending action for a given conversational session."""
+        now = time.time()
+        for action in reversed(list(self._pending_actions.values())):
+            if action.session_id == session_id and action.status == "pending" and action.expires_at > now:
+                return action
+        return None
 
     def validate_and_consume_action(self, action_id: str) -> Optional[PendingAction]:
         """Validate confirmation token and mark as executed. Rejects expired / invalid tokens."""
@@ -143,12 +154,21 @@ class ToolRegistry:
         return action
 
     def cancel_action(self, action_id: str) -> bool:
-        """Cancel a pending action."""
+        """Cancel a pending action token explicitly."""
         action = self._pending_actions.get(action_id)
         if action and action.status == "pending":
             action.status = "cancelled"
             return True
         return False
+
+    def cancel_pending_action_for_session(self, session_id: str) -> bool:
+        """Cancel the latest pending action for a session."""
+        action = self.get_pending_action_for_session(session_id)
+        if action:
+            action.status = "cancelled"
+            return True
+        return False
+
 
     def sanitize_result(self, result: Any) -> Any:
         """Redacts sensitive credentials or private tokens from tool results and inputs."""

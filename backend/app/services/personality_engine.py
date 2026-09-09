@@ -51,7 +51,7 @@ class PersonalityEngine:
         has_devanagari = bool(re.search(r"[\u0900-\u097F]", msg))
         if has_devanagari:
             # Check Marathi specific words
-            marathi_markers = ["आहे", "आहेत", "नाही", "काय", "झाले", "करा", "सांगा", "वाचा", "तपासा", "कुठे"]
+            marathi_markers = ["आहे", "आहेत", "नाही", "काय", "झाले", "करा", "सांगा", "वाचा", "तपासा", "कुठे", "सकाळ", "दाखव", "माझं", "माझे", "कॅलेंडर", "शुभ", "नमस्कार"]
             if any(w in msg for w in marathi_markers):
                 return DetectedLanguage.MARATHI
             return DetectedLanguage.HINDI
@@ -77,21 +77,30 @@ class PersonalityEngine:
             return FormalityStyle.FORMAL
         return FormalityStyle.BALANCED
 
-    def build_system_prompt(self, user_message: str) -> str:
+    def build_system_prompt(self, user_message: str, requested_language: Optional[str] = None) -> str:
         """Constructs tone-aligned system prompt for LLM requests."""
         tone = self.analyze_tone(user_message)
         prompt = self.SYSTEM_PROMPT_CORE
+
+        if requested_language == "mr":
+            target_lang = DetectedLanguage.MARATHI
+        elif requested_language == "hi":
+            target_lang = DetectedLanguage.HINDI
+        elif requested_language == "en":
+            target_lang = DetectedLanguage.ENGLISH
+        else:
+            target_lang = tone["language"]
 
         if tone["formality"] == FormalityStyle.CASUAL:
             prompt += " Match the user's casual and direct style naturally without excessive slang."
         elif tone["formality"] == FormalityStyle.FORMAL:
             prompt += " Match the user's polite and professional style."
 
-        if tone["language"] == DetectedLanguage.HINDI:
+        if target_lang == DetectedLanguage.HINDI:
             prompt += " Respond naturally in Hindi (Devanagari script) in 1-2 short sentences."
-        elif tone["language"] == DetectedLanguage.MARATHI:
-            prompt += " Respond naturally in Marathi (Devanagari script) in 1-2 short sentences."
-        elif tone["language"] == DetectedLanguage.HINGLISH:
+        elif target_lang == DetectedLanguage.MARATHI:
+            prompt += " Respond naturally in Marathi (Devanagari script) in 1-2 short sentences. Do not reply in Hindi."
+        elif target_lang == DetectedLanguage.HINGLISH:
             prompt += " Respond in natural Hinglish (conversational Hindi written in Roman script) in 1-2 short sentences."
 
         return prompt

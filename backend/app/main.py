@@ -13,6 +13,8 @@ from backend.app.models.schemas import (
     SessionResponse,
     AgentMessageRequest,
     AgentMessageResponse,
+    AgentAction,
+    RiskLevel,
     FullContextPayload,
     DeviceContext,
     LocationContext,
@@ -29,6 +31,8 @@ from backend.app.services.memory_repository import memory_repository
 from backend.app.services.llm_router import llm_router, RoutingTier
 from backend.app.services.math_engine import math_engine
 from backend.app.services.personality_engine import personality_engine
+from backend.app.services.structured_request_parser import structured_request_parser, ParsedIntent
+from backend.app.services.smart_glass_formatter import smart_glass_formatter
 from backend.app.tools.calendar_tools import calendar_get_events
 from backend.app.tools.gmail_tools import gmail_search, gmail_read, gmail_send_message, gmail_reply_message
 from backend.app.tools.sms_tools import sms_read_recent
@@ -137,7 +141,118 @@ async def process_agent_message(req: AgentMessageRequest):
         f"locale={req.locale or 'en-IN'} len={text_len}"
     )
 
-    # 1. Deterministic Fast Path Check (Time, Battery, Location, Date)
+    # Fetch recent conversational context
+    recent_history = memory_repository.get_session_history(req.session_id, limit=4)
+    parsed_req = structured_request_parser.parse(msg_raw, recent_history)
+
+    # Check for active pending confirmation token for this session
+    pending_action = registry.get_pending_action_for_session(req.session_id)
+
+    # Handle Cancellation explicitly
+    if parsed_req.intent == ParsedIntent.CANCELLATION:
+        if pending_action:
+            registry.cancel_pending_action_for_session(req.session_id)
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", "Action cancelled.")
+        metrics.fast_path_ms = 1.0
+        metrics.finish()
+        log_request_metrics(metrics)
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response="Action cancelled.",
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["action_cancellation"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "timings": metrics.to_dict(),
+                "llm_provider": "local_security",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
+    # Handle Affirmative Confirmation (execute the pending high-risk action)
+    if parsed_req.intent == ParsedIntent.CONFIRMATION and pending_action and not req.confirmed_action_id:
+        req.confirmed_action_id = pending_action.action_id
+
+    # Detect mutation / high-risk action intent requiring 2-step confirmation or LangGraph execution
+    is_mutation = bool(
+        req.confirmed_action_id or
+        parsed_req.intent in [ParsedIntent.CONFIRMATION, ParsedIntent.SMS_SEND, ParsedIntent.SMS_REPLY, ParsedIntent.EMAIL_SEND, ParsedIntent.EMAIL_REPLY, ParsedIntent.CALENDAR_CREATE] or
+        any(
+            kw in msg_lower
+            for kw in [
+                "create event", "add event", "schedule a", "book a", "book an", "cancel event",
+                "delete event", "send sms", "send text", "send a message", "text to", "sms to",
+                "send email", "compose email", "email to", "send an email", "reply to", "draft email", "draft an email"
+            ]
+        )
+    )
+
+    # 1. Device & Call Controls Fast-Track (<50ms)
+    if parsed_req.intent in [ParsedIntent.CALL_MAKE, ParsedIntent.CALL_ANSWER, ParsedIntent.CALL_REJECT, ParsedIntent.CALL_HANGUP, ParsedIntent.CALL_INCOMING_QUERY]:
+        t_call_start = time.time()
+        actions = []
+        requires_confirmation = False
+        conf_prompt = None
+
+        if parsed_req.intent == ParsedIntent.CALL_MAKE:
+            if parsed_req.resolved_contact:
+                call_reply = smart_glass_formatter.format_call_action("call_make", parsed_req.resolved_contact.name, parsed_req.resolved_contact.phone)
+                actions = [
+                    AgentAction(
+                        tool_name="call_controller",
+                        tool_input={"action": "call_make", "name": parsed_req.resolved_contact.name, "phone": parsed_req.resolved_contact.phone},
+                        risk_level=RiskLevel.READ,
+                        status="executed"
+                    )
+                ]
+            elif parsed_req.parameters.get("resolution_status") == "AMBIGUOUS":
+                call_reply = parsed_req.parameters.get("clarification_prompt") or f"Which {parsed_req.entity} would you like to call?"
+            else:
+                call_reply = parsed_req.parameters.get("clarification_prompt") or f"I couldn't find {parsed_req.entity} in your contacts."
+        else:
+            call_reply = smart_glass_formatter.format_call_action(parsed_req.intent.value)
+            actions = [
+                AgentAction(
+                    tool_name="call_controller",
+                    tool_input={"action": parsed_req.intent.value},
+                    risk_level=RiskLevel.READ,
+                    status="executed"
+                )
+            ]
+
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", call_reply)
+
+        metrics.fast_path_ms = (time.time() - t_call_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return AgentMessageResponse(
+            session_id=req.session_id,
+            response=call_reply,
+            actions=actions,
+            requires_confirmation=requires_confirmation,
+            confirmation_prompt=conf_prompt,
+            sources=["call_controller_fast_path"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "intent": parsed_req.intent.value,
+                "timings": metrics.to_dict(),
+                "llm_provider": "device_telephony",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        )
+
+    # 2. Deterministic Fast Path Check (Time, Battery, Location, Date)
     t_fp_start = time.time()
     quick_time = req.context.time if (req.context and req.context.time) else context_engine.compute_temporal_context()
     quick_device = req.context.device if (req.context and req.context.device) else DeviceContext(battery=85)
@@ -183,7 +298,7 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 1.1 Deterministic Math Engine Fast-Path (<50ms, Zero-LLM Evaluation)
+    # 3. Deterministic Math Engine Fast-Path (<50ms, Zero-LLM Evaluation)
     math_eval = math_engine.evaluate(msg_raw)
     if math_eval is not None:
         metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
@@ -213,28 +328,14 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # Detect mutation / high-risk action intent requiring 2-step confirmation or LangGraph execution
-    is_mutation = bool(
-        req.confirmed_action_id or
-        any(
-            kw in msg_lower
-            for kw in [
-                "create event", "add event", "schedule a", "book a", "book an", "cancel event",
-                "delete event", "send sms", "send text", "send a message", "text to", "sms to",
-                "send email", "compose email", "email to", "send an email", "reply to"
-            ]
-        )
-    )
-
-    # 2. Conversational Temporal Calendar Fast-Track (Direct Resolution without Agent loops)
-    recent_history = memory_repository.get_session_history(req.session_id, limit=4)
+    # 4. Conversational Temporal Calendar Fast-Track (Direct Resolution without Agent loops)
     temporal_intent = temporal_resolver.resolve_intent(
         query=msg_raw,
         conversation_history=recent_history,
         tz_name=settings.DEFAULT_TIMEZONE
     )
 
-    if temporal_intent.is_calendar_query and not is_mutation:
+    if (parsed_req.intent in [ParsedIntent.CALENDAR_QUERY, ParsedIntent.CALENDAR_FREE_TIME] or temporal_intent.is_calendar_query) and not is_mutation:
         t_cal_start = time.time()
         raw_events_data = calendar_get_events(date_target=temporal_intent.date_target)
         if raw_events_data.get("error"):
@@ -242,7 +343,12 @@ async def process_agent_message(req: AgentMessageRequest):
         else:
             events_list = raw_events_data.get("events", [])
             filtered_events = temporal_resolver.filter_events(events_list, temporal_intent)
-            cal_reply = temporal_resolver.format_calendar_response(temporal_intent, filtered_events)
+            cal_reply = temporal_resolver.format_calendar_response(
+                intent=temporal_intent,
+                events=filtered_events,
+                language=req.language or "auto",
+                query=msg_raw
+            )
 
         # Persist conversation session memory
         memory_repository.add_message(req.session_id, "user", msg_raw)
@@ -272,36 +378,46 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 3. Direct Gmail Retrieval & Reading Fast-Track (<500ms)
-    email_keywords = ["email", "emails", "gmail", "inbox", "mail", "mails", "ईमेल", "इमेल", "मेल", "linkedin", "github"]
-    is_email_read = any(kw in msg_lower for kw in email_keywords) and not is_mutation
-    if is_email_read:
+    # 5. Direct Gmail Retrieval & Reading Fast-Track (<500ms)
+    if parsed_req.intent in [ParsedIntent.EMAIL_SEARCH, ParsedIntent.EMAIL_READ] and not is_mutation:
         t_gmail_start = time.time()
         lang = req.language or "auto"
         is_hi = lang == "hi" or any("\u0900" <= c <= "\u097f" for c in msg_raw)
         is_mr = lang == "mr"
 
-        # Check if user is asking to read full content of an email (Stage 2)
-        is_read_content = any(rw in msg_lower for rw in ["read", "say", "body", "content", "what does", "what did", "वाचा", "पढ़ो"])
-        
-        # Check for specific entity
-        entity_query = None
-        for ent in ["linkedin", "github", "amazon", "swiggy", "zomato", "college", "professor", "university"]:
-            if ent in msg_lower:
-                entity_query = ent
-                break
+        if parsed_req.intent == ParsedIntent.EMAIL_READ or parsed_req.is_read_content:
+            # Read full email content
+            if parsed_req.topic:
+                raw_email_data = gmail_read(topic=parsed_req.topic)
+            elif parsed_req.sender:
+                search_res = gmail_search(query=parsed_req.sender)
+                if search_res.get("messages"):
+                    raw_email_data = gmail_read(message_id=search_res["messages"][0]["id"])
+                else:
+                    raw_email_data = search_res
+            else:
+                idx = parsed_req.parameters.get("index", 1)
+                raw_email_data = gmail_read(index=idx)
 
-        if is_read_content:
-            raw_email_data = gmail_read(index=1) if not entity_query else gmail_search(query=entity_query)
-            if entity_query and raw_email_data.get("messages"):
-                # Fetch full content of first matching entity email
-                first_id = raw_email_data["messages"][0]["id"]
-                read_detail = gmail_read(message_id=first_id)
-                email_reply = read_detail.get("message", "I retrieved the email content.")
+            if raw_email_data.get("email"):
+                email_reply = smart_glass_formatter.format_email_read(raw_email_data["email"])
             else:
                 email_reply = raw_email_data.get("message", "I couldn't find that email.")
         else:
-            raw_email_data = gmail_search(query=entity_query)
+            # Search emails with topic / sender / temporal constraints
+            search_terms = []
+            if parsed_req.sender:
+                search_terms.append(parsed_req.sender)
+            if parsed_req.topic:
+                search_terms.append(parsed_req.topic)
+            if parsed_req.filters.get("date"):
+                search_terms.append(parsed_req.filters["date"])
+            if parsed_req.is_unread_only:
+                search_terms.append("unread")
+
+            search_query = " ".join(search_terms) if search_terms else msg_raw
+            raw_email_data = gmail_search(query=search_query)
+
             if raw_email_data.get("error"):
                 if is_hi:
                     email_reply = "मैं अभी आपके ईमेल एक्सेस नहीं कर सकता।"
@@ -310,7 +426,15 @@ async def process_agent_message(req: AgentMessageRequest):
                 else:
                     email_reply = raw_email_data.get("message") or "I can't access your email right now. Please connect your Google account in Settings."
             else:
-                email_reply = raw_email_data.get("message", "Retrieved your emails.")
+                messages = raw_email_data.get("messages", [])
+                email_reply = smart_glass_formatter.format_email_search(
+                    results=messages,
+                    query_topic=parsed_req.topic,
+                    sender=parsed_req.sender,
+                    unread_only=parsed_req.is_unread_only,
+                    language=req.language or "auto",
+                    raw_query=msg_raw
+                )
 
         memory_repository.add_message(req.session_id, "user", msg_raw)
         memory_repository.add_message(req.session_id, "assistant", email_reply)
@@ -338,19 +462,19 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 4. Direct SMS Read Fast-Track (<10ms)
-    sms_keywords = ["sms", "text message", "text messages", "messages", "texts", "मैसेज", "मेसेज", "एसएमएस"]
-    is_sms_read = any(kw in msg_lower for kw in sms_keywords) and not is_mutation
-    if is_sms_read:
+    # 6. Direct SMS Read & Search Fast-Track (<10ms)
+    if parsed_req.intent in [ParsedIntent.SMS_SEARCH, ParsedIntent.SMS_READ] and not is_mutation:
         t_sms_start = time.time()
         raw_sms_data = sms_read_recent(limit=5)
         messages = raw_sms_data.get("messages", [])
-        if not messages:
-            sms_reply = "You have no recent SMS messages."
+
+        if parsed_req.sender:
+            # Filter messages by sender name
+            s_norm = parsed_req.sender.lower()
+            filtered_sms = [m for m in messages if s_norm in m.get("sender", "").lower()]
+            sms_reply = smart_glass_formatter.format_sms_search(filtered_sms, sender=parsed_req.sender)
         else:
-            lines = [f"{i+1}. From {m.get('sender', 'Unknown')}: '{m.get('text', '')}'" for i, m in enumerate(messages[:3])]
-            count = len(messages)
-            sms_reply = f"You have {count} recent SMS message{'s' if count > 1 else ''}: " + "; ".join(lines)
+            sms_reply = smart_glass_formatter.format_sms_search(messages)
 
         memory_repository.add_message(req.session_id, "user", msg_raw)
         memory_repository.add_message(req.session_id, "assistant", sms_reply)
@@ -378,24 +502,15 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 5. Direct Academic Research / arXiv Search Fast-Track (<1.5s)
-    research_triggers = ["search arxiv", "arxiv", "find papers", "research papers", "scientific papers", "academic papers", "papers on", "paper on"]
-    if any(trig in msg_lower for trig in research_triggers) and not is_mutation:
+    # 7. Direct Academic Research / arXiv Search Fast-Track (<1.5s)
+    if parsed_req.intent == ParsedIntent.RESEARCH_SEARCH and not is_mutation:
         t_res_start = time.time()
-        clean_topic = msg_raw
-        for trig in ["search arxiv for", "search arxiv on", "find research papers on", "find papers on", "academic papers on", "research papers on", "papers on", "arxiv"]:
-            if trig in msg_lower:
-                idx = msg_lower.find(trig)
-                clean_topic = msg_raw[idx + len(trig):].strip(" ?:.,")
-                break
-        if not clean_topic:
-            clean_topic = msg_raw
-
+        clean_topic = parsed_req.topic or msg_raw
         search_res = academic_research_search(query=clean_topic, limit=3)
         papers = search_res.get("papers", [])
         if papers:
-            lines = [f"{i+1}. '{p.get('title', 'Paper')}' ({p.get('year', 'Recent')}) by {p.get('authors', ['Unknown'])[0]}" for i, p in enumerate(papers[:3])]
-            research_reply = f"Found {len(papers)} research papers on '{clean_topic}': " + "; ".join(lines)
+            lines = [f"'{p.get('title', 'Paper')}' by {p.get('authors', ['Unknown'])[0]}" for p in papers[:2]]
+            research_reply = f"Found {len(papers)} research papers on {clean_topic}: " + ", and ".join(lines) + "."
         else:
             research_reply = f"No academic papers found for '{clean_topic}'."
 
@@ -425,20 +540,14 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 6. Direct Web Search Fast-Track
-    web_triggers = ["search web for", "search the web for", "google search for", "look up on web"]
-    if any(trig in msg_lower for trig in web_triggers) and not is_mutation:
+    # 8. Direct Web Search & Search Follow-ups Fast-Track
+    if parsed_req.intent in [ParsedIntent.WEB_SEARCH, ParsedIntent.SEARCH_FOLLOW_UP] and not is_mutation:
         t_web_start = time.time()
-        clean_topic = msg_raw
-        for trig in web_triggers:
-            if trig in msg_lower:
-                idx = msg_lower.find(trig)
-                clean_topic = msg_raw[idx + len(trig):].strip(" ?:.,")
-                break
+        clean_topic = parsed_req.topic or (parsed_req.follow_up_modifier if parsed_req.is_follow_up else msg_raw)
         web_res = web_search(query=clean_topic)
         results = web_res.get("results", [])
         if results:
-            web_reply = f"Here is what I found for '{clean_topic}': {results[0].get('snippet', '')}"
+            web_reply = smart_glass_formatter.format_search_summary(clean_topic, results[0].get("snippet", ""))
         else:
             web_reply = f"No search results found for '{clean_topic}'."
 

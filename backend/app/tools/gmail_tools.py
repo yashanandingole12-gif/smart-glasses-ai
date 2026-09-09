@@ -9,11 +9,16 @@ def gmail_search(query: Optional[str] = None, user_id: str = "default_user") -> 
     provider = get_email_provider(user_id=user_id)
     return provider.search(query)
 
-def gmail_read(message_id: Optional[str] = None, index: Optional[int] = None, user_id: str = "default_user") -> Dict[str, Any]:
+def gmail_read(message_id: Optional[str] = None, index: Optional[int] = None, topic: Optional[str] = None, user_id: str = "default_user") -> Dict[str, Any]:
     """
-    Read full content of a specific email by id or index (Stage 2 fetch).
+    Read full content of a specific email by id, index, or topic keyword (Stage 2 fetch).
     """
     provider = get_email_provider(user_id=user_id)
+    if hasattr(provider, "read"):
+        import inspect
+        sig = inspect.signature(provider.read)
+        if "topic" in sig.parameters:
+            return provider.read(message_id=message_id, index=index, topic=topic)
     return provider.read(message_id=message_id, index=index)
 
 def gmail_send_message(recipient: str, subject: str, body: str, user_id: str = "default_user") -> Dict[str, Any]:

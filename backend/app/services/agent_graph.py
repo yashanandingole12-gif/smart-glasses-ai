@@ -44,7 +44,7 @@ def load_session_and_context(state: AgentState) -> Dict[str, Any]:
     messages = list(history)
 
     # Dynamic canonical system prompt
-    system_prompt = personality_engine.build_system_prompt(user_msg)
+    system_prompt = personality_engine.build_system_prompt(user_msg, requested_language=lang)
 
     # Add minimal environmental context (time, location, next event)
     ctx = state.get("context_payload") or {}
@@ -187,7 +187,8 @@ async def execute_tool_node(state: AgentState) -> Dict[str, Any]:
             pending_action: PendingAction = registry.create_pending_action(
                 tool_name=tool_name,
                 tool_input=tool_input,
-                ttl_seconds=60.0
+                ttl_seconds=60.0,
+                session_id=state.get("session_id")
             )
             requires_conf = True
             conf_action_id = pending_action.action_id

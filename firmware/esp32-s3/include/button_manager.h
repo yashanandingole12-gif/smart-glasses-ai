@@ -13,6 +13,8 @@ public:
 
     void init(uint8_t pin = PIN_BUTTON_PTT);
     void update();
+    void setOnPressStartCallback(std::function<void()> cb);
+    void setOnReleaseCallback(std::function<void()> cb);
     void setOnPressCallback(std::function<void()> cb);
     void setOnLongPressCallback(std::function<void()> cb);
 
@@ -26,6 +28,8 @@ private:
     bool _isPressed = false;
     bool _longPressTriggered = false;
 
+    std::function<void()> _onPressStartCallback = nullptr;
+    std::function<void()> _onReleaseCallback = nullptr;
     std::function<void()> _onPressCallback = nullptr;
     std::function<void()> _onLongPressCallback = nullptr;
 };

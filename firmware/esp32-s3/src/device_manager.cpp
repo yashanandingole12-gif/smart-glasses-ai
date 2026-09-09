@@ -10,7 +10,15 @@ void DeviceManager::init() {
     CameraManager::getInstance().init();
     BleManager::getInstance().init("SmartGlasses-S3");
 
-    // Setup button callbacks
+    // Setup button callbacks for Push-to-Talk and Gesture Actions
+    ButtonManager::getInstance().setOnPressStartCallback([]() {
+        BleManager::getInstance().sendEvent("TALK_START", "{\"action\":\"listen\"}");
+    });
+
+    ButtonManager::getInstance().setOnReleaseCallback([]() {
+        BleManager::getInstance().sendEvent("TALK_STOP", "{\"action\":\"stop_listen\"}");
+    });
+
     ButtonManager::getInstance().setOnPressCallback([]() {
         BleManager::getInstance().sendEvent("BUTTON_PRESSED", "{\"type\":\"short_press\"}");
     });

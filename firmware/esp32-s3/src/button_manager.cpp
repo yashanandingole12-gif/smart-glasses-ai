@@ -7,6 +7,14 @@ void ButtonManager::init(uint8_t pin) {
     pinMode(_pin, INPUT_PULLUP);
 }
 
+void ButtonManager::setOnPressStartCallback(std::function<void()> cb) {
+    _onPressStartCallback = cb;
+}
+
+void ButtonManager::setOnReleaseCallback(std::function<void()> cb) {
+    _onReleaseCallback = cb;
+}
+
 void ButtonManager::setOnPressCallback(std::function<void()> cb) {
     _onPressCallback = cb;
 }
@@ -27,12 +35,18 @@ void ButtonManager::update() {
             _stableState = reading;
 
             if (_stableState == LOW) {
-                // Button just pressed down
+                // Button just pressed down (Push-to-Talk Start)
                 _isPressed = true;
                 _pressStartTime = millis();
                 _longPressTriggered = false;
+                if (_onPressStartCallback) {
+                    _onPressStartCallback();
+                }
             } else {
-                // Button released
+                // Button released (Push-to-Talk Stop)
+                if (_onReleaseCallback) {
+                    _onReleaseCallback();
+                }
                 if (_isPressed && !_longPressTriggered) {
                     if (_onPressCallback) {
                         _onPressCallback();

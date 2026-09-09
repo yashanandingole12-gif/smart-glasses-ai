@@ -150,7 +150,12 @@ class LLMRouter:
                 continue
             attempted_configs.add(config_key)
 
-            tier_timeout = min(attempt_timeout_sec, max(1.0, time_left))
+            if tier == RoutingTier.FAST:
+                tier_timeout = min(attempt_timeout_sec, 7.5, max(1.0, time_left))
+            elif tier == RoutingTier.PRIMARY:
+                tier_timeout = min(attempt_timeout_sec, 7.5, max(1.0, time_left))
+            else:
+                tier_timeout = min(attempt_timeout_sec, max(1.0, time_left))
             t_tier_start = time.time()
 
             try:

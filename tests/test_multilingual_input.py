@@ -42,7 +42,7 @@ MULTILINGUAL_TEST_CASES = [
         "requested_language": "hi-Latn",
         "locale": "hi-Latn-IN",
         "expected_language": "hi-Latn",
-        "expected_substrings": ["calendar"]
+        "expected_substrings": ["morning"]
     }
 
 ]
@@ -91,8 +91,10 @@ def make_test_context() -> Dict[str, Any]:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", MULTILINGUAL_TEST_CASES, ids=lambda c: c["language_name"])
-async def test_multilingual_single_turn_agent(case):
+async def test_multilingual_single_turn_agent(case, monkeypatch):
     """Verify single-turn language preservation and contextual accuracy in LangGraph agent."""
+    monkeypatch.setenv("USE_MOCK_CALENDAR", "1")
+    monkeypatch.setenv("USE_MOCK_EMAIL", "1")
     ctx = make_test_context()
     session_id = f"test_multi_{case['requested_language']}_{int(time.time()*1000)}"
 
@@ -114,10 +116,12 @@ async def test_multilingual_single_turn_agent(case):
         )
 
 @pytest.mark.asyncio
-async def test_multilingual_matrix_5_runs_latency():
+async def test_multilingual_matrix_5_runs_latency(monkeypatch):
     """
     Run each language at least 5 times and compute latency statistics for STT, Context, LLM, TTS, and Total.
     """
+    monkeypatch.setenv("USE_MOCK_CALENDAR", "1")
+    monkeypatch.setenv("USE_MOCK_EMAIL", "1")
     results_summary = []
     tts = SimulatorTextToSpeech(engine_type="silent")
 
