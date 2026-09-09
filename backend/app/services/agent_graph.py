@@ -204,6 +204,10 @@ async def execute_tool_node(state: AgentState) -> Dict[str, Any]:
             elif tool_name == "gmail_reply_message":
                 txt = tool_input.get("body", "")
                 conf_prompt = f"I have drafted a reply saying: '{txt}'. Send it?"
+            elif tool_name == "calendar_create_event":
+                title = tool_input.get("title", "Event")
+                start = tool_input.get("start_time", "specified time")
+                conf_prompt = f"Ready to schedule '{title}' at {start}. Confirm?"
             else:
                 conf_prompt = f"I am ready to run {tool_name} with {tool_input}. Should I proceed?"
 

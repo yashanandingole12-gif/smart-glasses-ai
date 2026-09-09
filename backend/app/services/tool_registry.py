@@ -217,9 +217,9 @@ def _tool_calendar_find_free_time():
 
 @registry.register(
     name="calendar_create_event",
-    description="Create or schedule a new event on the user's calendar.",
-    risk_level=RiskLevel.WRITE,
-    requires_confirmation=False
+    description="Create or schedule a new event on the user's calendar. Requires explicit confirmation.",
+    risk_level=RiskLevel.HIGH_RISK_WRITE,
+    requires_confirmation=True
 )
 def _tool_calendar_create_event(title: str, start_time: str, end_time: str = None, location: str = None, description: str = None):
     return calendar_create_event(title=title, start_time=start_time, end_time=end_time, location=location, description=description)
