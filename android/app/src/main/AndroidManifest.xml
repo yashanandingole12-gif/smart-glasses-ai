@@ -19,7 +19,14 @@
     <!-- SMS & Contacts (Explicit Permissions for Wearable Assistant) -->
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!-- Telephony & Calls (Voice Call Management via Glasses) -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
 
     <!-- BLE Glasses Connectivity -->
     <uses-permission android:name="android.permission.BLUETOOTH" />

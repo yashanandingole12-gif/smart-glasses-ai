@@ -23,7 +23,7 @@ class AIResponseRouter(
     private val context: Context? = null,
     private val callController: CallController? = context?.let { CallController(it) }
 ) {
-    var conversationalCloudTimeoutMs: Long = 10000L
+    var conversationalCloudTimeoutMs: Long = 2500L
 
     suspend fun routeQuery(
         sessionId: String,
@@ -277,9 +277,12 @@ class AIResponseRouter(
     }
 
     private val callActionKeywords = listOf(
-        "answer the call", "answer call", "pick up the call", "pick up call", "accept call",
-        "reject the call", "reject call", "decline call", "ignore call",
-        "hang up", "end the call", "end call", "disconnect call", "cut the call",
+        "answer the call", "answer call", "answer", "pick up the call", "pick up call", "pick up",
+        "accept call", "accept the call", "accept", "take call", "take the call", "receive call",
+        "receive the call", "attend call", "call uthao", "phone uthao",
+        "reject the call", "reject call", "reject", "decline call", "decline the call", "decline",
+        "ignore call", "cut call", "cut the call", "call kato", "phone kato",
+        "hang up", "end the call", "end call", "disconnect call", "disconnect",
         "who is calling", "who's calling"
     )
 
@@ -294,7 +297,12 @@ class AIResponseRouter(
         val latMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
 
         // 1. Answer Call
-        if (listOf("answer the call", "answer call", "pick up the call", "pick up call", "accept call").any { qLower.contains(it) }) {
+        val answerKeywords = listOf(
+            "answer the call", "answer call", "answer", "pick up the call", "pick up call", "pick up",
+            "accept call", "accept the call", "accept", "take call", "take the call", "receive call",
+            "receive the call", "attend call", "call uthao", "phone uthao"
+        )
+        if (answerKeywords.any { qLower == it || qLower.contains(it) }) {
             callController?.answerCall()
             return WearableResponse(
                 text = "Answering the incoming call.",
@@ -306,8 +314,12 @@ class AIResponseRouter(
             )
         }
 
-        // 2. Reject Call
-        if (listOf("reject the call", "reject call", "decline call", "ignore call").any { qLower.contains(it) }) {
+        // 2. Reject / Cut Call
+        val rejectKeywords = listOf(
+            "reject the call", "reject call", "reject", "decline call", "decline the call", "decline",
+            "ignore call", "cut call", "cut the call", "call kato", "phone kato"
+        )
+        if (rejectKeywords.any { qLower == it || qLower.contains(it) }) {
             callController?.endCall()
             return WearableResponse(
                 text = "Rejecting the incoming call.",
@@ -320,7 +332,8 @@ class AIResponseRouter(
         }
 
         // 3. End / Hang up Call
-        if (listOf("hang up", "end the call", "end call", "disconnect call", "cut the call").any { qLower.contains(it) }) {
+        val endKeywords = listOf("hang up", "end the call", "end call", "disconnect call", "disconnect")
+        if (endKeywords.any { qLower == it || qLower.contains(it) }) {
             callController?.endCall()
             return WearableResponse(
                 text = "Call ended.",

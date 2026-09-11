@@ -334,7 +334,7 @@ class TokenService:
         """
         with self._get_conn() as conn:
             row = conn.execute(
-                "SELECT user_email, token_expiry, scopes, updated_at FROM oauth_tokens WHERE user_id = ? AND provider = ?",
+                "SELECT user_email, token_expiry, scopes, updated_at, (refresh_token IS NOT NULL AND length(refresh_token) > 0) AS has_refresh FROM oauth_tokens WHERE user_id = ? AND provider = ?",
                 (user_id, provider)
             ).fetchone()
 
@@ -343,19 +343,22 @@ class TokenService:
                 "connected": False,
                 "email": None,
                 "scopes": [],
-                "expires_at": None
+                "expires_at": None,
+                "has_refresh_token": False
             }
 
         expiry_ts = float(row["token_expiry"])
         is_expired = time.time() >= expiry_ts
         expires_at_iso = datetime.fromtimestamp(expiry_ts, timezone.utc).isoformat()
         scopes_list = [s.strip() for s in (row["scopes"] or "").split(",") if s.strip()]
+        has_refresh = bool(row["has_refresh"])
 
         return {
             "connected": True,
             "email": row["user_email"],
             "scopes": scopes_list,
             "is_expired": is_expired,
+            "has_refresh_token": has_refresh,
             "expires_at": expires_at_iso,
             "updated_at": row["updated_at"]
         }

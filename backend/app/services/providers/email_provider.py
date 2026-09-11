@@ -355,6 +355,7 @@ class GoogleGmailProvider(EmailProvider):
 
     def __init__(self, user_id: str = "default_user"):
         self.user_id = user_id
+        self._last_search_messages: List[Dict[str, Any]] = []
 
     def _get_valid_token_sync(self) -> Optional[str]:
         from backend.app.services.token_service import token_service
@@ -374,7 +375,8 @@ class GoogleGmailProvider(EmailProvider):
     def check_write_permission(self) -> Tuple[bool, str]:
         from backend.app.services.token_service import token_service
         status = token_service.get_status(self.user_id)
-        if not status.get("connected") or status.get("is_expired"):
+        is_conn = bool(status.get("connected") and (not status.get("is_expired") or status.get("has_refresh_token", True)))
+        if not is_conn:
             return (False, "Gmail is not connected. Please connect your Google account in settings.")
 
         scopes = status.get("scopes", [])
@@ -400,6 +402,8 @@ class GoogleGmailProvider(EmailProvider):
         cached = gmail_cache.get(cache_key)
         if cached is not None:
             logger.debug(f"gmail_cache_hit user={self.user_id} key={cache_key}")
+            if cached.get("messages"):
+                self._last_search_messages = list(cached["messages"])
             return cached
 
         # Single-flight check
@@ -566,6 +570,7 @@ class GoogleGmailProvider(EmailProvider):
                     "messages": parsed_messages,
                     "message": speech_msg
                 }
+                self._last_search_messages = list(parsed_messages)
                 gmail_cache.set(cache_key, res)
                 return res
 
@@ -598,10 +603,12 @@ class GoogleGmailProvider(EmailProvider):
         try:
             target_id = message_id
             if index is not None and not target_id:
-                overview = self.search()
-                msgs = overview.get("messages", [])
-                if 1 <= index <= len(msgs):
-                    target_id = msgs[index - 1]["id"]
+                pool = self._last_search_messages
+                if not pool:
+                    overview = self.search()
+                    pool = overview.get("messages", [])
+                if 1 <= index <= len(pool):
+                    target_id = pool[index - 1]["id"]
 
             if not target_id:
                 return {"status": "not_found", "message": "Email not found."}

@@ -168,7 +168,20 @@ class SimulatorTextToSpeech(TextToSpeechEngine):
                     time.sleep(0.005)
                 elif engine_name == "sapi5":
                     # Flag 0 = SVSFDefault (synchronous, blocks until playback finishes)
-                    engine_instance.Speak(text, 0)
+                    try:
+                        engine_instance.Speak(text, 0)
+                    except Exception as sapi_err:
+                        logger.warning("SAPI5 speak error (%s), re-dispatching COM voice and retrying...", sapi_err)
+                        try:
+                            import win32com.client
+                            import pythoncom
+                            pythoncom.CoInitialize()
+                            engine_instance = win32com.client.Dispatch("SAPI.SpVoice")
+                            engine_instance.Rate = 1
+                            engine_instance.Speak(text, 0)
+                        except Exception as retry_err:
+                            logger.error("SAPI5 retry failed: %s", retry_err)
+                            raise retry_err
                 elif engine_name == "pyttsx3":
                     engine_instance.say(text)
                     engine_instance.runAndWait()

@@ -11,6 +11,14 @@ object PermissionManager {
         add(Manifest.permission.RECORD_AUDIO)
         add(Manifest.permission.ACCESS_FINE_LOCATION)
         add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        add(Manifest.permission.READ_SMS)
+        add(Manifest.permission.SEND_SMS)
+        add(Manifest.permission.READ_CONTACTS)
+        add(Manifest.permission.CALL_PHONE)
+        add(Manifest.permission.READ_PHONE_STATE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            add(Manifest.permission.ANSWER_PHONE_CALLS)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             add(Manifest.permission.BLUETOOTH_CONNECT)
             add(Manifest.permission.BLUETOOTH_SCAN)
@@ -47,6 +55,18 @@ object PermissionManager {
         } else {
             true
         }
+    }
+
+    fun hasSmsPermission(context: Context): Boolean {
+        val read = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+        val send = ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+        return read && send
+    }
+
+    fun hasPhonePermission(context: Context): Boolean {
+        val call = ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
+        val state = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        return call && state
     }
 
     fun hasAllEssentialPermissions(context: Context): Boolean {

@@ -20,23 +20,26 @@ class SimulatorSpeechToText(SpeechToTextEngine):
         self.sample_rate = sample_rate
         self.engine_type = engine_type.lower()
         self._whisper_model = None
-        if self.engine_type in ["faster_whisper", "auto"]:
-            self._init_whisper()
+        self._whisper_initialized = False
 
-    def _init_whisper(self):
-        try:
-            from faster_whisper import WhisperModel
-            logger.info("Loading faster-whisper (tiny.en) with int8 CPU threads=4...")
-            self._whisper_model = WhisperModel(
-                "tiny.en",
-                device="cpu",
-                compute_type="int8",
-                cpu_threads=4
-            )
-            logger.info("faster-whisper (tiny.en) loaded successfully.")
-        except Exception as e:
-            logger.warning(f"Could not initialize faster-whisper ({e}). Fallback transcription will be used.")
-            self._whisper_model = None
+    def _ensure_whisper(self):
+        if self._whisper_initialized:
+            return
+        self._whisper_initialized = True
+        if self.engine_type in ["faster_whisper", "auto"]:
+            try:
+                from faster_whisper import WhisperModel
+                logger.info("Loading faster-whisper (tiny.en) with int8 CPU threads=4...")
+                self._whisper_model = WhisperModel(
+                    "tiny.en",
+                    device="cpu",
+                    compute_type="int8",
+                    cpu_threads=4
+                )
+                logger.info("faster-whisper (tiny.en) loaded successfully.")
+            except Exception as e:
+                logger.warning(f"Could not initialize faster-whisper ({e}). Fallback transcription will be used.")
+                self._whisper_model = None
 
     async def record_audio_chunk(self, max_duration_sec: float = 3.0, silence_timeout_sec: float = 0.5) -> Optional[np.ndarray]:
         """
@@ -94,6 +97,7 @@ class SimulatorSpeechToText(SpeechToTextEngine):
         if self.engine_type == "mock":
             return "What do I have today?", (time.time() - t0) * 1000.0
 
+        self._ensure_whisper()
         audio_data = await self.record_audio_chunk(max_duration_sec=duration_sec)
 
         if audio_data is not None and self._whisper_model is not None:

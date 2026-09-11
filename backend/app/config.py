@@ -78,9 +78,11 @@ class Settings(BaseSettings):
     GOOGLE_OAUTH_SCOPES: List[str] = [
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/gmail.compose",
         "https://www.googleapis.com/auth/calendar.readonly",
         "https://www.googleapis.com/auth/userinfo.email"
     ]
+
 
     # External Integrations (Backwards compatibility)
     GMAIL_CLIENT_ID: Optional[str] = None

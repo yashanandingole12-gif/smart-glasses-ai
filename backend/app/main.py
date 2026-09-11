@@ -2,9 +2,10 @@ import time
 import uuid
 import logging
 from datetime import datetime, timezone
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request, UploadFile, File, Form, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from backend.app.config import settings
 from backend.app.models.schemas import (
@@ -33,6 +34,7 @@ from backend.app.services.math_engine import math_engine
 from backend.app.services.personality_engine import personality_engine
 from backend.app.services.structured_request_parser import structured_request_parser, ParsedIntent
 from backend.app.services.smart_glass_formatter import smart_glass_formatter
+from backend.app.services.storage_service import storage_service
 from backend.app.tools.calendar_tools import calendar_get_events
 from backend.app.tools.gmail_tools import gmail_search, gmail_read, gmail_send_message, gmail_reply_message
 from backend.app.tools.sms_tools import sms_read_recent
@@ -57,10 +59,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi.responses import HTMLResponse
 from backend.app.web_ui import get_dashboard_html
 
 app.include_router(auth_router)
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Standardized API error contract for HTTPExceptions."""
+    detail_str = str(exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error_code": f"HTTP_{exc.status_code}",
+            "message": detail_str,
+            "detail": detail_str,
+            "retryable": exc.status_code in [408, 429, 502, 503, 504]
+        }
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Standardized API error contract protecting secrets and internal paths."""
+    logger.error("Unhandled API Exception: %s", exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "error_code": "INTERNAL_SERVER_ERROR",
+            "message": "An unexpected error occurred while processing your request.",
+            "retryable": True
+        }
+    )
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root_dashboard():
@@ -95,7 +126,7 @@ async def get_integrations_diagnostics(user_id: str = "default_user"):
     """
     from backend.app.services.token_service import token_service
     status = token_service.get_status(user_id)
-    is_google_connected = bool(status.get("connected") and not status.get("is_expired"))
+    is_google_connected = bool(status.get("connected") and (not status.get("is_expired") or status.get("has_refresh_token", True)))
     gemini_configured = bool(settings.GEMINI_API_KEY or (settings.LLM_PROVIDER == "gemini" and settings.LLM_API_KEY))
 
     return {
@@ -104,6 +135,19 @@ async def get_integrations_diagnostics(user_id: str = "default_user"):
         "gmail": "available" if is_google_connected else "unavailable",
         "calendar": "available" if is_google_connected else "unavailable"
     }
+
+@app.get("/api/v1/hardware/camera/capture")
+async def hardware_camera_capture():
+    """Captures a live JPEG image frame from the XIAO ESP32-S3 Sense OV2640 camera."""
+    from backend.app.services.hardware_bridge import hardware_bridge
+    return hardware_bridge.capture_camera_frame()
+
+@app.get("/api/v1/hardware/mic/telemetry")
+async def hardware_mic_telemetry():
+    """Retrieves live audio energy (RMS, Peak, VAD) from the XIAO ESP32-S3 Sense MSM261D PDM microphone."""
+    from backend.app.services.hardware_bridge import hardware_bridge
+    return hardware_bridge.get_microphone_telemetry()
+
 
 @app.get("/api/v1/context", response_model=FullContextPayload)
 async def get_current_context(timezone_str: str = settings.DEFAULT_TIMEZONE, include_remote: bool = False):
@@ -577,9 +621,61 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         )
 
-    # 7. Direct Single-Turn LLM Conversational Chat (For general Q&A, chat, explanations without LangGraph overhead)
+    # 9. Document & Storage Context Reasoner (For queries regarding uploaded resume, PDF, or documents)
+    is_doc_query = any(kw in msg_lower for kw in ["resume", "document", "uploaded file", "this pdf", "summarize my", "summarize this doc", "summarize document", "uploaded doc", "my cv", "summarize the file"])
+    if is_doc_query and not is_mutation and not req.confirmed_action_id:
+        t_doc_start = time.time()
+        latest_doc = storage_service.get_latest_document_context()
+        if latest_doc and latest_doc.get("extracted_text"):
+            doc_text = latest_doc["extracted_text"][:4000]
+            doc_prompt = (
+                f"You are LARA, an executive smart glasses AI assistant. "
+                f"The user has uploaded a document named '{latest_doc['filename']}'. "
+                f"Here is the text extracted from the document:\n\n{doc_text}\n\n"
+                f"Provide a clear, concise, wearable-friendly summary or directly answer the user's inquiry in 2-3 sentences."
+            )
+            formatted_messages = [
+                {"role": "system", "content": doc_prompt},
+                {"role": "user", "content": msg_raw}
+            ]
+            router_resp = await llm_router.generate_with_budget(
+                messages=formatted_messages,
+                tools=None,
+                starting_tier=RoutingTier.FAST
+            )
+            doc_reply = (router_resp.content or "Document summarized.").strip()
+            memory_repository.add_message(req.session_id, "user", msg_raw)
+            memory_repository.add_message(req.session_id, "assistant", doc_reply)
+
+            metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+            metrics.llm_first_response_ms = router_resp.duration_ms
+            metrics.finish()
+            log_request_metrics(metrics)
+
+            return AgentMessageResponse(
+                session_id=req.session_id,
+                response=doc_reply,
+                actions=[],
+                requires_confirmation=False,
+                confirmation_prompt=None,
+                sources=["storage_document_engine", latest_doc["filename"]],
+                metadata={
+                    "latency_ms": metrics.total_ms,
+                    "fast_path": True,
+                    "document_id": latest_doc["file_id"],
+                    "document_name": latest_doc["filename"],
+                    "timings": metrics.to_dict(),
+                    "llm_provider": router_resp.provider,
+                    "request_id": req.request_id,
+                    "language": req.language or "auto",
+                    "locale": req.locale or "en-IN"
+                }
+            )
+
+    # 10. Direct Single-Turn LLM Conversational Chat (For general Q&A, chat, explanations without LangGraph overhead)
     if not is_mutation and not req.confirmed_action_id:
         t_llm_start = time.time()
+
         # Fast local context (<1ms)
         local_ctx = context_engine.get_relevant_context(
             user_message=msg_raw,
@@ -748,7 +844,101 @@ async def search_endpoint(query: str, search_type: str = "web"):
 async def research_search_endpoint(query: str, limit: int = 5, translate_back: bool = False):
     """Academic paper search endpoint using arXiv, Semantic Scholar, CrossRef, and PubMed."""
     from backend.app.tools.search_tools import academic_research_search
-    return academic_research_search(query=query, limit=limit)
+@app.post("/api/v1/files/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    source: str = Form("web")
+):
+    """Secure document and file upload endpoint."""
+    try:
+        content = await file.read()
+        res = storage_service.save_file(
+            file_bytes=content,
+            filename=file.filename or "uploaded_file",
+            content_type=file.content_type,
+            source=source
+        )
+        return {
+            "success": True,
+            **res
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"File upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to store uploaded file.")
+
+@app.post("/api/v1/images/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    source: str = Form("web")
+):
+    """Dedicated image upload endpoint."""
+    try:
+        content = await file.read()
+        res = storage_service.save_file(
+            file_bytes=content,
+            filename=file.filename or "image.jpg",
+            content_type=file.content_type or "image/jpeg",
+            source=source
+        )
+        return {
+            "success": True,
+            "image_id": res["file_id"],
+            **res
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Image upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to store uploaded image.")
+
+@app.get("/api/v1/files")
+async def list_uploaded_files(limit: int = 20):
+    """List recently uploaded files and documents."""
+    files = storage_service.list_files(limit=limit)
+    return {
+        "success": True,
+        "files": files,
+        "count": len(files)
+    }
+
+@app.get("/api/v1/files/{file_id}")
+async def get_file_metadata(file_id: str):
+    """Get metadata for an uploaded file."""
+    file_info = storage_service.get_file(file_id)
+    if not file_info:
+        raise HTTPException(status_code=404, detail=f"File with ID '{file_id}' not found.")
+    return {
+        "success": True,
+        **file_info
+    }
+
+@app.get("/api/v1/files/{file_id}/download")
+async def download_file(file_id: str):
+    """Download raw file bytes with safe headers."""
+    res = storage_service.get_file_bytes(file_id)
+    if not res:
+        raise HTTPException(status_code=404, detail="File not found or missing from disk.")
+    data, filename, mime_type = res
+    return Response(
+        content=data,
+        media_type=mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@app.delete("/api/v1/files/{file_id}")
+async def delete_file_endpoint(file_id: str):
+    """Delete an uploaded file from disk and database."""
+    deleted = storage_service.delete_file(file_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="File not found.")
+    return {
+        "success": True,
+        "file_id": file_id,
+        "deleted": True,
+        "message": "File successfully removed."
+    }
 
 @app.websocket("/ws/assistant")
 async def websocket_assistant(websocket: WebSocket):
@@ -768,3 +958,4 @@ async def websocket_assistant(websocket: WebSocket):
             await websocket.send_json(resp.model_dump())
     except WebSocketDisconnect:
         logger.info(f"WebSocket client disconnected for session {session_id}")
+

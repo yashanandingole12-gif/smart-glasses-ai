@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "board_config.h"
+#include "esp_camera.h"
 
 class CameraManager {
 public:
@@ -18,5 +19,6 @@ public:
 private:
     CameraManager();
     bool _initialized = false;
-    uint8_t* _currentBuffer = nullptr;
+    camera_fb_t* _lastFb = nullptr;
 };
+
