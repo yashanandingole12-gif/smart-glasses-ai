@@ -1,6 +1,10 @@
 from typing import Dict, Any, Optional
-from datetime import datetime
-import pytz
+from datetime import datetime, timezone
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+
 from backend.app.config import settings
 from backend.app.models.schemas import (
     FullContextPayload,
@@ -21,10 +25,14 @@ class ContextEngine:
 
     def compute_temporal_context(self, timezone_str: Optional[str] = None) -> TemporalContext:
         tz_name = timezone_str or settings.DEFAULT_TIMEZONE
-        try:
-            tz = pytz.timezone(tz_name)
-            now = datetime.now(tz)
-        except Exception:
+        now = None
+        if ZoneInfo:
+            try:
+                tz = ZoneInfo(tz_name)
+                now = datetime.now(tz)
+            except Exception:
+                pass
+        if now is None:
             now = datetime.now()
             tz_name = "Local"
 

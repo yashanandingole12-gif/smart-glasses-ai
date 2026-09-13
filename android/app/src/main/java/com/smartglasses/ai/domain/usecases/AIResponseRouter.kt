@@ -141,6 +141,9 @@ class AIResponseRouter(
         }
     }
 
+    private var lastReadSmsSender: String? = null
+    private var lastReadSmsPhone: String? = null
+
     private val contactSmsPatterns = listOf(
         Regex("""(?:did|has)\s+([a-zA-Z0-9\s]+?)\s+(?:message|text|sms)(?:\s+me)?\??$"""),
         Regex("""(?:any\s+(?:new\s+)?(?:messages?|sms|texts?)\s+(?:from|by)\s+([a-zA-Z0-9\s]+?))\??$"""),
@@ -153,10 +156,12 @@ class AIResponseRouter(
     private fun isSmsQuery(qLower: String): Boolean {
         val smsKeywords = listOf(
             "read my sms", "read my messages", "read sms", "read recent messages",
+            "read my latest message", "read latest message", "latest message",
             "check sms", "check my messages", "any new messages", "any messages",
-            "sms messages", "read text", "read texts", "my texts", "sms padho"
+            "sms messages", "read text", "read texts", "my texts", "sms padho",
+            "who sent it", "who sent this", "who is the sender", "reply that", "reply to him"
         )
-        if (smsKeywords.any { qLower.contains(it) } || qLower == "sms" || qLower == "messages") {
+        if (smsKeywords.any { qLower.contains(it) } || qLower == "sms" || qLower == "messages" || qLower.startsWith("reply ")) {
             return true
         }
         return contactSmsPatterns.any { it.containsMatchIn(qLower) }
@@ -198,6 +203,37 @@ class AIResponseRouter(
 
         val latMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
 
+        // Handle 'who sent it' follow-up
+        if (listOf("who sent it", "who sent this", "who is the sender", "who sent").any { qLower.contains(it) }) {
+            val s = lastReadSmsSender
+            val respText = if (s != null) "That message was sent by $s." else "I don't have a recent message in context."
+            return WearableResponse(
+                text = respText,
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = latMs
+            )
+        }
+
+        // Handle 'reply that ...' follow-up
+        if (qLower.startsWith("reply")) {
+            val replyBody = qLower.removePrefix("reply").removePrefix(" to him").removePrefix(" that").trim()
+            val target = lastReadSmsSender ?: "contact"
+            return WearableResponse(
+                text = "I have prepared an SMS to $target: '$replyBody'. Should I send it?",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.TOOL,
+                requiresConfirmation = true,
+                confirmationPrompt = "Send SMS to $target: '$replyBody'?",
+                confirmationActionId = "sms_reply_${System.currentTimeMillis()}",
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = latMs
+            )
+        }
+
         // Contact-specific query
         if (!targetContact.isNullOrBlank()) {
             // Check for multiple contact matches (disambiguation)
@@ -229,6 +265,9 @@ class AIResponseRouter(
 
             val latest = messages.first()
             val sender = latest.contactName ?: latest.address
+            lastReadSmsSender = sender
+            lastReadSmsPhone = latest.address
+
             val text = if (messages.size == 1) {
                 "Message from $sender: ${latest.body}"
             } else {
@@ -260,6 +299,9 @@ class AIResponseRouter(
 
         val latest = messages.first()
         val sender = latest.contactName ?: latest.address
+        lastReadSmsSender = sender
+        lastReadSmsPhone = latest.address
+
         val text = if (messages.size == 1) {
             "You have 1 message from $sender: ${latest.body}"
         } else {

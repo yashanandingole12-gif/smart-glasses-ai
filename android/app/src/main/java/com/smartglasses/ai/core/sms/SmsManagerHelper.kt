@@ -109,7 +109,10 @@ object SmsManagerHelper {
     }
 
     fun readRecentMessages(context: Context, limit: Int = 5): List<SmsItem> {
-        if (!hasReadPermission(context)) return emptyList()
+        if (!hasReadPermission(context)) {
+            android.util.Log.w("SmartGlasses.SMS", "READ_SMS permission not granted.")
+            return emptyList()
+        }
 
         val now = System.currentTimeMillis()
         synchronized(lock) {
@@ -119,7 +122,11 @@ object SmsManagerHelper {
         }
 
         val messages = mutableListOf<SmsItem>()
-        val uri: Uri = Telephony.Sms.Inbox.CONTENT_URI
+        val uriList = listOf(
+            Telephony.Sms.Inbox.CONTENT_URI,
+            Uri.parse("content://sms/inbox"),
+            Uri.parse("content://sms")
+        )
         val projection = arrayOf(
             Telephony.Sms._ID,
             Telephony.Sms.ADDRESS,
@@ -127,49 +134,54 @@ object SmsManagerHelper {
             Telephony.Sms.DATE
         )
 
-        try {
-            val cursor = context.contentResolver.query(
-                uri,
-                projection,
-                null,
-                null,
-                "${Telephony.Sms.DATE} DESC LIMIT $limit"
-            )
+        val t0 = System.currentTimeMillis()
+        for (uri in uriList) {
+            try {
+                val cursor = context.contentResolver.query(
+                    uri,
+                    projection,
+                    null,
+                    null,
+                    "${Telephony.Sms.DATE} DESC LIMIT $limit"
+                )
 
-            cursor?.use {
-                val idIdx = it.getColumnIndexOrThrow(Telephony.Sms._ID)
-                val addrIdx = it.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
-                val bodyIdx = it.getColumnIndexOrThrow(Telephony.Sms.BODY)
-                val dateIdx = it.getColumnIndexOrThrow(Telephony.Sms.DATE)
+                cursor?.use {
+                    val idIdx = it.getColumnIndex(Telephony.Sms._ID)
+                    val addrIdx = it.getColumnIndex(Telephony.Sms.ADDRESS)
+                    val bodyIdx = it.getColumnIndex(Telephony.Sms.BODY)
+                    val dateIdx = it.getColumnIndex(Telephony.Sms.DATE)
 
-                while (it.moveToNext()) {
-                    val id = it.getString(idIdx)
-                    val address = it.getString(addrIdx) ?: "Unknown"
-                    val body = it.getString(bodyIdx) ?: ""
-                    val date = it.getLong(dateIdx)
+                    while (it.moveToNext()) {
+                        val id = if (idIdx >= 0) it.getString(idIdx) else "sms_${System.currentTimeMillis()}"
+                        val address = if (addrIdx >= 0) (it.getString(addrIdx) ?: "Unknown") else "Unknown"
+                        val body = if (bodyIdx >= 0) (it.getString(bodyIdx) ?: "") else ""
+                        val date = if (dateIdx >= 0) it.getLong(dateIdx) else System.currentTimeMillis()
 
-                    // Data minimization: trim body to max 160 chars
-                    val trimmedBody = if (body.length > 160) body.substring(0, 160) + "..." else body
-                    val dateStr = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US).format(java.util.Date(date))
+                        val trimmedBody = if (body.length > 160) body.substring(0, 160) + "..." else body
+                        val dateStr = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US).format(java.util.Date(date))
+                        val resolvedContact = resolveContactName(context, address)
 
-                    val resolvedContact = resolveContactName(context, address)
-
-                    messages.add(
-                        SmsItem(
-                            id = id,
-                            address = address,
-                            body = trimmedBody,
-                            timestamp = date,
-                            dateFormatted = dateStr,
-                            contactName = resolvedContact,
-                            type = "received"
+                        messages.add(
+                            SmsItem(
+                                id = id,
+                                address = address,
+                                body = trimmedBody,
+                                timestamp = date,
+                                dateFormatted = dateStr,
+                                contactName = resolvedContact,
+                                type = "received"
+                            )
                         )
-                    )
+                    }
                 }
+                if (messages.isNotEmpty()) break
+            } catch (e: Exception) {
+                android.util.Log.w("SmartGlasses.SMS", "Failed querying URI $uri: ${e.message}")
             }
-        } catch (e: Exception) {
-            android.util.Log.e("SmartGlasses.SMS", "Failed to query SMS content provider: ${e.message}")
         }
+
+        val queryMs = System.currentTimeMillis() - t0
+        android.util.Log.i("SmartGlasses.SMS", "SMS read query executed: count=${messages.size}, latencyMs=$queryMs")
 
         if (messages.isNotEmpty()) {
             synchronized(lock) {
@@ -185,7 +197,11 @@ object SmsManagerHelper {
         if (!hasReadPermission(context) || query.isBlank()) return emptyList()
 
         val messages = mutableListOf<SmsItem>()
-        val uri: Uri = Telephony.Sms.Inbox.CONTENT_URI
+        val uriList = listOf(
+            Telephony.Sms.Inbox.CONTENT_URI,
+            Uri.parse("content://sms/inbox"),
+            Uri.parse("content://sms")
+        )
         val projection = arrayOf(
             Telephony.Sms._ID,
             Telephony.Sms.ADDRESS,
@@ -212,47 +228,54 @@ object SmsManagerHelper {
             args = arrayOf("%$query%", "%$query%")
         }
 
-        try {
-            val cursor = context.contentResolver.query(
-                uri,
-                projection,
-                selection,
-                args,
-                "${Telephony.Sms.DATE} DESC LIMIT $limit"
-            )
+        val t0 = System.currentTimeMillis()
+        for (uri in uriList) {
+            try {
+                val cursor = context.contentResolver.query(
+                    uri,
+                    projection,
+                    selection,
+                    args,
+                    "${Telephony.Sms.DATE} DESC LIMIT $limit"
+                )
 
-            cursor?.use {
-                val idIdx = it.getColumnIndexOrThrow(Telephony.Sms._ID)
-                val addrIdx = it.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
-                val bodyIdx = it.getColumnIndexOrThrow(Telephony.Sms.BODY)
-                val dateIdx = it.getColumnIndexOrThrow(Telephony.Sms.DATE)
+                cursor?.use {
+                    val idIdx = it.getColumnIndex(Telephony.Sms._ID)
+                    val addrIdx = it.getColumnIndex(Telephony.Sms.ADDRESS)
+                    val bodyIdx = it.getColumnIndex(Telephony.Sms.BODY)
+                    val dateIdx = it.getColumnIndex(Telephony.Sms.DATE)
 
-                while (it.moveToNext()) {
-                    val id = it.getString(idIdx)
-                    val address = it.getString(addrIdx) ?: "Unknown"
-                    val body = it.getString(bodyIdx) ?: ""
-                    val date = it.getLong(dateIdx)
+                    while (it.moveToNext()) {
+                        val id = if (idIdx >= 0) it.getString(idIdx) else "sms_${System.currentTimeMillis()}"
+                        val address = if (addrIdx >= 0) (it.getString(addrIdx) ?: "Unknown") else "Unknown"
+                        val body = if (bodyIdx >= 0) (it.getString(bodyIdx) ?: "") else ""
+                        val date = if (dateIdx >= 0) it.getLong(dateIdx) else System.currentTimeMillis()
 
-                    val trimmedBody = if (body.length > 160) body.substring(0, 160) + "..." else body
-                    val dateStr = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US).format(java.util.Date(date))
-                    val resolvedContact = resolveContactName(context, address)
+                        val trimmedBody = if (body.length > 160) body.substring(0, 160) + "..." else body
+                        val dateStr = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.US).format(java.util.Date(date))
+                        val resolvedContact = resolveContactName(context, address)
 
-                    messages.add(
-                        SmsItem(
-                            id = id,
-                            address = address,
-                            body = trimmedBody,
-                            timestamp = date,
-                            dateFormatted = dateStr,
-                            contactName = resolvedContact,
-                            type = "received"
+                        messages.add(
+                            SmsItem(
+                                id = id,
+                                address = address,
+                                body = trimmedBody,
+                                timestamp = date,
+                                dateFormatted = dateStr,
+                                contactName = resolvedContact,
+                                type = "received"
+                            )
                         )
-                    )
+                    }
                 }
+                if (messages.isNotEmpty()) break
+            } catch (e: Exception) {
+                android.util.Log.w("SmartGlasses.SMS", "Failed searching URI $uri: ${e.message}")
             }
-        } catch (e: Exception) {
-            android.util.Log.e("SmartGlasses.SMS", "Failed to search SMS: ${e.message}")
         }
+
+        val queryMs = System.currentTimeMillis() - t0
+        android.util.Log.i("SmartGlasses.SMS", "SMS search query executed: query='<redacted>', count=${messages.size}, latencyMs=$queryMs")
 
         return messages
     }

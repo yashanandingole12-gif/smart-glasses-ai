@@ -617,18 +617,22 @@ def get_dashboard_html() -> str:
                 </div>
             </div>
 
-            <!-- Quick Capability Test Suite (5 Core Wearable Benchmarks + Document Summarization) -->
+            <!-- Quick Capability Test Suite (Multi-Turn & Core Wearable Benchmarks) -->
             <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gold-hover); margin-bottom: 6px;">
-                ⚡ Wearable Benchmark Suite:
+                ⚡ Multi-Turn & Wearable Benchmarks:
             </div>
             <div class="quick-actions-bar">
                 <button class="btn-quick-chip" style="background:var(--gold-light); font-weight:600;" onclick="runFullCapabilitySuite()">▶️ Run Core 5 Suite</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Check my unread emails')">✉️ 1. Check Email</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Read my latest email')">📖 2. Read Email</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('What is 125 plus 375?')">🧮 3. Calculation (125+375)</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('What is on my calendar today?')">📅 4. Calendar Events</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('What are the key benefits of smart glasses with AI?')">🤖 5. AI Q&A</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Summarize my uploaded document')">📄 Summarize Document</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('Tell me about Mahatma Gandhi')">🕊️ 1. Gandhi</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('Tell me more')">💬 2. Tell me more</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('What about his early life?')">👶 3. Early life</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('Who is Rahul?')">👤 4. Contact Rahul</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('Check my unread emails')">✉️ Check Email</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('Read my latest email')">📖 Read Email</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('Who sent it?')">❓ Who sent it?</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('What is 125 plus 375?')">🧮 Calculation</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('What is on my calendar today?')">📅 Calendar</button>
+                <button class="btn-quick-chip" onclick="sendQuickMessage('Summarize my uploaded document')">📄 Summarize Doc</button>
                 <button class="btn-quick-chip" onclick="sendQuickMessage('शुभ सकाळ, माझं आजचं कॅलेंडर दाखव')">🇮🇳 Marathi</button>
                 <button class="btn-quick-chip" onclick="sendQuickMessage('सुप्रभात, आज मेरा क्या शेड्यूल है?')">🇮🇳 Hindi</button>
             </div>
@@ -660,6 +664,101 @@ def get_dashboard_html() -> str:
 
             <div id="file-list-container">
                 <!-- Uploaded file items populated here -->
+            </div>
+        </div>
+
+        <!-- 2-Column Grid: Personal Contact Vault & Paired Devices -->
+        <div class="grid-2col">
+            <!-- Personal Contact Vault -->
+            <div class="card" id="contacts-card">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Personal Contact Vault</h2>
+                        <div class="card-subtitle">Encrypted Entity & Alias Linkage</div>
+                    </div>
+                    <button class="btn-quick-chip" onclick="toggleAddContactForm()">+ Add Contact</button>
+                </div>
+
+                <div id="add-contact-form" style="display:none; margin-bottom:12px; padding:12px; background:var(--surface-subtle); border:1px solid var(--border); border-radius:var(--radius-sm);">
+                    <div style="font-size:12px; font-weight:600; margin-bottom:8px;">New Personal Contact</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+                        <input type="text" id="new-contact-name" class="input-luxury" placeholder="Full Name (e.g. Rahul Sharma)" style="padding:8px 12px; font-size:12px;">
+                        <input type="text" id="new-contact-phone" class="input-luxury" placeholder="Phone (+91...)" style="padding:8px 12px; font-size:12px;">
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+                        <input type="email" id="new-contact-email" class="input-luxury" placeholder="Email" style="padding:8px 12px; font-size:12px;">
+                        <input type="text" id="new-contact-rel" class="input-luxury" placeholder="Relationship (e.g. brother, colleague)" style="padding:8px 12px; font-size:12px;">
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:8px;">
+                        <button class="btn-quick-chip" onclick="toggleAddContactForm()">Cancel</button>
+                        <button class="btn-primary" style="padding:6px 14px; font-size:12px;" onclick="saveContact()">Save Contact</button>
+                    </div>
+                </div>
+
+                <div id="contact-list-container" style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;">
+                    <div style="font-size:12px; color:var(--text-light);">Loading contacts...</div>
+                </div>
+            </div>
+
+            <!-- Paired Devices & Zero-Trust Security -->
+            <div class="card" id="devices-card">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Paired Devices & Gatekeeper</h2>
+                        <div class="card-subtitle">Zero-Trust Scoped Peripheral Access</div>
+                    </div>
+                    <button class="btn-quick-chip" onclick="pairNewDevicePrompt()">+ Pair Device</button>
+                </div>
+
+                <div id="device-list-container" style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;">
+                    <div style="font-size:12px; color:var(--text-light);">Loading paired devices...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversational Context Inspector & Security Audit Log -->
+        <div class="grid-2col">
+            <!-- Conversational Context Inspector -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Multi-Turn Context State</h2>
+                        <div class="card-subtitle">Live Ephemeral Session Referents</div>
+                    </div>
+                    <button class="btn-quick-chip" onclick="resetConversationContext()" title="Clear Active Context Slots">Reset Context</button>
+                </div>
+                <table class="status-table">
+                    <tr>
+                        <td>Active Subject:</td>
+                        <td><strong id="ctx-active-subject" style="color:var(--espresso);">None</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Active Contact:</td>
+                        <td><strong id="ctx-active-contact" style="color:var(--espresso);">None</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Active Email / SMS:</td>
+                        <td><strong id="ctx-active-msg" style="color:var(--text-muted);">None</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Previous Intent:</td>
+                        <td><span class="badge-status badge-connected" id="ctx-prev-intent">idle</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Sanitized Security Audit Log -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Security Audit Log</h2>
+                        <div class="card-subtitle">Zero-Leakage Gated Action Stream</div>
+                    </div>
+                    <button class="btn-quick-chip" onclick="fetchAuditLog()">Refresh</button>
+                </div>
+                <div id="audit-log-container" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; font-size:11px; font-family:monospace;">
+                    <div style="color:var(--text-light);">Loading audit trail...</div>
+                </div>
             </div>
         </div>
 
@@ -1115,6 +1214,8 @@ def get_dashboard_html() -> str:
             }
 
             chatBox.scrollTop = chatBox.scrollHeight;
+            updateContextInspector();
+            fetchAuditLog();
         }
 
         function escapeHtml(text) {
@@ -1124,10 +1225,237 @@ def get_dashboard_html() -> str:
             return div.innerHTML;
         }
 
+        // 6. Conversational Context Inspector
+        async function updateContextInspector() {
+            try {
+                const resp = await fetch('/api/v1/context/conversation/' + sessionId);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const ctx = data.context || {};
+                    const sSubj = document.getElementById('ctx-active-subject');
+                    const sContact = document.getElementById('ctx-active-contact');
+                    const sMsg = document.getElementById('ctx-active-msg');
+                    const sPrev = document.getElementById('ctx-prev-intent');
+
+                    if (sSubj) sSubj.textContent = ctx.active_subject || "None";
+                    if (sContact) sContact.textContent = ctx.active_contact || "None";
+                    if (sMsg) {
+                        const emailSubj = ctx.active_email ? ctx.active_email.subject : null;
+                        const smsSender = ctx.active_sms ? ctx.active_sms.sender : null;
+                        sMsg.textContent = emailSubj ? ("Email: " + emailSubj) : (smsSender ? ("SMS from: " + smsSender) : "None");
+                    }
+                    if (sPrev) sPrev.textContent = ctx.previous_intent || "idle";
+                }
+            } catch (err) {
+                console.warn("Context inspect error:", err);
+            }
+        }
+
+        async function resetConversationContext() {
+            try {
+                const resp = await fetch('/api/v1/context/conversation/' + sessionId + '/reset', { method: 'POST' });
+                if (resp.ok) {
+                    updateContextInspector();
+                    const chatBox = document.getElementById('chat-box');
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'msg-bubble msg-assistant';
+                    infoDiv.innerHTML = '<span class="msg-sender" style="color:var(--gold-hover);">System</span><div>Context referents cleared.</div>';
+                    chatBox.appendChild(infoDiv);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            } catch (err) {
+                console.warn("Context reset error:", err);
+            }
+        }
+
+        // 7. Contact Vault Management
+        async function fetchContacts() {
+            try {
+                const resp = await fetch('/api/v1/security/contacts');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const container = document.getElementById('contact-list-container');
+                    if (data.contacts && data.contacts.length > 0) {
+                        let html = '';
+                        data.contacts.forEach(c => {
+                            const phones = (c.phone_numbers || []).join(', ') || 'No phone';
+                            const emails = (c.email_addresses || []).join(', ') || 'No email';
+                            const rel = c.notes ? (' · ' + escapeHtml(c.notes)) : '';
+                            html += '<div class="file-badge">' +
+                                '<div>' +
+                                '<strong>👤 ' + escapeHtml(c.name) + '</strong> <span style="font-size:11px; color:var(--text-light);">' + rel + '</span>' +
+                                '<div style="font-size:11px; color:var(--text-muted);">📞 ' + escapeHtml(phones) + ' | ✉️ ' + escapeHtml(emails) + '</div>' +
+                                '</div>' +
+                                '<button class="btn-quick-chip" style="color:var(--terracotta);" onclick="deleteContact(\'' + c.id + '\')">🗑️</button>' +
+                                '</div>';
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div style="font-size:12px; color:var(--text-light);">No contacts in vault.</div>';
+                    }
+                }
+            } catch (err) {
+                console.warn("Fetch contacts error:", err);
+            }
+        }
+
+        function toggleAddContactForm() {
+            const form = document.getElementById('add-contact-form');
+            if (form) {
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        async function saveContact() {
+            const name = document.getElementById('new-contact-name').value.trim();
+            const phone = document.getElementById('new-contact-phone').value.trim();
+            const email = document.getElementById('new-contact-email').value.trim();
+            const rel = document.getElementById('new-contact-rel').value.trim();
+
+            if (!name) {
+                alert("Please enter a contact name.");
+                return;
+            }
+
+            try {
+                const resp = await fetch('/api/v1/security/contacts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        phone_numbers: phone ? [phone] : [],
+                        email_addresses: email ? [email] : [],
+                        aliases: [],
+                        notes: rel || undefined
+                    })
+                });
+                if (resp.ok) {
+                    document.getElementById('new-contact-name').value = '';
+                    document.getElementById('new-contact-phone').value = '';
+                    document.getElementById('new-contact-email').value = '';
+                    document.getElementById('new-contact-rel').value = '';
+                    toggleAddContactForm();
+                    fetchContacts();
+                }
+            } catch (err) {
+                alert("Failed to save contact: " + err.message);
+            }
+        }
+
+        async function deleteContact(contactId) {
+            if (!confirm("Remove contact from Vault?")) return;
+            try {
+                const resp = await fetch('/api/v1/security/contacts/' + contactId, { method: 'DELETE' });
+                if (resp.ok) fetchContacts();
+            } catch (err) {
+                console.warn("Delete contact error:", err);
+            }
+        }
+
+        // 8. Paired Devices Management
+        async function fetchDevices() {
+            try {
+                const resp = await fetch('/api/v1/security/devices');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const container = document.getElementById('device-list-container');
+                    if (data.devices && data.devices.length > 0) {
+                        let html = '';
+                        data.devices.forEach(d => {
+                            const isRevoked = d.status === 'REVOKED';
+                            const badgeCls = isRevoked ? 'badge-disconnected' : 'badge-connected';
+                            const statusTxt = isRevoked ? 'REVOKED' : 'TRUSTED';
+                            html += '<div class="file-badge">' +
+                                '<div>' +
+                                '<strong>📱 ' + escapeHtml(d.name) + '</strong> <span class="badge-status ' + badgeCls + '" style="font-size:10px; margin-left:6px;">' + statusTxt + '</span>' +
+                                '<div style="font-size:11px; color:var(--text-muted);">Type: ' + escapeHtml(d.device_type) + ' | Perms: ' + (d.permissions || []).join(', ') + '</div>' +
+                                '</div>' +
+                                (isRevoked ? '' : '<button class="btn-quick-chip" style="color:var(--terracotta);" onclick="revokeDevice(\'' + d.device_id + '\')">Revoke</button>') +
+                                '</div>';
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div style="font-size:12px; color:var(--text-light);">No paired devices.</div>';
+                    }
+                }
+            } catch (err) {
+                console.warn("Fetch devices error:", err);
+            }
+        }
+
+        async function pairNewDevicePrompt() {
+            const devName = prompt("Enter device name (e.g. Pixel 8 Pro, MacBook Pro):", "Android Companion");
+            if (!devName) return;
+            try {
+                const resp = await fetch('/api/v1/security/devices/pairing-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_id: "dev_" + Math.random().toString(36).substring(2, 8),
+                        name: devName,
+                        device_type: "android",
+                        permissions: ["sms_read", "sms_send", "call_control"]
+                    })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    alert("Pairing Token Generated:\n\nDevice: " + data.name + "\nToken: " + data.token + "\n\n(Token stored cryptographically)");
+                    fetchDevices();
+                    fetchAuditLog();
+                }
+            } catch (err) {
+                alert("Pairing failed: " + err.message);
+            }
+        }
+
+        async function revokeDevice(deviceId) {
+            if (!confirm("Revoke zero-trust access for device " + deviceId + "?")) return;
+            try {
+                const resp = await fetch('/api/v1/security/devices/' + deviceId + '/revoke', { method: 'POST' });
+                if (resp.ok) {
+                    fetchDevices();
+                    fetchAuditLog();
+                }
+            } catch (err) {
+                alert("Revoke failed: " + err.message);
+            }
+        }
+
+        // 9. Security Audit Log
+        async function fetchAuditLog() {
+            try {
+                const resp = await fetch('/api/v1/security/audit-log?limit=10');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const container = document.getElementById('audit-log-container');
+                    if (data.audit_logs && data.audit_logs.length > 0) {
+                        let html = '';
+                        data.audit_logs.forEach(l => {
+                            const riskColor = l.risk_level === 'HIGH' ? 'var(--terracotta)' : (l.risk_level === 'MEDIUM' ? 'var(--gold-hover)' : 'var(--sage)');
+                            html += '<div style="padding:4px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;">' +
+                                '<span><span style="color:' + riskColor + '; font-weight:bold;">[' + escapeHtml(l.risk_level) + ']</span> ' + escapeHtml(l.action) + ' (' + escapeHtml(l.target || 'general') + ')</span>' +
+                                '<span style="color:var(--text-light);">' + (l.status === 'ALLOWED' ? '✅ ALLOWED' : '🛡️ ' + escapeHtml(l.status)) + '</span>' +
+                                '</div>';
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div style="color:var(--text-light);">No audit events recorded.</div>';
+                    }
+                }
+            } catch (err) {
+                console.warn("Fetch audit log error:", err);
+            }
+        }
+
         initSpeechRecognition();
         updateStatus();
         fetchRecentFiles();
+        fetchContacts();
+        fetchDevices();
+        fetchAuditLog();
+        updateContextInspector();
         setInterval(updateStatus, 5000);
+        setInterval(updateContextInspector, 4000);
     </script>
 </body>
 </html>

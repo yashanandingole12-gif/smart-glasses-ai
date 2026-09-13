@@ -959,3 +959,137 @@ async def websocket_assistant(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info(f"WebSocket client disconnected for session {session_id}")
 
+# -------------------------------------------------------------------------
+# Security, Device Pairing, Contact Vault & Desktop Agent Endpoints (Phase 3B.13)
+# -------------------------------------------------------------------------
+
+@app.get("/api/v1/security/devices")
+async def get_paired_devices(user_id: str = "default_user"):
+    """List registered devices with cryptographic status and scoped permissions."""
+    from backend.app.services.device_security_service import device_security_service
+    devices = device_security_service.list_devices(user_id)
+    return {
+        "success": True,
+        "devices": [d.model_dump() for d in devices],
+        "count": len(devices)
+    }
+
+@app.post("/api/v1/security/devices/pair")
+async def pair_new_device(req: Dict[str, Any], user_id: str = "default_user"):
+    """Pair a new hardware or client device with scoped permissions."""
+    from backend.app.services.device_security_service import device_security_service
+    name = req.get("device_name", "New Device")
+    dtype = req.get("device_type", "ANDROID")
+    scopes = req.get("scoped_permissions", ["AUDIO_STREAM"])
+    res = device_security_service.pair_device(user_id, name, dtype, scopes)
+    return {
+        "success": True,
+        **res
+    }
+
+@app.delete("/api/v1/security/devices/{device_id}")
+async def revoke_device_access(device_id: str, user_id: str = "default_user"):
+    """Revoke authorization for a paired device."""
+    from backend.app.services.device_security_service import device_security_service
+    revoked = device_security_service.revoke_device(device_id, user_id)
+    if not revoked:
+        raise HTTPException(status_code=404, detail="Device not found.")
+    return {
+        "success": True,
+        "device_id": device_id,
+        "status": "REVOKED",
+        "message": f"Device '{device_id}' revoked."
+    }
+
+@app.get("/api/v1/security/contacts")
+async def list_contact_vault(user_id: str = "default_user"):
+    """List user-controlled contacts and linked phone/email identifiers."""
+    from backend.app.services.contact_vault import contact_vault
+    contacts = contact_vault.list_contacts(user_id)
+    return {
+        "success": True,
+        "contacts": [c.model_dump() for c in contacts],
+        "count": len(contacts)
+    }
+
+@app.post("/api/v1/security/contacts")
+async def add_contact_vault(req: Dict[str, Any], user_id: str = "default_user"):
+    """Add or link a new personal contact in Contact Vault."""
+    from backend.app.services.contact_vault import contact_vault
+    name = req.get("name")
+    if not name:
+        raise HTTPException(status_code=400, detail="Contact name is required.")
+    c = contact_vault.add_contact(
+        user_id=user_id,
+        name=name,
+        phone_numbers=req.get("phone_numbers", []),
+        email_addresses=req.get("email_addresses", []),
+        aliases=req.get("aliases", []),
+        company=req.get("company"),
+        notes=req.get("notes")
+    )
+    return {
+        "success": True,
+        "contact": c.model_dump()
+    }
+
+@app.delete("/api/v1/security/contacts/{contact_id}")
+async def delete_contact_vault(contact_id: str, user_id: str = "default_user"):
+    """Delete a contact from Contact Vault."""
+    from backend.app.services.contact_vault import contact_vault
+    deleted = contact_vault.delete_contact(contact_id, user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Contact not found.")
+    return {
+        "success": True,
+        "contact_id": contact_id,
+        "deleted": True
+    }
+
+@app.get("/api/v1/security/audit-log")
+async def get_security_audit_logs(limit: int = 50, user_id: str = "default_user"):
+    """Retrieve sanitized security audit log events."""
+    from backend.app.services.device_security_service import device_security_service
+    logs = device_security_service.get_audit_logs(limit, user_id)
+    return {
+        "success": True,
+        "audit_logs": logs,
+        "count": len(logs)
+    }
+
+@app.get("/api/v1/context/conversation/{session_id}")
+async def get_conversation_context(session_id: str):
+    """Retrieve active multi-turn context slots for a session."""
+    from backend.app.services.conversation_context_engine import conversation_context_engine
+    ctx = conversation_context_engine.get_context(session_id)
+    return {
+        "success": True,
+        "session_id": session_id,
+        "context": ctx.to_dict()
+    }
+
+@app.post("/api/v1/context/conversation/{session_id}/reset")
+async def reset_conversation_context(session_id: str):
+    """Reset active multi-turn conversational context slots."""
+    from backend.app.services.conversation_context_engine import conversation_context_engine
+    conversation_context_engine.clear_context(session_id)
+    return {
+        "success": True,
+        "session_id": session_id,
+        "message": "Conversation context cleared."
+    }
+
+@app.post("/api/v1/security/desktop/action")
+async def execute_desktop_action(req: Dict[str, Any], user_id: str = "default_user"):
+    """Execute an approved, scoped action on the host laptop desktop agent."""
+    from backend.app.services.device_security_service import device_security_service
+    action = req.get("action", "")
+    target = req.get("target")
+    res = device_security_service.execute_laptop_action(action, target, user_id)
+    return {
+        "success": res.get("status") == "success",
+        **res
+    }
+
+
+
