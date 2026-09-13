@@ -147,7 +147,7 @@ class DeterministicMathEngine:
         table_match = self._match_table_query(norm_q)
         if table_match is not None:
             num = table_match
-            table_lines = [f"{num} * {i} = {num * i}" for i in range(1, 11)]
+            table_lines = [f"{num} × {i} = {num * i}" for i in range(1, 11)]
             values_str = ", ".join(str(num * i) for i in range(1, 11))
             formatted_text = f"Table of {num}:\n" + "\n".join(table_lines)
             speech_text = f"The table of {num} is {values_str}."
@@ -161,22 +161,27 @@ class DeterministicMathEngine:
                 "steps": [f"Multiply {num} sequentially from 1 to 10."]
             }
 
-        # 3. Percentage Queries (e.g. "15% of 800", "increase 500 by 12%")
+        # 3. Reciprocal Queries (e.g. "reciprocal of 5", "reciprocal of 8")
+        recip_res = self._match_reciprocal(norm_q)
+        if recip_res is not None:
+            return recip_res
+
+        # 4. Percentage Queries (e.g. "15% of 800", "increase 500 by 12%")
         pct_res = self._match_percentage_query(norm_q)
         if pct_res is not None:
             return pct_res
 
-        # 4. Powers & Roots (e.g. "square root of 144", "2^10")
+        # 5. Powers & Roots (e.g. "square root of 144", "cube root of 27", "2^10")
         power_root_res = self._match_powers_and_roots(norm_q)
         if power_root_res is not None:
             return power_root_res
 
-        # 5. Fraction Arithmetic (e.g. "3/4 + 1/2")
+        # 6. Fraction Arithmetic (e.g. "3/4 + 1/2")
         frac_res = self._match_fraction_arithmetic(norm_q)
         if frac_res is not None:
             return frac_res
 
-        # 6. General Arithmetic with Parentheses & Order of Operations
+        # 7. General Arithmetic with Parentheses & Order of Operations
         arith_res = self._match_arithmetic_expression(norm_q)
         if arith_res is not None:
             return arith_res
@@ -409,9 +414,9 @@ class DeterministicMathEngine:
         patterns = [
             r"table\s+of\s+(\d+)",
             r"(\d+)\s+times\s+table",
-            r"(\d+)\s*(?:ka|cha|ke)\s+table",
+            r"(\d+)\s*(?:\*\s*)?(?:ka|cha|ke)\s+table",
             r"table\s+(\d+)",
-            r"(\d+)\s+ka\s+pahada"
+            r"(\d+)\s*(?:\*\s*)?ka\s+pahada"
         ]
         for p in patterns:
             m = re.search(p, q)
@@ -424,9 +429,26 @@ class DeterministicMathEngine:
                     pass
         return None
 
+    def _match_reciprocal(self, q: str) -> Optional[Dict[str, Any]]:
+        # Reciprocal of X or 1/X
+        recip_m = re.search(r"reciprocal\s+of\s+([\d,.]+)", q)
+        if recip_m:
+            val = float(recip_m.group(1).replace(",", ""))
+            if val == 0:
+                return {"operation": "reciprocal", "error": "Division by zero", "text_response": "Reciprocal of zero is undefined."}
+            ans = 1.0 / val
+            ans_fmt = f"{ans:g}"
+            return {
+                "operation": "reciprocal",
+                "result": ans,
+                "text_response": f"The reciprocal of {recip_m.group(1)} is {ans_fmt}.",
+                "steps": [f"Compute 1 / {recip_m.group(1)} = {ans_fmt}"]
+            }
+        return None
+
     def _match_percentage_query(self, q: str) -> Optional[Dict[str, Any]]:
         # 1. "increase X by Y%" or "decrease X by Y%"
-        inc_match = re.search(r"(increase|decrease)\s+([\d,.]+)\s+by\s+([\d,.]+)\s*%", q)
+        inc_match = re.search(r"(increase|decrease)\s+([\d,.]+)\s*(?:\*\s*)?by\s+([\d,.]+)\s*(?:%|percent)", q)
         if inc_match:
             action, base_str, pct_str = inc_match.groups()
             base = float(base_str.replace(",", ""))
@@ -444,10 +466,10 @@ class DeterministicMathEngine:
                 ]
             }
 
-        # 2. "X% of Y"
+        # 2. "X% of Y" or "X percent of Y"
         pct_patterns = [
-            r"([\d,.]+)\s*(?:%|percent)\s+of\s+([\d,.]+)",
-            r"([\d,.]+)\s+ka\s+([\d,.]+)\s*(?:%|percent)"
+            r"([\d,.]+)\s*(?:\*\s*)?(?:%|percent)\s+of\s+([\d,.]+)",
+            r"([\d,.]+)\s*(?:\*?\s*ka|\*?\s*cha|\*?\s*ke)\s+([\d,.]+)\s*(?:%|percent)"
         ]
         for p in pct_patterns:
             m = re.search(p, q)
@@ -465,6 +487,21 @@ class DeterministicMathEngine:
         return None
 
     def _match_powers_and_roots(self, q: str) -> Optional[Dict[str, Any]]:
+        # Cube root
+        cbrt_m = re.search(r"(?:cube\s+root\s+of|cbrt)\s*\(?\s*([\d,.]+)\s*\)?", q)
+        if cbrt_m:
+            val = float(cbrt_m.group(1).replace(",", ""))
+            ans = round(val ** (1.0 / 3.0), 6)
+            if abs(ans - round(ans)) < 1e-5:
+                ans = int(round(ans))
+            ans_fmt = f"{ans:g}"
+            return {
+                "operation": "cube_root",
+                "result": ans,
+                "text_response": f"Cube root of {val:g} is {ans_fmt}.",
+                "steps": [f"Compute principal cube root of {val:g} = {ans_fmt}"]
+            }
+
         # Square root
         sqrt_m = re.search(r"(?:square\s+root\s+of|sqrt)\s*\(?\s*([\d,.]+)\s*\)?", q)
         if sqrt_m:
@@ -480,7 +517,7 @@ class DeterministicMathEngine:
                 "steps": [f"Compute principal square root of {val:g} = {ans_fmt}"]
             }
 
-        # Powers: "2^10"
+        # Powers: "2^10" or "X ^ Y"
         pow_m = re.search(r"([\d,.]+)\s*\^\s*([\d,.]+)", q)
         if pow_m:
             base = float(pow_m.group(1).replace(",", ""))
@@ -488,7 +525,10 @@ class DeterministicMathEngine:
             if abs(exp) > 1000 or abs(base) > 10000:
                 return {"operation": "power", "error": "Overflow", "text_response": "Number is too large to calculate."}
             ans = base ** exp
-            ans_fmt = f"{ans:g}"
+            if ans.is_integer() and abs(ans) < 1e15:
+                ans_fmt = str(int(ans))
+            else:
+                ans_fmt = f"{ans:g}"
             return {
                 "operation": "power",
                 "result": ans,

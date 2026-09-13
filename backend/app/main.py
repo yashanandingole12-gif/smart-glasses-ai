@@ -39,7 +39,7 @@ from backend.app.services.storage_service import storage_service
 from backend.app.tools.calendar_tools import calendar_get_events
 from backend.app.tools.gmail_tools import gmail_search, gmail_read, gmail_send_message, gmail_reply_message
 from backend.app.tools.sms_tools import sms_read_recent
-from backend.app.tools.search_tools import web_search, product_search, academic_research_search
+from backend.app.services.conversation_context_engine import conversation_context_engine
 from backend.app.logging_service import LatencyMetrics, log_request_metrics
 from backend.app.api.auth import router as auth_router
 from backend.app.services.data_analytics_engine import data_analytics_engine

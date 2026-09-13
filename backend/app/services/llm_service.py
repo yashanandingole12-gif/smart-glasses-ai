@@ -414,6 +414,28 @@ class LLMService:
                 model=self.model
             )
 
+        # High-Risk Actions / Tool Calling Heuristics for Mock Mode
+        if any(w in msg_lower for w in ["send email", "send an email", "send mail", "email saying", "email to", "compose email"]):
+            return LLMResponse(
+                tool_calls=[ToolCall(name="gmail_send_message", arguments={"recipient": "Rahul", "subject": "Meeting update", "body": "The meeting is moved to 4 PM."})],
+                provider="mock",
+                model=self.model
+            )
+
+        if any(w in msg_lower for w in ["send sms", "send text", "send message", "text to", "sms to", "message to"]):
+            return LLMResponse(
+                tool_calls=[ToolCall(name="sms_send_message", arguments={"recipient": "Rahul", "text": "Meeting moved to 4 PM."})],
+                provider="mock",
+                model=self.model
+            )
+
+        if any(w in msg_lower for w in ["move the", "reschedule", "change time", "move to", "create event", "add event", "schedule a"]):
+            return LLMResponse(
+                tool_calls=[ToolCall(name="calendar_create_event", arguments={"title": "Team Meeting", "start_time": "4:00 PM"})],
+                provider="mock",
+                model=self.model
+            )
+
         # Default conversational response
         return LLMResponse(
             content="I am listening on your smart glasses.",

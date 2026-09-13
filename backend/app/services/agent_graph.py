@@ -307,6 +307,12 @@ def route_after_llm(state: AgentState) -> str:
         return "execute_tool"
     return END
 
+def route_after_execute_tool(state: AgentState) -> str:
+    """Conditional Edge: Stop if confirmation is required, else proceed back to LLM."""
+    if state.get("requires_confirmation"):
+        return END
+    return "call_llm"
+
 def build_smart_glasses_graph():
     graph = StateGraph(AgentState)
 
@@ -320,7 +326,10 @@ def build_smart_glasses_graph():
         "execute_tool": "execute_tool",
         END: END
     })
-    graph.add_edge("execute_tool", "call_llm")
+    graph.add_conditional_edges("execute_tool", route_after_execute_tool, {
+        "call_llm": "call_llm",
+        END: END
+    })
 
     checkpointer = MemorySaver()
     return graph.compile(checkpointer=checkpointer)
