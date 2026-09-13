@@ -119,6 +119,7 @@ class BleManager(private val context: Context) {
     private var bluetoothGatt: BluetoothGatt? = null
     private var commandCharacteristic: BluetoothGattCharacteristic? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var serviceDiscoveryRunnable: Runnable? = null
 
     private val scanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
@@ -142,16 +143,21 @@ class BleManager(private val context: Context) {
             }
             _discoveredDevices.value = currentList
 
-            // Auto-connect if matches saved paired device or default prefix
-            val pairedAddr = prefs.getString(KEY_PAIRED_ADDR, null)
-            if (pairedAddr != null && device.address.equals(pairedAddr, ignoreCase = true)) {
-                Log.i(TAG, "Found paired SmartGlasses device ($pairedAddr). Auto-connecting...")
-                stopScan()
-                connectToDevice(device)
-            } else if (pairedAddr == null && name.contains(BleProtocol.DEVICE_NAME_PREFIX, ignoreCase = true)) {
-                Log.i(TAG, "Found SmartGlasses device: $name (${device.address})")
-                stopScan()
-                connectToDevice(device)
+            // Auto-connect if matches saved paired device or default prefix and not already connecting/connected
+            val isAlreadyConnectingOrConnected = _connectionState.value == DeviceConnectionState.CONNECTING ||
+                    _connectionState.value == DeviceConnectionState.CONNECTED_ESP32
+
+            if (!isAlreadyConnectingOrConnected) {
+                val pairedAddr = prefs.getString(KEY_PAIRED_ADDR, null)
+                if (pairedAddr != null && device.address.equals(pairedAddr, ignoreCase = true)) {
+                    Log.i(TAG, "Found paired SmartGlasses device ($pairedAddr). Auto-connecting...")
+                    stopScan()
+                    connectToDevice(device)
+                } else if (pairedAddr == null && name.contains(BleProtocol.DEVICE_NAME_PREFIX, ignoreCase = true)) {
+                    Log.i(TAG, "Found SmartGlasses device: $name (${device.address})")
+                    stopScan()
+                    connectToDevice(device)
+                }
             }
         }
 
@@ -166,45 +172,101 @@ class BleManager(private val context: Context) {
     private val gattCallback = object : BluetoothGattCallback() {
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+            Log.i(TAG, "onConnectionStateChange status=$status, newState=$newState")
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.w(TAG, "GATT connection status error ($status). Cleaning up connection...")
+                mainHandler.post {
+                    serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
+                    serviceDiscoveryRunnable = null
+                    try {
+                        gatt?.disconnect()
+                        gatt?.close()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error closing gatt on failure: ${e.message}")
+                    }
+                    if (bluetoothGatt == gatt) {
+                        bluetoothGatt = null
+                        commandCharacteristic = null
+                    }
+                    _connectionState.value = DeviceConnectionState.DISCONNECTED
+                    syncGlassesState()
+                }
+                return
+            }
+
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                Log.i(TAG, "Connected to Smart Glasses GATT server. Requesting 512 MTU & discovering services...")
-                _connectionState.value = DeviceConnectionState.CONNECTED_ESP32
-                syncGlassesState()
-                // Request higher MTU for rich payloads
-                gatt?.requestMtu(512)
-                gatt?.discoverServices()
-                gatt?.readRemoteRssi()
+                Log.i(TAG, "Successfully connected to Smart Glasses GATT server. Requesting MTU 256...")
+                mainHandler.post {
+                    _connectionState.value = DeviceConnectionState.CONNECTED_ESP32
+                    syncGlassesState()
+                }
+
+                // Sequence GATT operations: Request MTU first
+                val mtuOk = gatt?.requestMtu(256) ?: false
+                Log.d(TAG, "requestMtu(256) returned: $mtuOk")
+
+                // Fallback timeout in case onMtuChanged is never triggered by the OS
+                serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
+                val fallback = Runnable {
+                    Log.i(TAG, "MTU callback fallback; initiating service discovery...")
+                    gatt?.discoverServices()
+                }
+                serviceDiscoveryRunnable = fallback
+                mainHandler.postDelayed(fallback, 1200L)
+
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 Log.w(TAG, "Disconnected from Smart Glasses GATT server.")
-                _connectionState.value = DeviceConnectionState.DISCONNECTED
-                bluetoothGatt?.close()
-                bluetoothGatt = null
-                commandCharacteristic = null
-                syncGlassesState()
+                mainHandler.post {
+                    serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
+                    serviceDiscoveryRunnable = null
+                    try {
+                        gatt?.disconnect()
+                        gatt?.close()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error closing gatt on disconnect: ${e.message}")
+                    }
+                    if (bluetoothGatt == gatt) {
+                        bluetoothGatt = null
+                        commandCharacteristic = null
+                    }
+                    _connectionState.value = DeviceConnectionState.DISCONNECTED
+                    syncGlassesState()
+                }
             }
         }
 
         @SuppressLint("MissingPermission")
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
-            Log.i(TAG, "BLE MTU updated to: $mtu (status=$status)")
-            gatt?.discoverServices()
+            Log.i(TAG, "BLE MTU negotiated: $mtu (status=$status)")
+            serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
+            serviceDiscoveryRunnable = null
+            // Slight delay before service discovery to avoid GATT busy collision
+            mainHandler.postDelayed({
+                val discovering = gatt?.discoverServices() ?: false
+                Log.i(TAG, "discoverServices initiated: $discovering")
+            }, 150L)
         }
 
         @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                val service = gatt?.getService(BleProtocol.SERVICE_UUID)
+            Log.i(TAG, "onServicesDiscovered status=$status")
+            if (status == BluetoothGatt.GATT_SUCCESS && gatt != null) {
+                val service = gatt.getService(BleProtocol.SERVICE_UUID)
                 if (service != null) {
                     commandCharacteristic = service.getCharacteristic(BleProtocol.COMMAND_CHAR_UUID)
 
                     // Subscribe to Event notifications
                     val eventChar = service.getCharacteristic(BleProtocol.EVENT_CHAR_UUID)
                     if (eventChar != null) {
-                        gatt.setCharacteristicNotification(eventChar, true)
+                        val setNotification = gatt.setCharacteristicNotification(eventChar, true)
+                        Log.d(TAG, "setCharacteristicNotification on EVENT_CHAR returned $setNotification")
                         val descriptor = eventChar.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
                         if (descriptor != null) {
                             descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                            gatt.writeDescriptor(descriptor)
+                            mainHandler.postDelayed({
+                                val writeSuccess = gatt.writeDescriptor(descriptor)
+                                Log.i(TAG, "writeDescriptor 2902 on EVENT_CHAR returned $writeSuccess")
+                            }, 100L)
                         }
                     }
 
@@ -214,10 +276,23 @@ class BleManager(private val context: Context) {
                         gatt.setCharacteristicNotification(batteryChar, true)
                     }
 
-                    Log.i(TAG, "Smart Glasses GATT services and notifications configured.")
+                    Log.i(TAG, "Smart Glasses GATT services and notifications configured successfully.")
                 } else {
-                    Log.w(TAG, "Smart Glasses service not found on device.")
+                    Log.w(TAG, "Smart Glasses service ${BleProtocol.SERVICE_UUID} not found on device.")
                 }
+            } else {
+                Log.e(TAG, "Service discovery failed with status: $status")
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onDescriptorWrite(gatt: BluetoothGatt?, descriptor: BluetoothGattDescriptor?, status: Int) {
+            Log.i(TAG, "onDescriptorWrite uuid=${descriptor?.uuid} status=$status")
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                mainHandler.postDelayed({
+                    gatt?.readRemoteRssi()
+                    sendCommand(BleProtocol.CMD_STATUS_REQUEST)
+                }, 200L)
             }
         }
 
@@ -357,7 +432,47 @@ class BleManager(private val context: Context) {
 
     @SuppressLint("MissingPermission")
     private fun connectToDevice(device: BluetoothDevice) {
-        bluetoothGatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        // Clean up previous GATT instance first
+        serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
+        serviceDiscoveryRunnable = null
+        try {
+            bluetoothGatt?.disconnect()
+            bluetoothGatt?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cleaning up previous GATT instance: ${e.message}")
+        }
+        bluetoothGatt = null
+        commandCharacteristic = null
+
+        _connectionState.value = DeviceConnectionState.CONNECTING
+        syncGlassesState()
+
+        val devName = try { device.name ?: "SmartGlasses" } catch (e: Exception) { "SmartGlasses" }
+        Log.i(TAG, "Initiating GATT connection to $devName (${device.address})...")
+        mainHandler.postDelayed({
+            try {
+                bluetoothGatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to connectGatt: ${e.message}")
+                _connectionState.value = DeviceConnectionState.DISCONNECTED
+                syncGlassesState()
+            }
+        }, 100L)
+    }
+
+    fun sendCommand(command: String): Boolean {
+        val gatt = bluetoothGatt ?: return false
+        val char = commandCharacteristic ?: return false
+        return try {
+            char.value = command.toByteArray(Charsets.UTF_8)
+            char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            val success = gatt.writeCharacteristic(char)
+            Log.i(TAG, "Sent BLE command '$command' -> success=$success")
+            success
+        } catch (e: Exception) {
+            Log.e(TAG, "Error writing BLE command '$command': ${e.message}")
+            false
+        }
     }
 
     fun pairDevice(address: String, name: String) {
@@ -376,8 +491,6 @@ class BleManager(private val context: Context) {
         try {
             val device = bluetoothAdapter?.getRemoteDevice(address)
             if (device != null) {
-                _connectionState.value = DeviceConnectionState.CONNECTING
-                syncGlassesState()
                 connectToDevice(device)
             }
         } catch (e: Exception) {
@@ -418,9 +531,16 @@ class BleManager(private val context: Context) {
     @SuppressLint("MissingPermission")
     fun disconnect() {
         stopScan()
-        bluetoothGatt?.disconnect()
-        bluetoothGatt?.close()
+        serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
+        serviceDiscoveryRunnable = null
+        try {
+            bluetoothGatt?.disconnect()
+            bluetoothGatt?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during disconnect: ${e.message}")
+        }
         bluetoothGatt = null
+        commandCharacteristic = null
         _connectionState.value = DeviceConnectionState.DISCONNECTED
         syncGlassesState()
     }

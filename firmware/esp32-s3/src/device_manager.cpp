@@ -124,16 +124,25 @@ void DeviceManager::update() {
     ButtonManager::getInstance().update();
     AudioManager::getInstance().update();
 
-    // 1. Check for inactivity timeout (25 minutes without interactions)
-    if (_lastActivityTime > 0 && (millis() - _lastActivityTime >= INACTIVITY_SLEEP_TIMEOUT_MS)) {
-        enterDeepSleep("25-minute Inactivity Timeout");
+    // While BLE is connected to phone, keep device active and responsive
+    if (BleManager::getInstance().isClientConnected()) {
+        _lastActivityTime = millis();
     }
 
-    // 2. Periodic battery report every 30 seconds
+    // 1. Check for inactivity timeout (25 minutes without interactions when disconnected)
+    if (_lastActivityTime > 0 && (millis() - _lastActivityTime >= INACTIVITY_SLEEP_TIMEOUT_MS)) {
+        if (!BleManager::getInstance().isClientConnected()) {
+            enterDeepSleep("25-minute Disconnected Inactivity Timeout");
+        }
+    }
+
+    // 2. Periodic battery report every 30 seconds when connected
     if (millis() - _lastBatteryReportTime > 30000) {
         _lastBatteryReportTime = millis();
-        uint8_t batt = BatteryManager::getInstance().getBatteryPercentage();
-        Serial.printf("[TELEMETRY] Periodic Battery Telemetry: %d%%\n", batt);
-        BleManager::getInstance().updateBattery(batt);
+        if (BleManager::getInstance().isClientConnected()) {
+            uint8_t batt = BatteryManager::getInstance().getBatteryPercentage();
+            Serial.printf("[TELEMETRY] Periodic Battery Telemetry: %d%%\n", batt);
+            BleManager::getInstance().updateBattery(batt);
+        }
     }
 }

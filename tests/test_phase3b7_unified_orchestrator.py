@@ -12,13 +12,15 @@ from backend.app.main import app
 
 client = TestClient(app)
 
-def test_production_calendar_provider_is_google():
+def test_production_calendar_provider_is_google(monkeypatch):
     """Verify that get_calendar_provider() returns GoogleCalendarProvider and never MockCalendarProvider in production."""
+    monkeypatch.delenv("USE_MOCK_CALENDAR", raising=False)
     provider = get_calendar_provider("test_user_no_auth")
     assert isinstance(provider, GoogleCalendarProvider)
 
-def test_unauthenticated_calendar_returns_honest_error_zero_mock():
+def test_unauthenticated_calendar_returns_honest_error_zero_mock(monkeypatch):
     """Verify that querying calendar when unauthenticated returns honest error and zero mock events."""
+    monkeypatch.delenv("USE_MOCK_CALENDAR", raising=False)
     res = calendar_get_events(user_id="unauthenticated_user_xyz")
     assert res.get("count") == 0
     assert len(res.get("events", [])) == 0
@@ -30,13 +32,15 @@ def test_unauthenticated_calendar_returns_honest_error_zero_mock():
     assert "project team sync" not in res_str
     assert "gym / workout" not in res_str
 
-def test_production_email_provider_is_google():
+def test_production_email_provider_is_google(monkeypatch):
     """Verify that get_email_provider() returns GoogleGmailProvider."""
+    monkeypatch.delenv("USE_MOCK_EMAIL", raising=False)
     provider = get_email_provider("test_user_no_auth")
     assert isinstance(provider, GoogleGmailProvider)
 
-def test_unauthenticated_gmail_returns_honest_error_zero_mock():
+def test_unauthenticated_gmail_returns_honest_error_zero_mock(monkeypatch):
     """Verify that searching emails when unauthenticated returns honest error and zero mock emails."""
+    monkeypatch.delenv("USE_MOCK_EMAIL", raising=False)
     provider = get_email_provider("unauthenticated_user_xyz")
     res = provider.search()
     assert res.get("count") == 0

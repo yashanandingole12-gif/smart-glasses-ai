@@ -5,6 +5,8 @@ ButtonManager::ButtonManager() {}
 void ButtonManager::init(uint8_t pin) {
     _pin = pin;
     pinMode(_pin, INPUT_PULLUP);
+    _stableState = digitalRead(_pin);
+    _lastState = _stableState;
 }
 
 void ButtonManager::setOnPressStartCallback(std::function<void()> cb) {

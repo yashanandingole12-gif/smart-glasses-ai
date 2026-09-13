@@ -256,7 +256,7 @@ fun DevicesHubScreen(
                                         )
                                     }
                                     Button(
-                                        onClick = { bleManager.toggleConnectionMode() },
+                                        onClick = { bleManager.pairDevice(dev.address, dev.name) },
                                         shape = RoundedCornerShape(6.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = LaraMutedOrange)
                                     ) {

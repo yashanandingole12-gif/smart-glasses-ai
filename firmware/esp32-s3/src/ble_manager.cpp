@@ -3,15 +3,16 @@
 class BleServerCallbacksHandler : public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) override {
         BleManager::getInstance()._connected = true;
-        Serial.println("[BLE] Mobile phone connected to Smart Glasses!");
-        BleManager::getInstance().sendEvent("DEVICE_CONNECTED", "{\"device\":\"ESP32-S3\"}");
+        Serial.println("[BLE] Mobile phone connected to Smart Glasses GATT server!");
+        // Note: Do not send notifications immediately in onConnect.
+        // Wait for the mobile client to subscribe to the CCCD descriptor (0x2902).
     }
 
     void onDisconnect(BLEServer* pServer) override {
         BleManager::getInstance()._connected = false;
         Serial.println("[BLE] Mobile phone disconnected from Smart Glasses. Restarting advertising...");
-        // Restart advertising
-        pServer->getAdvertising()->start();
+        delay(50);
+        BLEDevice::startAdvertising();
     }
 };
 
@@ -66,9 +67,12 @@ void BleManager::init(const String& deviceName) {
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->setScanResponse(true);
-    pAdvertising->setMinPreferred(0x06);
-    pAdvertising->setMinPreferred(0x12);
+    pAdvertising->setMinPreferred(0x06); // iOS / Android connection interval recommendations
+    pAdvertising->setMaxPreferred(0x12);
+    pAdvertising->setMinInterval(0x20);  // 20ms advertising interval
+    pAdvertising->setMaxInterval(0x40);  // 40ms advertising interval
     BLEDevice::startAdvertising();
+    Serial.printf("[BLE] BLE Advertising started successfully for '%s'\n", deviceName.c_str());
 }
 
 void BleManager::sendEvent(const String& eventName, const String& payload) {
@@ -81,6 +85,7 @@ void BleManager::sendEvent(const String& eventName, const String& payload) {
         }
         _eventChar->setValue(json.c_str());
         _eventChar->notify();
+        Serial.printf("[BLE] Sent Event Notification: %s\n", json.c_str());
     }
 }
 
