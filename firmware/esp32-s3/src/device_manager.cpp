@@ -2,8 +2,38 @@
 
 DeviceManager::DeviceManager() {}
 
+void DeviceManager::resetActivity() {
+    _lastActivityTime = millis();
+}
+
+void DeviceManager::enterDeepSleep(const char* reason) {
+    Serial.println();
+    Serial.println("==================================================");
+    Serial.printf("[POWER] Entering ESP32-S3 Deep Sleep Mode!\n");
+    Serial.printf("[POWER] Reason: %s\n", reason);
+    Serial.println("[POWER] Wakeup Source: Physical Button (GPIO 0 / Active LOW)");
+    Serial.println("==================================================");
+    Serial.flush();
+
+    // 1. Send BLE Disconnect notification if connected
+    if (BleManager::getInstance().isClientConnected()) {
+        BleManager::getInstance().sendEvent("DEVICE_SLEEPING", "{\"reason\":\"" + String(reason) + "\"}");
+        delay(100);
+    }
+
+    // 2. Stop audio & camera peripherals to eliminate leakage current
+    AudioManager::getInstance().stopMicrophone();
+
+    // 3. Configure GPIO 0 (PTT button) as external wakeup source
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_BUTTON_PTT, 0);
+
+    // 4. Enter Deep Sleep
+    esp_deep_sleep_start();
+}
+
 void DeviceManager::init() {
     Serial.println("[DEVICE] Initializing Subsystems...");
+    _lastActivityTime = millis();
 
     // 1. Button PTT
     ButtonManager::getInstance().init(PIN_BUTTON_PTT);
@@ -27,36 +57,42 @@ void DeviceManager::init() {
     Serial.println("[DEVICE] BLE Manager initialized. Advertising as 'SmartGlasses-S3'");
 
     // Setup button callbacks for Push-to-Talk and Gesture Actions
-    ButtonManager::getInstance().setOnPressStartCallback([]() {
+    ButtonManager::getInstance().setOnPressStartCallback([this]() {
+        this->resetActivity();
         Serial.println("[BUTTON] >>> PRESS START -> Sending TALK_START");
         AudioManager::getInstance().startMicrophone();
         BleManager::getInstance().sendEvent("TALK_START");
     });
 
-    ButtonManager::getInstance().setOnReleaseCallback([]() {
+    ButtonManager::getInstance().setOnReleaseCallback([this]() {
+        this->resetActivity();
         Serial.println("[BUTTON] <<< RELEASE -> Sending TALK_STOP");
         AudioManager::getInstance().stopMicrophone();
         BleManager::getInstance().sendEvent("TALK_STOP");
     });
 
-    ButtonManager::getInstance().setOnPressCallback([]() {
+    ButtonManager::getInstance().setOnPressCallback([this]() {
+        this->resetActivity();
         Serial.println("[BUTTON] CLICK -> Sending BUTTON_PRESSED");
         BleManager::getInstance().sendEvent("BUTTON_PRESSED");
     });
 
-    ButtonManager::getInstance().setOnLongPressCallback([]() {
+    ButtonManager::getInstance().setOnLongPressCallback([this]() {
+        this->resetActivity();
         Serial.println("[BUTTON] HOLD -> Sending BUTTON_LONG_PRESSED");
         BleManager::getInstance().sendEvent("BUTTON_LONG_PRESSED");
     });
 
     // Setup BLE command callback
     BleManager::getInstance().setCommandCallback([this](const String& cmd) {
+        this->resetActivity();
         Serial.printf("[BLE] Incoming Command: %s\n", cmd.c_str());
         this->handleIncomingCommand(cmd);
     });
 }
 
 void DeviceManager::handleIncomingCommand(const String& cmdJson) {
+    resetActivity();
     if (cmdJson.indexOf("START_LISTENING") >= 0) {
         Serial.println("[AUDIO] Command: START_LISTENING");
         AudioManager::getInstance().startMicrophone();
@@ -79,6 +115,8 @@ void DeviceManager::handleIncomingCommand(const String& cmdJson) {
         Serial.printf("[BATTERY] Status Request -> Battery: %d%%\n", batt);
         BleManager::getInstance().updateBattery(batt);
         BleManager::getInstance().sendEvent("BATTERY_CHANGED", "{\"battery\":" + String(batt) + "}");
+    } else if (cmdJson.indexOf("SLEEP") >= 0 || cmdJson.indexOf("SHUTDOWN") >= 0) {
+        enterDeepSleep("App Command Sleep Request");
     }
 }
 
@@ -86,7 +124,12 @@ void DeviceManager::update() {
     ButtonManager::getInstance().update();
     AudioManager::getInstance().update();
 
-    // Periodic battery report every 30 seconds
+    // 1. Check for inactivity timeout (25 minutes without interactions)
+    if (_lastActivityTime > 0 && (millis() - _lastActivityTime >= INACTIVITY_SLEEP_TIMEOUT_MS)) {
+        enterDeepSleep("25-minute Inactivity Timeout");
+    }
+
+    // 2. Periodic battery report every 30 seconds
     if (millis() - _lastBatteryReportTime > 30000) {
         _lastBatteryReportTime = millis();
         uint8_t batt = BatteryManager::getInstance().getBatteryPercentage();

@@ -174,6 +174,8 @@ void loop() {
             String report = diagnosticManager.getJsonReport();
             Serial.println(report);
             Serial.println("[SELF_TEST_END]");
+        } else if (input == "SLEEP" || input == "SHUTDOWN" || input == "DEEP_SLEEP") {
+            DeviceManager::getInstance().enterDeepSleep("Serial Sleep Request");
         }
     }
     delay(5);
