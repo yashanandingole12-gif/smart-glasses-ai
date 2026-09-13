@@ -141,4 +141,60 @@ class SmartGlassResponseFormatter:
             cleaned = cleaned[:250] + "..."
         return f"Here is what I found for {topic}: {cleaned}"
 
+    def format_vision_description(
+        self,
+        description: str,
+        objects: Optional[List[str]] = None,
+        text_detected: Optional[List[str]] = None,
+        requested_aspect: Optional[str] = None
+    ) -> str:
+        """
+        Converts structured vision output into 1-3 concise spoken sentences
+        for Smart Glasses TTS. Enforces zero markdown, zero LaTeX, zero JSON, zero URLs.
+        """
+        if not description and not objects and not text_detected:
+            return "I couldn't detect anything clearly in the photo."
+
+        aspect = (requested_aspect or "").lower()
+
+        # 1. OCR / Reading intent
+        if any(w in aspect for w in ["read", "text", "what does it say", "words", "transcribe"]):
+            if text_detected and len(text_detected) > 0:
+                combined_text = " ".join(text_detected).strip()
+                cleaned_text = self.clean_text_for_speech(combined_text)
+                if len(cleaned_text) > 200:
+                    cleaned_text = cleaned_text[:200] + "..."
+                return f"The text in front of you reads: {cleaned_text}"
+            elif description:
+                cleaned = self.clean_text_for_speech(description)
+                return f"I can see: {cleaned}"
+            return "I couldn't find any readable text in this image."
+
+        # 2. Color / Property intent
+        if "color" in aspect:
+            # Check if color is mentioned in description or attributes
+            cleaned = self.clean_text_for_speech(description)
+            return cleaned
+
+        # 3. Object presence / what is that object
+        if any(w in aspect for w in ["object", "what is that", "what is in front", "scene"]):
+            if objects and len(objects) > 0:
+                obj_str = ", ".join(objects[:4])
+                cleaned_desc = self.clean_text_for_speech(description)
+                return f"In front of you, I see {obj_str}. {cleaned_desc}"
+
+        # 4. Standard concise description (1-3 sentences max)
+        cleaned = self.clean_text_for_speech(description)
+        # Strip any LaTeX leftovers like \text, $, etc.
+        cleaned = re.sub(r"\\[a-zA-Z]+|\$+", "", cleaned)
+        # Strip JSON-like snippets
+        cleaned = re.sub(r"\{.*?\}|\[.*?\]", "", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+        # Split into sentences and keep at most 3
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", cleaned) if s.strip()]
+        if not sentences:
+            return "I can see the scene in front of you."
+        return " ".join(sentences[:3])
+
 smart_glass_formatter = SmartGlassResponseFormatter()

@@ -134,6 +134,7 @@ async def google_auth_callback(
     )
 
 
+@router.get("/status")
 @router.get("/google/status")
 async def google_auth_status(
     user_id: str = Query("default_user", description="Identifier of the user")

@@ -46,7 +46,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
 
     private val batteryProvider = AndroidBatteryProvider(application)
     private val locationProvider = AndroidLocationProvider(application)
-    private val bleManager = BleManager(application)
+    private val bleManager = BleManager.getInstance(application)
 
     private var speechRecognizerManager: SpeechRecognizerManager? = null
     private val textToSpeechManager = TextToSpeechManager(application)
@@ -80,6 +80,9 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
         initSpeechRecognizer()
         observeTelemetry()
         refreshAllStatuses()
+        if (bleManager.isBleHardwareAvailable()) {
+            bleManager.startScan()
+        }
     }
 
     private fun initSpeechRecognizer() {
@@ -548,6 +551,21 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                     )
                 }
             }
+        }
+    }
+
+    fun clearLatestSpeech() {
+        _uiState.update { it.copy(latestSpeech = "") }
+    }
+
+    fun clearConversation() {
+        _uiState.update {
+            it.copy(
+                messages = listOf(
+                    ChatMessage(sender = "ASSISTANT", text = "Ready on your smart glasses.")
+                ),
+                latestSpeech = ""
+            )
         }
     }
 

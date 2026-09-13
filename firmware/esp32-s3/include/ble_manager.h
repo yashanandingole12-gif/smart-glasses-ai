@@ -31,7 +31,7 @@ public:
     }
 
     void init(const String& deviceName = "SmartGlasses-S3");
-    void sendEvent(const String& eventName, const String& payload = "{}");
+    void sendEvent(const String& eventName, const String& payload = "");
     void updateBattery(uint8_t percentage);
     void updateStatus(const String& statusJson);
     bool isClientConnected() const;

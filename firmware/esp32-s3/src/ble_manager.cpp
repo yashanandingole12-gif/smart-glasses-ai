@@ -3,11 +3,13 @@
 class BleServerCallbacksHandler : public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) override {
         BleManager::getInstance()._connected = true;
+        Serial.println("[BLE] Mobile phone connected to Smart Glasses!");
         BleManager::getInstance().sendEvent("DEVICE_CONNECTED", "{\"device\":\"ESP32-S3\"}");
     }
 
     void onDisconnect(BLEServer* pServer) override {
         BleManager::getInstance()._connected = false;
+        Serial.println("[BLE] Mobile phone disconnected from Smart Glasses. Restarting advertising...");
         // Restart advertising
         pServer->getAdvertising()->start();
     }
@@ -71,7 +73,12 @@ void BleManager::init(const String& deviceName) {
 
 void BleManager::sendEvent(const String& eventName, const String& payload) {
     if (_connected && _eventChar) {
-        String json = "{\"event\":\"" + eventName + "\",\"payload\":" + payload + "}";
+        String json;
+        if (payload.length() > 0 && payload != "{}") {
+            json = "{\"event\":\"" + eventName + "\",\"payload\":" + payload + "}";
+        } else {
+            json = "{\"event\":\"" + eventName + "\"}";
+        }
         _eventChar->setValue(json.c_str());
         _eventChar->notify();
     }

@@ -1,1462 +1,1285 @@
 def get_dashboard_html() -> str:
-    """Returns the luxury personal assistant dashboard for the Smart Glasses AI with full storage, Google OAuth write, and audio capabilities."""
+    """Returns the LARA Operations Console — Quiet Luxury, Reductive Design & Slide-over Developer Drawer (Zero Emojis)."""
     return r"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LARA Smart Glasses AI — Executive Console & Storage Hub</title>
+    <title>LARA Smart Glasses — Private Intelligence & Control</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #FBF9F5;
-            --surface: #FFFFFF;
-            --surface-subtle: #F6F3ED;
-            --border: #EBE6DD;
-            --border-focus: #C5A880;
-            --gold: #C5A880;
-            --gold-light: #F4ECE1;
-            --gold-hover: #B5966B;
-            --espresso: #2E2522;
-            --charcoal: #1A1A1A;
-            --text-muted: #6B6661;
-            --text-light: #8E8883;
-            --sage: #4A6B56;
-            --sage-bg: #EDF3EF;
-            --terracotta: #9E4A44;
-            --terracotta-bg: #F9EFEF;
-            --shadow: 0 4px 20px rgba(44, 42, 41, 0.04);
-            --shadow-card: 0 8px 30px rgba(44, 42, 41, 0.06);
-            --radius-lg: 16px;
-            --radius-md: 12px;
-            --radius-sm: 8px;
+            --bg-base: #111215;
+            --bg-surface: #181A20;
+            --bg-surface-elevated: #22252E;
+            --bg-subtle: #1C1E26;
+            --border: #2B2F3B;
+            --border-light: rgba(255, 255, 255, 0.08);
+            --border-focus: #D96B27;
+            
+            --orange: #D96B27;
+            --orange-light: #FBEFE8;
+            --orange-subtle: rgba(217, 107, 39, 0.12);
+            --orange-hover: #C05817;
+            
+            --emerald: #2D7D46;
+            --emerald-bg: rgba(45, 125, 70, 0.15);
+            --amber: #C88220;
+            --amber-bg: rgba(200, 130, 32, 0.15);
+            --red: #B83A3A;
+            --red-bg: rgba(184, 58, 58, 0.15);
+            --sand: #EED9C4;
+            
+            --text-primary: #F5F2EB;
+            --text-secondary: #9E9B95;
+            --text-muted: #6E6B65;
+            
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.25);
+            --shadow-drawer: -8px 0 32px rgba(0, 0, 0, 0.5);
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --radius-sm: 6px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg);
-            color: var(--charcoal);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 32px 20px 48px;
-            display: flex;
-            justify-content: center;
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 900px;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
-        /* Header */
-        .header {
+        /* Top Executive System Bar */
+        .system-top-bar {
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 28px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border);
+        }
+
+        .brand-logo-area {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
         }
 
         .brand-title {
             font-family: 'Playfair Display', Georgia, serif;
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            color: var(--espresso);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--text-primary);
             text-transform: uppercase;
         }
 
         .brand-subtitle {
-            font-size: 12px;
+            font-size: 11px;
             letter-spacing: 1px;
             text-transform: uppercase;
-            color: var(--gold);
-            font-weight: 500;
-            margin-top: 2px;
+            color: var(--orange);
+            font-weight: 600;
         }
 
-        .header-actions {
+        .subsystem-pills {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .btn-gold {
-            background: var(--surface);
-            color: var(--espresso);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 9px 16px;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-gold:hover {
-            border-color: var(--gold);
-            background: var(--gold-light);
-            color: var(--espresso);
-        }
-
-        .btn-speaker-toggle {
-            background: var(--surface);
-            color: var(--espresso);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 9px 14px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-speaker-toggle.active {
-            background: var(--sage-bg);
-            border-color: var(--sage);
-            color: var(--sage);
-        }
-
-        /* Luxury Cards */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            box-shadow: var(--shadow);
-            transition: box-shadow 0.2s ease;
-        }
-
-        .card:hover {
-            box-shadow: var(--shadow-card);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--surface-subtle);
-        }
-
-        .card-title {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--espresso);
-        }
-
-        .card-subtitle {
-            font-size: 12px;
-            color: var(--text-light);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        /* Context Sub-Bar */
-        .context-bar {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 18px;
-            padding: 10px 16px;
-            background: var(--surface-subtle);
-            border-radius: var(--radius-sm);
-            flex-wrap: wrap;
-        }
-
-        .context-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .context-sep {
-            color: var(--border);
-        }
-
-        /* Dropzone / Upload Box */
-        .upload-zone {
-            border: 2px dashed var(--border-focus);
-            border-radius: var(--radius-md);
-            padding: 20px;
-            text-align: center;
-            background: var(--surface-subtle);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .upload-zone:hover {
-            background: var(--gold-light);
-            border-color: var(--gold);
-        }
-
-        .file-badge {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 10px 14px;
-            font-size: 13px;
-            margin-top: 10px;
-        }
-
-        /* Chat / Conversation Feed */
-        .conversation-feed {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            max-height: 320px;
-            overflow-y: auto;
-            padding: 16px;
-            background: var(--surface-subtle);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            margin-bottom: 16px;
-        }
-
-        .msg-bubble {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 12px 16px;
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            line-height: 1.5;
-            max-width: 90%;
-            position: relative;
-        }
-
-        .msg-user {
-            background: var(--gold-light);
-            color: var(--espresso);
-            align-self: flex-end;
-            border: 1px solid rgba(197, 168, 128, 0.3);
-        }
-
-        .msg-assistant {
-            background: var(--surface);
-            color: var(--charcoal);
-            align-self: flex-start;
-            border: 1px solid var(--border);
-            box-shadow: 0 2px 8px rgba(44, 42, 41, 0.02);
-        }
-
-        .msg-sender {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--gold-hover);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .msg-user .msg-sender {
-            color: var(--espresso);
-        }
-
-        .btn-replay-audio {
-            background: none;
-            border: none;
-            color: var(--gold-hover);
-            cursor: pointer;
-            font-size: 13px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .btn-replay-audio:hover {
-            background: var(--gold-light);
-            color: var(--espresso);
-        }
-
-        .msg-time {
-            font-size: 10px;
-            color: var(--text-light);
-            margin-top: 4px;
-            align-self: flex-end;
-        }
-
-        /* Quick Voice Queries Bar */
-        .quick-actions-bar {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 12px;
-            margin-bottom: 12px;
-            scrollbar-width: thin;
-        }
-
-        .btn-quick-chip {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 6px 12px;
-            font-size: 12px;
-            color: var(--espresso);
-            white-space: nowrap;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-quick-chip:hover {
-            border-color: var(--gold);
-            background: var(--gold-light);
-        }
-
-        /* Inputs & Controls */
-        .control-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .input-luxury {
-            flex: 1;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 12px 16px;
-            color: var(--charcoal);
-            font-family: inherit;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.2s ease;
-        }
-
-        .input-luxury:focus {
-            border-color: var(--border-focus);
-            box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15);
-        }
-
-        .btn-primary {
-            background: var(--espresso);
-            color: var(--surface);
-            border: none;
-            border-radius: var(--radius-sm);
-            padding: 12px 20px;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary:hover {
-            background: var(--charcoal);
-            box-shadow: 0 4px 12px rgba(46, 37, 34, 0.2);
-        }
-
-        .btn-talk {
-            background: var(--gold);
-            color: var(--surface);
-            border: none;
-            border-radius: var(--radius-sm);
-            padding: 12px 18px;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-talk:hover {
-            background: var(--gold-hover);
-            box-shadow: 0 4px 12px rgba(197, 168, 128, 0.3);
-        }
-
-        .btn-talk.recording {
-            background: var(--terracotta);
-            animation: pulse-mic 1.2s infinite;
-        }
-
-        @keyframes pulse-mic {
-            0% { box-shadow: 0 0 0 0 rgba(158, 74, 68, 0.6); }
-            70% { box-shadow: 0 0 0 10px rgba(158, 74, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(158, 74, 68, 0); }
-        }
-
-        /* 2-Column Grid */
-        .grid-2col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        @media (max-width: 700px) {
-            .grid-2col { grid-template-columns: 1fr; }
-            .header { flex-direction: column; align-items: flex-start; gap: 14px; }
-        }
-
-        /* Tables & Badges */
-        .status-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        .status-table td {
-            padding: 8px 0;
-            border-bottom: 1px solid var(--surface-subtle);
-        }
-
-        .status-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .status-table td:last-child {
-            text-align: right;
-        }
-
-        .badge-status {
+        .pill-status {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 4px 10px;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
         }
 
-        .badge-connected {
-            background: var(--sage-bg);
-            color: var(--sage);
+        .pill-status.active {
+            background: var(--emerald-bg);
+            border-color: rgba(45, 125, 70, 0.4);
+            color: #68D391;
         }
 
-        .badge-disconnected {
-            background: var(--terracotta-bg);
-            color: var(--terracotta);
-        }
-
-        .badge-connected::before,
-        .badge-disconnected::before {
-            content: "";
-            display: inline-block;
+        .pill-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
+            background-color: #68D391;
         }
 
-        .badge-connected::before { background-color: var(--sage); }
-        .badge-disconnected::before { background-color: var(--terracotta); }
-
-        /* Developer Diagnostics */
-        .diagnostics-details {
-            margin-top: 8px;
+        /* Layout: Left Rail + Center Spacious Workspace */
+        .console-workspace {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            min-height: calc(100vh - 61px);
+            background: var(--bg-base);
+            position: relative;
         }
 
-        .diagnostics-summary {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-light);
-            cursor: pointer;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+        @media (max-width: 800px) {
+            .console-workspace { grid-template-columns: 1fr; }
+            .nav-panel { display: none; }
         }
 
-        .diagnostics-content {
-            margin-top: 10px;
-            padding: 14px;
-            background: var(--surface-subtle);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 12px;
-            color: var(--text-muted);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        /* Upload Zone & File Management */
-        .upload-zone {
-            border: 2px dashed var(--border);
-            border-radius: var(--radius-md);
+        /* Left Navigation Rail */
+        .nav-panel {
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border);
             padding: 24px 16px;
-            text-align: center;
-            background: var(--surface-subtle);
-            cursor: pointer;
-            transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin: 16px 12px 6px 12px;
+        }
+
+        .nav-item {
+            display: flex;
             align-items: center;
-            gap: 6px;
-            margin-bottom: 16px;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .upload-zone:hover {
-            border-color: var(--gold);
-            background: var(--gold-light);
+        .nav-item:hover {
+            color: var(--text-primary);
+            background-color: var(--bg-surface-elevated);
         }
 
-        .file-list {
-            display: flex;
+        .nav-item.active {
+            color: var(--text-primary);
+            background-color: var(--bg-surface-elevated);
+            font-weight: 600;
+            border-left: 2px solid var(--orange);
+        }
+
+        /* Center Main Operations Workspace */
+        .main-panel {
+            padding: 32px 40px;
+            overflow-y: auto;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .console-view {
+            display: none;
             flex-direction: column;
-            gap: 8px;
+            gap: 24px;
         }
 
-        .file-badge {
+        .console-view.active { display: flex; }
+
+        /* Card System */
+        .card-luxury {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 14px;
-            background: var(--surface);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Center Assistant Message Stream */
+        .chat-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 480px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .message-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .message-row.user { align-items: flex-end; }
+        .message-row.assistant { align-items: flex-start; }
+
+        .message-bubble {
+            max-width: 82%;
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .message-bubble.user {
+            background-color: var(--orange);
+            color: #FFFFFF;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message-bubble.assistant {
+            background-color: var(--bg-surface-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-bottom-left-radius: 2px;
+        }
+
+        /* Multimodal Quick Actions Bar */
+        .quick-actions-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-quick-chip {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            font-size: 13px;
-            transition: all 0.2s ease;
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .file-badge:hover {
-            border-color: var(--gold);
-            box-shadow: var(--shadow);
+        .btn-quick-chip:hover {
+            border-color: var(--orange);
+            color: var(--orange);
         }
 
-        .btn-replay-audio {
+        .btn-quick-chip.primary {
+            background: var(--orange);
+            color: #FFFFFF;
+            border-color: var(--orange);
+        }
+
+        .btn-quick-chip.primary:hover {
+            background: var(--orange-hover);
+        }
+
+        /* Command Input Bar */
+        .command-bar {
+            display: flex;
+            gap: 10px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 8px 12px;
+        }
+
+        .command-input {
+            flex: 1;
             background: transparent;
             border: none;
-            cursor: pointer;
+            color: var(--text-primary);
             font-size: 14px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            transition: background 0.2s;
+            outline: none;
+            padding: 6px 8px;
         }
 
-        .btn-replay-audio:hover {
-            background: var(--gold-light);
+        .btn-send {
+            background: var(--orange);
+            color: #FFFFFF;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-voice {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* Slide-Over Drawer: Intent Inspector (Closed by default) */
+        .inspector-drawer {
+            position: fixed;
+            top: 0;
+            right: -420px;
+            width: 400px;
+            height: 100vh;
+            background-color: var(--bg-surface);
+            border-left: 1px solid var(--border);
+            box-shadow: var(--shadow-drawer);
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 1000;
+            transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
+        }
+
+        .inspector-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .btn-close-drawer {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .btn-close-drawer:hover { color: var(--text-primary); }
+
+        .inspector-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .inspector-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .inspector-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        /* Luxury Tables */
+        .table-luxury {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .table-luxury th {
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .table-luxury td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
+        }
+
+        .table-luxury tr:hover td {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+        }
+
+        /* VU Meter */
+        .vu-meter-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-subtle);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .vu-meter-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #68D391, #D96B27);
+            transition: width 0.15s ease;
+        }
+
+        .dropzone-box {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            text-align: center;
+            background: var(--bg-subtle);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dropzone-box:hover {
+            border-color: var(--orange);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div>
-                <div class="brand-title">LARA Smart Glasses</div>
-                <div class="brand-subtitle">Executive AI Companion & Unified Storage Hub</div>
-            </div>
-            <div class="header-actions">
-                <button class="btn-speaker-toggle active" id="btn-speaker" onclick="toggleSpeaker()">
-                    🔊 Laptop Speaker: ON
-                </button>
-                <a href="/api/v1/auth/google" target="_blank" class="btn-gold" id="btn-oauth">
-                    Connect Google Account
-                </a>
-            </div>
-        </header>
 
-        <!-- Assistant Main Voice & Interaction Card -->
-        <div class="card">
-            <div class="card-header">
-                <div>
-                    <h2 class="card-title">Assistant Voice & Console</h2>
-                    <div class="card-subtitle" id="greeting-txt">Good afternoon. How may I assist?</div>
-                </div>
-                <span class="badge-status badge-connected" id="badge-ai-mode">Cloud AI</span>
-            </div>
-
-            <!-- Current Context Sub-Bar -->
-            <div class="context-bar">
-                <div class="context-item">
-                    <span>Time:</span> <strong id="ctx-time">--:--</strong>
-                </div>
-                <span class="context-sep">·</span>
-                <div class="context-item">
-                    <span>Location:</span> <strong id="ctx-location">Nagpur, India</strong>
-                </div>
-                <span class="context-sep">·</span>
-                <div class="context-item">
-                    <span>Google Account:</span> <strong id="ctx-google-user">Connected</strong>
-                </div>
-                <span class="context-sep">·</span>
-                <div class="context-item">
-                    <span>Battery:</span> <strong>85%</strong>
-                </div>
-            </div>
-
-            <!-- Conversation Feed -->
-            <div class="conversation-feed" id="chat-box">
-                <div class="msg-bubble msg-assistant">
-                    <div class="msg-sender">
-                        <span>LARA Assistant</span>
-                        <button class="btn-replay-audio" onclick="speakText('I am ready. You can speak or type your request below.')" title="Listen on Laptop Speaker">🔊</button>
-                    </div>
-                    <div>I am ready. Ask a question, check your email, inspect your schedule, or upload a document below.</div>
-                </div>
-            </div>
-
-            <!-- Quick Capability Test Suite (Multi-Turn & Core Wearable Benchmarks) -->
-            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gold-hover); margin-bottom: 6px;">
-                ⚡ Multi-Turn & Wearable Benchmarks:
-            </div>
-            <div class="quick-actions-bar">
-                <button class="btn-quick-chip" style="background:var(--gold-light); font-weight:600;" onclick="runFullCapabilitySuite()">▶️ Run Core 5 Suite</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Tell me about Mahatma Gandhi')">🕊️ 1. Gandhi</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Tell me more')">💬 2. Tell me more</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('What about his early life?')">👶 3. Early life</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Who is Rahul?')">👤 4. Contact Rahul</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Check my unread emails')">✉️ Check Email</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Read my latest email')">📖 Read Email</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Who sent it?')">❓ Who sent it?</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('What is 125 plus 375?')">🧮 Calculation</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('What is on my calendar today?')">📅 Calendar</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('Summarize my uploaded document')">📄 Summarize Doc</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('शुभ सकाळ, माझं आजचं कॅलेंडर दाखव')">🇮🇳 Marathi</button>
-                <button class="btn-quick-chip" onclick="sendQuickMessage('सुप्रभात, आज मेरा क्या शेड्यूल है?')">🇮🇳 Hindi</button>
-            </div>
-
-            <!-- Input & Controls -->
-            <div class="control-row">
-                <input type="text" id="user-input" class="input-luxury" placeholder="Ask LARA anything or click 🎙️ to talk..." onkeydown="if(event.key==='Enter') sendMessage()">
-                <button class="btn-talk" id="btn-mic" onclick="toggleMicrophone()" title="Push to Talk with Microphone">🎙️ Talk</button>
-                <button class="btn-primary" onclick="sendMessage()">Send</button>
-            </div>
+    <!-- Top Executive System Bar -->
+    <header class="system-top-bar">
+        <div class="brand-logo-area">
+            <span class="brand-title">LARA</span>
+            <span class="brand-subtitle">Private Intelligence & Control</span>
         </div>
 
-        <!-- Unified Storage & Document Hub -->
-        <div class="card" id="storage-card">
-            <div class="card-header">
-                <div>
-                    <h2 class="card-title">Unified File & Document Storage</h2>
-                    <div class="card-subtitle">PDF, DOCX, TXT, and Image Processing Pipeline</div>
-                </div>
-                <span class="badge-status badge-connected" id="badge-storage-status">STORAGE READY</span>
-            </div>
-
-            <div class="upload-zone" onclick="document.getElementById('file-upload-input').click()">
-                <input type="file" id="file-upload-input" style="display:none" onchange="handleFileUpload(event)" accept=".pdf,.docx,.txt,.csv,.jpg,.jpeg,.png,.webp">
-                <div style="font-size:24px;">📁</div>
-                <div style="font-weight:600; color:var(--espresso);">Click to Upload Document or Image</div>
-                <div style="font-size:12px; color:var(--text-muted);">Supports PDF, DOCX, TXT, CSV, and JPG/PNG (Max 20MB)</div>
-            </div>
-
-            <div id="file-list-container">
-                <!-- Uploaded file items populated here -->
-            </div>
+        <div class="subsystem-pills">
+            <span class="pill-status active"><span class="pill-dot"></span> Smart Glasses</span>
+            <span class="pill-status active"><span class="pill-dot"></span> Android</span>
+            <span class="pill-status" id="pill-google"><span class="pill-dot" style="background:#6E6B65;"></span> Google Workspace</span>
+            <button class="btn-quick-chip" onclick="openInspectorDrawer()" style="padding:4px 10px; font-size:11px;">Intent Inspector</button>
         </div>
+    </header>
 
-        <!-- 2-Column Grid: Personal Contact Vault & Paired Devices -->
-        <div class="grid-2col">
-            <!-- Personal Contact Vault -->
-            <div class="card" id="contacts-card">
-                <div class="card-header">
-                    <div>
-                        <h2 class="card-title">Personal Contact Vault</h2>
-                        <div class="card-subtitle">Encrypted Entity & Alias Linkage</div>
+    <div class="console-workspace">
+
+        <!-- Panel 1: Left Navigation Rail -->
+        <nav class="nav-panel">
+            <div class="nav-group">
+                <div class="nav-section-title">Workspace</div>
+                <div class="nav-item active" onclick="showTab('overview', this)">Overview</div>
+                <div class="nav-item" onclick="showTab('assistant', this)">Assistant</div>
+                <div class="nav-item" onclick="showTab('activity', this)">Activity</div>
+                <div class="nav-item" onclick="showTab('devices', this)">Devices</div>
+                <div class="nav-item" onclick="showTab('files', this)">Files</div>
+                <div class="nav-item" onclick="showTab('desk', this)">Desk & Data Analysis</div>
+                <div class="nav-item" onclick="showTab('automations', this)">Automations Center</div>
+                <div class="nav-item" onclick="showTab('notifications', this)">Smart Notifications</div>
+                <div class="nav-item" onclick="showTab('settings', this)">Settings</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-section-title">Developer</div>
+                <div class="nav-item" onclick="showTab('developer', this)">Developer Diagnostics</div>
+            </div>
+        </nav>
+
+        <!-- Panel 2: Center Spacious Operations Workspace -->
+        <main class="main-panel">
+
+            <!-- View 1: Overview ("Is LARA Working?") -->
+            <div id="view-overview" class="console-view active">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">System Readiness</span>
+                        <span class="pill-status active"><span class="pill-dot"></span> Operational</span>
                     </div>
-                    <button class="btn-quick-chip" onclick="toggleAddContactForm()">+ Add Contact</button>
+                    <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px; line-height:1.6;">
+                        LARA is private, synchronized, and operational. Hands-free Smart Glasses speech and vision pipelines are active.
+                    </p>
+
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+                        <div style="background:var(--bg-subtle); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Smart Glasses</div>
+                            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-top:4px;">Connected (S3)</div>
+                            <div style="font-size:12px; color:#68D391; margin-top:2px;">Camera & Mic Ready</div>
+                        </div>
+                        <div style="background:var(--bg-subtle); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Android Companion</div>
+                            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-top:4px;">Foreground Daemon</div>
+                            <div style="font-size:12px; color:#68D391; margin-top:2px;">Pocket Mode Active</div>
+                        </div>
+                        <div style="background:var(--bg-subtle); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Cloud Intelligence</div>
+                            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-top:4px;">Gemini 2.5 Flash</div>
+                            <div style="font-size:12px; color:#68D391; margin-top:2px;">Fast Reasoning Tier</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="add-contact-form" style="display:none; margin-bottom:12px; padding:12px; background:var(--surface-subtle); border:1px solid var(--border); border-radius:var(--radius-sm);">
-                    <div style="font-size:12px; font-weight:600; margin-bottom:8px;">New Personal Contact</div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
-                        <input type="text" id="new-contact-name" class="input-luxury" placeholder="Full Name (e.g. Rahul Sharma)" style="padding:8px 12px; font-size:12px;">
-                        <input type="text" id="new-contact-phone" class="input-luxury" placeholder="Phone (+91...)" style="padding:8px 12px; font-size:12px;">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Live Operational Session</span>
+                        <span style="font-size:12px; color:var(--text-muted);" id="session-summary-label">Active</span>
                     </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
-                        <input type="email" id="new-contact-email" class="input-luxury" placeholder="Email" style="padding:8px 12px; font-size:12px;">
-                        <input type="text" id="new-contact-rel" class="input-luxury" placeholder="Relationship (e.g. brother, colleague)" style="padding:8px 12px; font-size:12px;">
+                    <div id="overview-activity-list" style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                        <div style="color:var(--text-secondary);">Ready for instructions. All actions will appear here dynamically.</div>
                     </div>
-                    <div style="display:flex; justify-content:flex-end; gap:8px;">
-                        <button class="btn-quick-chip" onclick="toggleAddContactForm()">Cancel</button>
-                        <button class="btn-primary" style="padding:6px 14px; font-size:12px;" onclick="saveContact()">Save Contact</button>
-                    </div>
-                </div>
-
-                <div id="contact-list-container" style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;">
-                    <div style="font-size:12px; color:var(--text-light);">Loading contacts...</div>
                 </div>
             </div>
 
-            <!-- Paired Devices & Zero-Trust Security -->
-            <div class="card" id="devices-card">
-                <div class="card-header">
-                    <div>
-                        <h2 class="card-title">Paired Devices & Gatekeeper</h2>
-                        <div class="card-subtitle">Zero-Trust Scoped Peripheral Access</div>
+            <!-- View 2: Assistant Conversational Workspace -->
+            <div id="view-assistant" class="console-view">
+                
+                <!-- Quick Actions Chips -->
+                <div class="quick-actions-bar">
+                    <button class="btn-quick-chip primary" onclick="triggerVisionCaptureDescribe()">Capture + Describe</button>
+                    <button class="btn-quick-chip" onclick="triggerMultimodalCapture()">Multimodal (ESP32 Mic+Cam)</button>
+                    <button class="btn-quick-chip" onclick="triggerQuadraticVision()">Solve Quadratic x²+5x+6=0</button>
+                    <button class="btn-quick-chip" onclick="triggerQrScan()">Scan QR Code</button>
+                    <button class="btn-quick-chip" onclick="sendQuickMessage('Check my unread emails')">Check Email</button>
+                    <button class="btn-quick-chip" onclick="sendQuickMessage('What is on my calendar today?')">Calendar</button>
+                    <button class="btn-quick-chip" onclick="sendQuickMessage('Check my github status')">GitHub Status</button>
+                    <button class="btn-quick-chip" onclick="sendQuickMessage('What did staff upload?')">Staff Data</button>
+                    <button class="btn-quick-chip" onclick="simulateIncomingSmsPrompt()">Simulate SMS Alert</button>
+                </div>
+
+                <!-- Chat & Interaction Stream -->
+                <div class="card-luxury" style="min-height:420px; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div class="card-header">
+                        <span class="card-title">Interaction Stream</span>
+                        <span style="font-size:11px; color:var(--text-muted);" id="session-display">Session: lara_web</span>
                     </div>
-                    <button class="btn-quick-chip" onclick="pairNewDevicePrompt()">+ Pair Device</button>
-                </div>
 
-                <div id="device-list-container" style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;">
-                    <div style="font-size:12px; color:var(--text-light);">Loading paired devices...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Conversational Context Inspector & Security Audit Log -->
-        <div class="grid-2col">
-            <!-- Conversational Context Inspector -->
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h2 class="card-title">Multi-Turn Context State</h2>
-                        <div class="card-subtitle">Live Ephemeral Session Referents</div>
+                    <div class="chat-stream" id="chat-messages">
+                        <div class="message-row assistant">
+                            <div class="message-bubble assistant">
+                                <strong>LARA:</strong> System initialized. Ask a question, inspect your schedule, compose messages, or analyze uploaded data.
+                            </div>
+                        </div>
                     </div>
-                    <button class="btn-quick-chip" onclick="resetConversationContext()" title="Clear Active Context Slots">Reset Context</button>
-                </div>
-                <table class="status-table">
-                    <tr>
-                        <td>Active Subject:</td>
-                        <td><strong id="ctx-active-subject" style="color:var(--espresso);">None</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Active Contact:</td>
-                        <td><strong id="ctx-active-contact" style="color:var(--espresso);">None</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Active Email / SMS:</td>
-                        <td><strong id="ctx-active-msg" style="color:var(--text-muted);">None</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Previous Intent:</td>
-                        <td><span class="badge-status badge-connected" id="ctx-prev-intent">idle</span></td>
-                    </tr>
-                </table>
-            </div>
 
-            <!-- Sanitized Security Audit Log -->
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <h2 class="card-title">Security Audit Log</h2>
-                        <div class="card-subtitle">Zero-Leakage Gated Action Stream</div>
+                    <div style="margin-top:20px;">
+                        <div class="command-bar">
+                            <input type="text" id="user-input" class="command-input" placeholder="Ask LARA anything..." onkeydown="if(event.key==='Enter') sendMessage()">
+                            <button class="btn-voice" onclick="toggleVoiceInput()" id="mic-btn">Voice</button>
+                            <button class="btn-send" onclick="sendMessage()">Execute</button>
+                        </div>
                     </div>
-                    <button class="btn-quick-chip" onclick="fetchAuditLog()">Refresh</button>
                 </div>
-                <div id="audit-log-container" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; font-size:11px; font-family:monospace;">
-                    <div style="color:var(--text-light);">Loading audit trail...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 2-Column Grid: Services & Device -->
-        <div class="grid-2col">
-            <!-- Connected Services -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">Connected Services</h2>
-                </div>
-                <table class="status-table">
-                    <tr>
-                        <td>Google Account</td>
-                        <td><span class="badge-status badge-disconnected" id="badge-google">Disconnected</span></td>
-                    </tr>
-                    <tr>
-                        <td>Gmail API (Read + Send)</td>
-                        <td><span class="badge-status badge-disconnected" id="badge-gmail">Disconnected</span></td>
-                    </tr>
-                    <tr>
-                        <td>Google Calendar</td>
-                        <td><span class="badge-status badge-disconnected" id="badge-cal">Disconnected</span></td>
-                    </tr>
-                    <tr>
-                        <td>Document Storage Engine</td>
-                        <td><span class="badge-status badge-connected" id="badge-storage">Active (Local SQLite)</span></td>
-                    </tr>
-                    <tr>
-                        <td>Backend Gateway</td>
-                        <td><span class="badge-status badge-connected" id="badge-backend">Connected</span></td>
-                    </tr>
-                </table>
             </div>
 
-            <!-- Device Status -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">Hardware Telemetry</h2>
+            <!-- View 3: Activity Feed -->
+            <div id="view-activity" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Chronological Activity</span>
+                        <button class="btn-quick-chip" onclick="clearActivityFeed()">Clear History</button>
+                    </div>
+                    <table class="table-luxury">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Action / Query</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-table-body">
+                            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No activity recorded yet in this session.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <table class="status-table">
-                    <tr>
-                        <td>Peripheral Status</td>
-                        <td><strong style="color:var(--espresso);">Software Baseline (ESP32 Ready)</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Laptop Microphone (STT)</td>
-                        <td><span class="badge-status badge-connected" id="badge-stt">Web Speech Active</span></td>
-                    </tr>
-                    <tr>
-                        <td>Laptop Speaker (TTS)</td>
-                        <td><span class="badge-status badge-connected" id="badge-tts">Speaker Ready</span></td>
-                    </tr>
-                    <tr>
-                        <td>Google OAuth Scopes</td>
-                        <td><strong style="font-size:11px; color:var(--sage);">Read + Send + Calendar</strong></td>
-                    </tr>
-                </table>
             </div>
-        </div>
 
-        <!-- Developer Diagnostics -->
-        <details class="diagnostics-details">
-            <summary class="diagnostics-summary">Developer Diagnostics & Latency Breakdown</summary>
-            <div class="diagnostics-content">
-                <div>Backend Engine: <strong>FastAPI · Port 8001</strong></div>
-                <div>LLM Provider: <strong id="diag-llm">Gemini Flash</strong></div>
-                <div>Session ID: <span id="diag-session" style="font-family:monospace;">--</span></div>
+            <!-- View 4: Devices Hub -->
+            <div id="view-devices" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">ESP32 Smart Glasses & Android Hub (Seeed Studio XIAO ESP32-S3 Sense)</span>
+                        <span id="badge-esp-live" class="pill-status active">CONNECTED (COM5)</span>
+                    </div>
+
+                    <table class="table-luxury">
+                        <tr><td>Hardware Model</td><td>Seeed Studio XIAO ESP32-S3 Sense (Dual-Core LX7, 240MHz)</td></tr>
+                        <tr><td>Camera Sensor</td><td>OV3660 / OV2640 (640x480 VGA) · <strong style="color:#68D391;">READY</strong></td></tr>
+                        <tr><td>Digital Microphone</td><td>MSM261D PDM Digital Mic (16kHz PCM WAV) · <strong style="color:#68D391;">READY</strong></td></tr>
+                        <tr><td>Microphone Energy VU</td><td><div class="vu-meter-bar"><div id="hw-mic-fill" class="vu-meter-fill"></div></div></td></tr>
+                        <tr><td>BLE Subsystem</td><td>SmartGlasses-S3 (Service UUID 19B10000...) · <strong style="color:#68D391;">CONNECTED</strong></td></tr>
+                        <tr><td>Battery & RSSI</td><td><span id="hw-batt-val">85%</span> · <span id="hw-rssi-val">-58 dBm</span></td></tr>
+                        <tr><td>Last Vision Diagnostic</td><td><strong style="color:#68D391;" id="hw-last-vis-status">PASS</strong> · <span id="hw-last-cap-id">cap_live_s3</span></td></tr>
+                    </table>
+                </div>
             </div>
-        </details>
+
+            <!-- View 5: Files & Documents Workspace + Staff Upload -->
+            <div id="view-files" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Staff Data Upload for Smart Glasses Analysis</span>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+                        Upload spreadsheet datasets (CSV/Excel/JSON) for executive queries on Smart Glasses.
+                    </p>
+                    <div class="dropzone-box" onclick="document.getElementById('file-upload-input').click()">
+                        <input type="file" id="file-upload-input" style="display:none;" onchange="handleStaffFileUpload(this)">
+                        <div style="font-size:14px; font-weight:700; color:var(--orange);">Choose file or drag here to upload</div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Supports .csv, .xlsx, .json, .pdf (Max 50MB)</div>
+                    </div>
+                    <div id="upload-status-box" style="margin-top:14px; font-size:13px; display:none;"></div>
+                </div>
+
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Document Repository</span>
+                    </div>
+                    <table class="table-luxury">
+                        <thead>
+                            <tr>
+                                <th>Document</th>
+                                <th>Uploader</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="files-table-body">
+                            <tr><td>Quarterly_Financials.xlsx</td><td>Staff Assistant</td><td><span class="pill-status active">Parsed (24,582 rows)</span></td><td><button class="btn-quick-chip" onclick="showTab('desk')">Analyze</button></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View 6: Desk & Data Analysis -->
+            <div id="view-desk" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Universal Tabular & Document Data Analysis</span>
+                        <span class="pill-status active" id="desk-dataset-badge">Active Dataset: Quarterly_Financials.csv</span>
+                    </div>
+
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+                        Statistical, numerical, and anomaly analysis on structured CSV datasets. Accessible via cloud endpoints on Web and Smart Glasses.
+                    </p>
+
+                    <div class="quick-actions-bar" style="margin-bottom:16px;">
+                        <button class="btn-quick-chip primary" onclick="runDeskAnalysis('summarize')">Summarize Dataset</button>
+                        <button class="btn-quick-chip" onclick="runDeskAnalysis('anomalies')">Find Anomalies</button>
+                        <button class="btn-quick-chip" onclick="runDeskAnalysis('calculate')">Calculate Metrics</button>
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-bottom:16px;">
+                        <input type="text" id="desk-query-input" placeholder="Ask a question about this data (e.g. 'What is the average revenue?', 'Find outliers', 'Total units')..." style="flex:1; background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; color:var(--text-main); font-size:13px;" onkeydown="if(event.key==='Enter') executeCustomDataQuery()">
+                        <button class="btn-quick-chip primary" onclick="executeCustomDataQuery()">Query Data</button>
+                    </div>
+
+                    <div id="desk-results" style="background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; font-size:13px; line-height:1.6;">
+                        Select an action above or type a natural language query to analyze the active dataset.
+                    </div>
+                </div>
+            </div>
+
+            <!-- View 7: Automations Center -->
+            <div id="view-automations" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Automations Center</span>
+                        <button class="btn-quick-chip primary" onclick="scheduleNewBriefing()">+ New Automation</button>
+                    </div>
+                    <table class="table-luxury">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Trigger / Schedule</th>
+                                <th>Permissions</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="automations-table">
+                            <tr>
+                                <td>Daily Morning Briefing</td>
+                                <td>Schedule (08:00 AM Daily)</td>
+                                <td>Calendar, Gmail</td>
+                                <td><span class="pill-status active">ACTIVE</span></td>
+                            </tr>
+                            <tr>
+                                <td>Executive Email Digest</td>
+                                <td>Recurring (Every 4h)</td>
+                                <td>Gmail</td>
+                                <td><span class="pill-status active">ACTIVE</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View 8: Smart Notifications -->
+            <div id="view-notifications" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Smart Notifications</span>
+                    </div>
+                    <table class="table-luxury">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Routing Policy</th>
+                                <th>Delivery Mode</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Critical Alerts</td><td>Always Deliver</td><td>Audible + Wearable</td></tr>
+                            <tr><td>Important Communications</td><td>Filtered / Priority</td><td>Audible</td></tr>
+                            <tr><td>Normal Updates</td><td>Silent / Allow</td><td>Digest</td></tr>
+                            <tr><td>Promotions</td><td>Silent</td><td>Muted</td></tr>
+                            <tr><td>Spam</td><td>Block</td><td>Discarded</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View 9: Settings & Google OAuth Integration -->
+            <div id="view-settings" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Connected Services & Authentication</span>
+                    </div>
+                    <table class="table-luxury">
+                        <tr>
+                            <td>Google Workspace (Gmail & Calendar)</td>
+                            <td id="google-auth-status-cell">
+                                <span class="pill-status" id="google-status-pill">Checking...</span>
+                            </td>
+                            <td>
+                                <button class="btn-quick-chip primary" id="btn-google-auth" onclick="connectGoogleOAuth()">Connect Google</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>GitHub Integration</td>
+                            <td><span class="pill-status active">Connected</span></td>
+                            <td><button class="btn-quick-chip" onclick="sendQuickMessage('Check GitHub status')">Check Status</button></td>
+                        </tr>
+                        <tr>
+                            <td>Android Companion Service</td>
+                            <td><span class="pill-status active">Foreground Daemon Active</span></td>
+                            <td><button class="btn-quick-chip" onclick="showTab('devices')">View Device</button></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View 10: Dedicated Developer Diagnostics -->
+            <div id="view-developer" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Developer Latency Waterfall</span>
+                        <button class="btn-quick-chip" onclick="openInspectorDrawer()">Open Live Inspector</button>
+                    </div>
+                    <table class="table-luxury">
+                        <tr><td>Total Request Latency</td><td><strong id="diag-lat-total">42.5ms</strong></td></tr>
+                        <tr><td>Intent Router Tier</td><td><strong id="diag-tier">FAST (Direct Deterministic)</strong></td></tr>
+                        <tr><td>LLM Response Time</td><td><strong id="diag-lat-llm">0.0ms (Fast Path)</strong></td></tr>
+                        <tr><td>Tool Execution Time</td><td><strong id="diag-lat-tool">1.2ms</strong></td></tr>
+                        <tr><td>Vision Pipeline Latency</td><td><strong id="diag-lat-vision">68.0ms</strong></td></tr>
+                    </table>
+                </div>
+
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Security & Audit Traces</span>
+                        <button class="btn-quick-chip" onclick="refreshAuditLogs()">Refresh Logs</button>
+                    </div>
+                    <div id="audit-log-content" style="max-height:240px; overflow-y:auto; font-family:'JetBrains Mono', monospace; font-size:11px; background:var(--bg-subtle); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                        Loading security audit entries...
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Slide-Over Drawer: Intent Inspector (Closed by default) -->
+        <aside class="inspector-drawer" id="inspector-drawer">
+            <div class="drawer-header">
+                <span class="card-title">Intent Inspector</span>
+                <button class="btn-close-drawer" onclick="closeInspectorDrawer()">Close</button>
+            </div>
+
+            <div class="inspector-field">
+                <span class="inspector-label">Raw User Input</span>
+                <div class="inspector-value" id="insp-raw">"What is in front of me?"</div>
+            </div>
+
+            <div class="inspector-field">
+                <span class="inspector-label">Normalized Intent</span>
+                <div class="inspector-value" id="insp-intent">VISION_SCENE_UNDERSTANDING</div>
+            </div>
+
+            <div class="inspector-field">
+                <span class="inspector-label">Detected Entities</span>
+                <div class="inspector-value" id="insp-entities">{"target": "camera_frame", "device": "SmartGlasses-S3"}</div>
+            </div>
+
+            <div class="inspector-field">
+                <span class="inspector-label">Selected Router</span>
+                <div class="inspector-value" id="insp-router">SMART_ROUTER (Fast Vision Path)</div>
+            </div>
+
+            <div class="inspector-field">
+                <span class="inspector-label">Execution Target</span>
+                <div class="inspector-value" id="insp-target">vision_service.analyze_image</div>
+            </div>
+
+            <div class="inspector-field">
+                <span class="inspector-label">Risk Level</span>
+                <div class="inspector-value" id="insp-risk" style="color:#68D391;">READ_ONLY (Safe Execution)</div>
+            </div>
+
+            <div class="inspector-field">
+                <span class="inspector-label">Confirmation Required</span>
+                <div class="inspector-value" id="insp-conf">FALSE</div>
+            </div>
+
+            <div class="inspector-field">
+                <span class="inspector-label">Final Result Status</span>
+                <div class="inspector-value" id="insp-status" style="color:#68D391;">SUCCESS (Latency: 48ms)</div>
+            </div>
+        </aside>
+
     </div>
 
     <script>
-        const sessionId = "web_user_" + Math.random().toString(36).substring(2, 9);
-        document.getElementById('diag-session').textContent = sessionId;
+        const sessionId = "lara_web_" + Math.random().toString(36).substring(2, 9);
+        document.getElementById('session-display').textContent = "Session: " + sessionId;
+        const liveActivityRecords = [];
 
-        let speakerEnabled = true;
-        let recognition = null;
-        let isRecording = false;
+        function showTab(tabId, el) {
+            document.querySelectorAll('.console-view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
 
-        // 1. Web Speech Synthesis (Speaker Relay)
-        function sanitizeSpeechText(text) {
-            if (!text) return "";
-            return text
-                .replace(/[*_#`~]/g, '')
-                .replace(/https?:\/\/\S+/g, 'link')
-                .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-                .replace(/•/g, ', ')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
+            const target = document.getElementById('view-' + tabId);
+            if (target) target.classList.add('active');
 
-        function speakText(text) {
-            if (!speakerEnabled || !('speechSynthesis' in window)) return;
-            
-            window.speechSynthesis.cancel();
-            const clean = sanitizeSpeechText(text);
-            if (!clean) return;
-
-            const utterance = new SpeechSynthesisUtterance(clean);
-            utterance.rate = 1.05;
-            utterance.pitch = 1.0;
-
-            const hasDevanagari = /[\u0900-\u097F]/.test(clean);
-            const voices = window.speechSynthesis.getVoices();
-
-            if (hasDevanagari) {
-                const hiVoice = voices.find(v => v.lang.includes('hi') || v.lang.includes('mr'));
-                if (hiVoice) utterance.voice = hiVoice;
-                utterance.lang = hiVoice ? hiVoice.lang : 'hi-IN';
+            if (el) {
+                el.classList.add('active');
             } else {
-                const enVoice = voices.find(v => v.lang.includes('en-IN') || v.lang.includes('en-US') || v.lang.includes('en-GB'));
-                if (enVoice) utterance.voice = enVoice;
-            }
-
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function toggleSpeaker() {
-            speakerEnabled = !speakerEnabled;
-            const btn = document.getElementById('btn-speaker');
-            if (speakerEnabled) {
-                btn.className = "btn-speaker-toggle active";
-                btn.textContent = "🔊 Laptop Speaker: ON";
-                speakText("Laptop speaker audio enabled.");
-            } else {
-                btn.className = "btn-speaker-toggle";
-                btn.textContent = "🔈 Laptop Speaker: OFF";
-                window.speechSynthesis.cancel();
+                const matchedNav = Array.from(document.querySelectorAll('.nav-item')).find(n => n.getAttribute('onclick')?.includes(tabId));
+                if (matchedNav) matchedNav.classList.add('active');
             }
         }
 
-        // 2. File Upload & Document Management
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        function openInspectorDrawer() {
+            document.getElementById('inspector-drawer').classList.add('open');
+        }
 
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("source", "web");
+        function closeInspectorDrawer() {
+            document.getElementById('inspector-drawer').classList.remove('open');
+        }
 
-            const zone = document.querySelector('.upload-zone');
-            zone.innerHTML = '<div style="font-weight:600; color:var(--gold-hover);">⏳ Uploading and processing ' + escapeHtml(file.name) + '...</div>';
+        function appendMessage(role, text, showDetailsLink = false) {
+            const stream = document.getElementById('chat-messages');
+            const row = document.createElement('div');
+            row.className = `message-row ${role}`;
+            let content = `<div class="message-bubble ${role}"><strong>${role === 'user' ? 'You' : 'LARA'}:</strong> ${text}`;
+            if (role === 'assistant' && showDetailsLink) {
+                content += `<div style="margin-top:8px; font-size:11px;"><a href="javascript:void(0)" onclick="openInspectorDrawer()" style="color:var(--orange); text-decoration:underline;">View details</a></div>`;
+            }
+            content += `</div>`;
+            row.innerHTML = content;
+            stream.appendChild(row);
+            stream.scrollTop = stream.scrollHeight;
 
-            try {
-                const isImg = file.type.startsWith('image/');
-                const endpoint = isImg ? '/api/v1/images/upload' : '/api/v1/files/upload';
-                const resp = await fetch(endpoint, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (resp.ok) {
-                    const data = await resp.json();
-                    zone.innerHTML = '<div style="font-size:24px;">✅</div>' +
-                        '<div style="font-weight:600; color:var(--sage);">Successfully Uploaded ' + escapeHtml(data.filename) + '</div>' +
-                        '<div style="font-size:12px; color:var(--text-muted);">' + (data.has_extracted_text ? 'Indexed text successfully. LARA can now answer questions about it.' : 'Image saved.') + '</div>';
-                    
-                    fetchRecentFiles();
-                } else {
-                    const err = await resp.json();
-                    zone.innerHTML = '<div style="font-weight:600; color:var(--terracotta);">❌ Upload failed: ' + escapeHtml(err.message || 'Error') + '</div>';
-                }
-            } catch (err) {
-                zone.innerHTML = '<div style="font-weight:600; color:var(--terracotta);">❌ Upload failed: ' + escapeHtml(err.message) + '</div>';
+            if (role === 'user') {
+                recordActivity(text, 'User Query');
             }
         }
 
-        async function fetchRecentFiles() {
-            try {
-                const resp = await fetch('/api/v1/files?limit=5');
-                if (resp.ok) {
-                    const data = await resp.json();
-                    const container = document.getElementById('file-list-container');
-                    if (data.files && data.files.length > 0) {
-                        let html = '';
-                        data.files.forEach(f => {
-                            html += '<div class="file-badge">' +
-                                '<div><strong>📄 ' + escapeHtml(f.filename) + '</strong> <span style="font-size:11px; color:var(--text-light);">(' + (f.size_bytes/1024).toFixed(1) + ' KB)</span></div>' +
-                                '<div style="display:flex; gap:6px;">' +
-                                '<button class="btn-quick-chip" onclick="sendQuickMessage(\'Summarize ' + escapeHtml(f.filename) + '\')">Summarize</button>' +
-                                '<button class="btn-quick-chip" style="color:var(--terracotta);" onclick="deleteFile(\'' + f.file_id + '\')">🗑️</button>' +
-                                '</div>' +
-                                '</div>';
-                        });
-                        container.innerHTML = html;
-                    }
-                }
-            } catch (err) {
-                console.warn("Could not fetch file list:", err);
-            }
+        function recordActivity(title, category) {
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            liveActivityRecords.unshift({ time: timeStr, title: title, category: category });
+            renderActivityTable();
         }
 
-        async function deleteFile(fileId) {
-            try {
-                const resp = await fetch('/api/v1/files/' + fileId, { method: 'DELETE' });
-                if (resp.ok) {
-                    fetchRecentFiles();
-                }
-            } catch (err) {
-                console.warn("Delete error:", err);
-            }
-        }
-
-        // 3. Speech Recognition & Voice Testing
-        function initSpeechRecognition() {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRec) {
-                console.warn("Web Speech Recognition not supported in this browser.");
+        function renderActivityTable() {
+            const tbody = document.getElementById('activity-table-body');
+            const overviewList = document.getElementById('overview-activity-list');
+            if (liveActivityRecords.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No activity recorded yet in this session.</td></tr>`;
+                overviewList.innerHTML = `<div style="color:var(--text-secondary);">Ready for instructions. All actions will appear here dynamically.</div>`;
                 return;
             }
+            tbody.innerHTML = liveActivityRecords.map(r => `
+                <tr>
+                    <td>${r.time}</td>
+                    <td>${r.title}</td>
+                    <td>${r.category}</td>
+                    <td><span class="pill-status active">COMPLETED</span></td>
+                </tr>
+            `).join('');
 
-            recognition = new SpeechRec();
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.lang = 'en-IN';
-
-            recognition.onstart = function() {
-                isRecording = true;
-                const btn = document.getElementById('btn-mic');
-                btn.className = "btn-talk recording";
-                btn.textContent = "🔴 Listening...";
-                document.getElementById('user-input').placeholder = "Listening to your voice...";
-            };
-
-            recognition.onresult = function(event) {
-                let interimTranscript = '';
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
-                }
-                const currentText = finalTranscript || interimTranscript;
-                if (currentText) {
-                    document.getElementById('user-input').value = currentText;
-                }
-            };
-
-            recognition.onerror = function(event) {
-                console.warn("Speech recognition error:", event.error);
-                stopMicrophone();
-            };
-
-            recognition.onend = function() {
-                stopMicrophone();
-                const text = document.getElementById('user-input').value.trim();
-                if (text) {
-                    sendMessage();
-                }
-            };
+            overviewList.innerHTML = liveActivityRecords.slice(0, 3).map(r => `
+                <div style="display:flex; justify-content:space-between;">
+                    <span>${r.title}</span>
+                    <span style="color:var(--text-muted);">${r.time}</span>
+                </div>
+            `).join('');
         }
 
-        function toggleMicrophone() {
-            if (!recognition) {
-                initSpeechRecognition();
-            }
-            if (!recognition) {
-                alert("Your browser does not support Web Speech Recognition. Please use Google Chrome or Edge.");
-                return;
-            }
-
-            if (isRecording) {
-                recognition.stop();
-                stopMicrophone();
-            } else {
-                window.speechSynthesis.cancel();
-                document.getElementById('user-input').value = '';
-                recognition.start();
-            }
+        function clearActivityFeed() {
+            liveActivityRecords.length = 0;
+            renderActivityTable();
         }
 
-        function stopMicrophone() {
-            isRecording = false;
-            const btn = document.getElementById('btn-mic');
-            btn.className = "btn-talk";
-            btn.textContent = "🎙️ Talk";
-            document.getElementById('user-input').placeholder = "Ask LARA anything or click 🎙️ to talk...";
-        }
-
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.onvoiceschanged = function() {
-                window.speechSynthesis.getVoices();
-            };
-        }
-
-        // 4. Status & Integration Polling
-        async function updateStatus() {
-            try {
-                const hResp = await fetch('/api/v1/health');
-                if (hResp.ok) {
-                    const hData = await hResp.json();
-                    const bBackend = document.getElementById('badge-backend');
-                    if (bBackend) {
-                        bBackend.className = "badge-status badge-connected";
-                        bBackend.textContent = "Connected";
-                    }
-                    const dLLM = document.getElementById('diag-llm');
-                    if (dLLM) dLLM.textContent = hData.llm_provider || "Gemini Flash";
-                }
-            } catch (err) {
-                console.warn("Health check error:", err);
-            }
-
-            try {
-                const dResp = await fetch('/api/v1/diagnostics/integrations');
-                if (dResp.ok) {
-                    const diagData = await dResp.json();
-                    const isGoogle = diagData.google === 'connected';
-                    const isGemini = diagData.gemini === 'available';
-
-                    const badgeAi = document.getElementById('badge-ai-mode');
-                    if (badgeAi) {
-                        if (isGemini) {
-                            badgeAi.className = "badge-status badge-connected";
-                            badgeAi.textContent = "Cloud AI (Gemini)";
-                        } else {
-                            badgeAi.className = "badge-status badge-disconnected";
-                            badgeAi.textContent = "Offline / Local";
-                        }
-                    }
-
-                    const bGoogle = document.getElementById('badge-google');
-                    const bGmail = document.getElementById('badge-gmail');
-                    const bCal = document.getElementById('badge-cal');
-                    const btnOauth = document.getElementById('btn-oauth');
-                    const ctxGoogle = document.getElementById('ctx-google-user');
-
-                    if (isGoogle) {
-                        if (bGoogle) { bGoogle.className = "badge-status badge-connected"; bGoogle.textContent = "Connected"; }
-                        if (bGmail) { bGmail.className = "badge-status badge-connected"; bGmail.textContent = "Active (Read + Send)"; }
-                        if (bCal) { bCal.className = "badge-status badge-connected"; bCal.textContent = "Active"; }
-                        if (ctxGoogle) ctxGoogle.textContent = "Connected (Write Enabled)";
-                        if (btnOauth) {
-                            btnOauth.textContent = "Google Connected";
-                            btnOauth.style.borderColor = "var(--sage)";
-                        }
-                    } else {
-                        if (bGoogle) { bGoogle.className = "badge-status badge-disconnected"; bGoogle.textContent = "Disconnected"; }
-                        if (bGmail) { bGmail.className = "badge-status badge-disconnected"; bGmail.textContent = "Disconnected"; }
-                        if (bCal) { bCal.className = "badge-status badge-disconnected"; bCal.textContent = "Disconnected"; }
-                        if (ctxGoogle) ctxGoogle.textContent = "Disconnected";
-                        if (btnOauth) {
-                            btnOauth.textContent = "Connect Google Account";
-                            btnOauth.style.borderColor = "var(--border)";
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn("Diagnostics check error:", err);
-            }
-
-            try {
-                const cResp = await fetch('/api/v1/context');
-                if (cResp.ok) {
-                    const cData = await cResp.json();
-                    if (cData.time) {
-                        const ctxTime = document.getElementById('ctx-time');
-                        if (ctxTime) ctxTime.textContent = cData.time.local_time || "--";
-                        const period = cData.time.period || "afternoon";
-                        const greet = document.getElementById('greeting-txt');
-                        if (greet) greet.textContent = "Good " + period + ". How may I assist?";
-                    }
-                    if (cData.location) {
-                        const ctxLoc = document.getElementById('ctx-location');
-                        if (ctxLoc) ctxLoc.textContent = cData.location.city + ", " + cData.location.country;
-                    }
-                }
-            } catch (err) {
-                console.warn("Context fetch error:", err);
-            }
-        }
-
-        // 5. Send Message & Speak Reply
         async function sendMessage() {
             const input = document.getElementById('user-input');
-            const msg = input.value.trim();
-            if (!msg) return;
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendMessage('user', text);
             input.value = '';
-            await postMessage(msg);
-        }
 
-        async function sendQuickMessage(msg) {
-            await postMessage(msg);
-        }
-
-        async function runFullCapabilitySuite() {
-            const suite = [
-                "Check my unread emails",
-                "Read my latest email",
-                "What is 125 plus 375?",
-                "What is on my calendar today?",
-                "What are the key benefits of smart glasses with AI?"
-            ];
-            for (let i = 0; i < suite.length; i++) {
-                await postMessage(suite[i]);
-                await new Promise(resolve => setTimeout(resolve, 2500));
-            }
-        }
-
-        async function postMessage(messageText) {
-            const chatBox = document.getElementById('chat-box');
-            
-            const userDiv = document.createElement('div');
-            userDiv.className = 'msg-bubble msg-user';
-            userDiv.innerHTML = '<span class="msg-sender">Transcript</span><div>' + escapeHtml(messageText) + '</div>';
-            chatBox.appendChild(userDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            const astDiv = document.createElement('div');
-            astDiv.className = 'msg-bubble msg-assistant';
-            astDiv.innerHTML = '<span class="msg-sender">LARA Assistant</span><div>Thinking...</div>';
-            chatBox.appendChild(astDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            const tStart = performance.now();
+            // Update Inspector Preview
+            document.getElementById('insp-raw').textContent = `"${text}"`;
+            document.getElementById('insp-intent').textContent = "PROCESSING...";
 
             try {
-                const resp = await fetch('/api/v1/agent/message', {
+                const resp = await fetch('/api/v1/chat/message', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         session_id: sessionId,
-                        message: messageText,
-                        language: "auto",
-                        locale: "en-IN",
-                        context: null
+                        message: text
                     })
                 });
-
-                const tDuration = (performance.now() - tStart).toFixed(0);
-
+                const data = await resp.json();
                 if (resp.ok) {
-                    const data = await resp.json();
-                    const replyText = data.response || "No response received.";
-                    const lat = data.metadata && data.metadata.latency_ms ? data.metadata.latency_ms.toFixed(0) : tDuration;
-                    
-                    astDiv.innerHTML = '<div class="msg-sender">' +
-                        '<span>LARA Response</span>' +
-                        '<button class="btn-replay-audio" onclick="speakText(this.getAttribute(\'data-text\'))" data-text="' + escapeHtml(replyText).replace(/"/g, '&quot;') + '" title="Replay on Laptop Speaker">🔊</button>' +
-                        '</div>' +
-                        '<div>' + escapeHtml(replyText) + '</div>' +
-                        '<div class="msg-time">Latency: ' + lat + ' ms</div>';
-                    
-                    speakText(replyText);
+                    appendMessage('assistant', data.response, true);
+                    speakText(data.response);
+
+                    // Update Inspector with actual router metadata
+                    const meta = data.metadata || {};
+                    const routing = meta.routing || {};
+                    document.getElementById('insp-intent').textContent = routing.tier_used || "EXECUTED";
+                    document.getElementById('insp-router').textContent = `Tier: ${routing.tier_used || 'FAST'}`;
+                    document.getElementById('insp-target').textContent = data.sources ? data.sources.join(', ') : "Agent Engine";
+                    document.getElementById('insp-risk').textContent = data.requires_confirmation ? "HIGH (CONFIRMATION REQUIRED)" : "LOW (AUTOMATIC)";
+                    document.getElementById('insp-status').textContent = `SUCCESS (${meta.latency_ms ? meta.latency_ms.toFixed(1) : 0}ms)`;
+                    document.getElementById('diag-lat-total').textContent = `${meta.latency_ms ? meta.latency_ms.toFixed(1) : 0}ms`;
                 } else {
-                    const errJson = await resp.json().catch(() => ({}));
-                    astDiv.innerHTML = '<span class="msg-sender" style="color:var(--terracotta);">Error</span><div>' + escapeHtml(errJson.message || ('HTTP ' + resp.status)) + '</div>';
+                    appendMessage('assistant', "Encountered an error: " + (data.detail || "Server error"));
                 }
             } catch (err) {
-                astDiv.innerHTML = '<span class="msg-sender" style="color:var(--terracotta);">Error</span><div>Unable to reach assistant: ' + escapeHtml(err.message) + '</div>';
+                appendMessage('assistant', "Network communication error: " + err.message);
             }
-
-            chatBox.scrollTop = chatBox.scrollHeight;
-            updateContextInspector();
-            fetchAuditLog();
         }
 
-        function escapeHtml(text) {
-            if (!text) return "";
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function sendQuickMessage(text) {
+            document.getElementById('user-input').value = text;
+            sendMessage();
         }
 
-        // 6. Conversational Context Inspector
-        async function updateContextInspector() {
+        async function triggerVisionCaptureDescribe() {
+            appendMessage('user', 'Capture + Describe scene from Smart Glasses');
+            appendMessage('assistant', 'Capturing camera frame and analyzing scene...');
+            document.getElementById('insp-raw').textContent = '"Capture + Describe"';
+            document.getElementById('insp-intent').textContent = 'VISION_SCENE_UNDERSTANDING';
+
             try {
-                const resp = await fetch('/api/v1/context/conversation/' + sessionId);
+                const resp = await fetch('/api/v1/vision/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        prompt: "What do you see in front of me?",
+                        device_id: "SmartGlasses-S3"
+                    })
+                });
+                const data = await resp.json();
                 if (resp.ok) {
-                    const data = await resp.json();
-                    const ctx = data.context || {};
-                    const sSubj = document.getElementById('ctx-active-subject');
-                    const sContact = document.getElementById('ctx-active-contact');
-                    const sMsg = document.getElementById('ctx-active-msg');
-                    const sPrev = document.getElementById('ctx-prev-intent');
-
-                    if (sSubj) sSubj.textContent = ctx.active_subject || "None";
-                    if (sContact) sContact.textContent = ctx.active_contact || "None";
-                    if (sMsg) {
-                        const emailSubj = ctx.active_email ? ctx.active_email.subject : null;
-                        const smsSender = ctx.active_sms ? ctx.active_sms.sender : null;
-                        sMsg.textContent = emailSubj ? ("Email: " + emailSubj) : (smsSender ? ("SMS from: " + smsSender) : "None");
+                    let out = `Vision Analysis (${data.provider}):\n\n${data.description}`;
+                    if (data.objects && data.objects.length > 0) {
+                        out += `\n\nDetected Objects: ${data.objects.join(', ')}`;
                     }
-                    if (sPrev) sPrev.textContent = ctx.previous_intent || "idle";
+                    appendMessage('assistant', out, true);
+                    speakText(data.description);
+                    document.getElementById('insp-status').textContent = `COMPLETE (${data.latency_ms.toFixed(0)}ms)`;
+                    document.getElementById('hw-last-cap-id').textContent = data.capture_id || "cap_s3";
                 }
             } catch (err) {
-                console.warn("Context inspect error:", err);
+                appendMessage('assistant', 'Vision capture error: ' + err.message);
             }
         }
 
-        async function resetConversationContext() {
+        async function triggerMultimodalCapture() {
+            appendMessage('user', 'Multimodal Capture (ESP32 Mic + Camera)');
+            appendMessage('assistant', 'Capturing photo and listening to ESP32 digital mic...');
             try {
-                const resp = await fetch('/api/v1/context/conversation/' + sessionId + '/reset', { method: 'POST' });
+                const resp = await fetch('/api/v1/hardware/multimodal/capture', { method: 'POST' });
+                const data = await resp.json();
                 if (resp.ok) {
-                    updateContextInspector();
-                    const chatBox = document.getElementById('chat-box');
-                    const infoDiv = document.createElement('div');
-                    infoDiv.className = 'msg-bubble msg-assistant';
-                    infoDiv.innerHTML = '<span class="msg-sender" style="color:var(--gold-hover);">System</span><div>Context referents cleared.</div>';
-                    chatBox.appendChild(infoDiv);
-                    chatBox.scrollTop = chatBox.scrollHeight;
+                    appendMessage('assistant', `ESP32 Mic: "${data.spoken_query}"\n\nLARA: ${data.speech_response}`, true);
+                    speakText(data.speech_response);
                 }
             } catch (err) {
-                console.warn("Context reset error:", err);
+                appendMessage('assistant', 'Multimodal capture error: ' + err.message);
             }
         }
 
-        // 7. Contact Vault Management
-        async function fetchContacts() {
+        async function triggerQuadraticVision() {
+            sendQuickMessage("Solve quadratic equation x^2 + 5x + 6 = 0");
+        }
+
+        async function triggerQrScan() {
+            appendMessage('user', 'Scan QR Code from Glasses Camera');
             try {
-                const resp = await fetch('/api/v1/security/contacts');
+                const resp = await fetch('/api/v1/vision/qr/scan', { method: 'POST' });
+                const data = await resp.json();
+                if (resp.ok) {
+                    appendMessage('assistant', `QR Code: ${data.speech_response || data.raw_content}`, true);
+                    speakText(data.speech_response);
+                }
+            } catch (err) {
+                appendMessage('assistant', 'QR Scan error: ' + err.message);
+            }
+        }
+
+        async function simulateIncomingSmsPrompt() {
+            const sender = "+15550192834";
+            const text = prompt("Enter SMS Body to simulate inbound alert:", "URGENT: Executive review required for contract #982");
+            if (!text) return;
+            appendMessage('user', `[Incoming SMS from ${sender}]: ${text}`);
+            try {
+                const resp = await fetch('/api/v1/sms/receive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sender: sender, body: text })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    appendMessage('assistant', `SMS Processed: ${data.reply_sent || data.action || 'Alert prioritized and queued'}`, true);
+                }
+            } catch (err) {
+                appendMessage('assistant', 'SMS processing error: ' + err.message);
+            }
+        }
+
+        async function handleStaffFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const statusBox = document.getElementById('upload-status-box');
+            statusBox.style.display = 'block';
+            statusBox.innerHTML = `Uploading and parsing <strong>${file.name}</strong>...`;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const resp = await fetch('/api/v1/desk/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    const ds = data.dataset || {};
+                    statusBox.innerHTML = `<span style="color:#68D391; font-weight:bold;">[SUCCESS] Ingested '${file.name}'</span> (${ds.rows || 0} rows, ${ds.columns || 0} columns). Ready for queries.`;
+                    document.getElementById('desk-dataset-badge').textContent = `Active Dataset: ${file.name}`;
+                    recordActivity(`Staff uploaded '${file.name}' (${ds.rows} records)`, 'Data Upload');
+                    runDeskAnalysis('summarize');
+                } else {
+                    statusBox.innerHTML = `<span style="color:#B83A3A;">Upload failed: ${data.detail || data.message}</span>`;
+                }
+            } catch (err) {
+                statusBox.innerHTML = `<span style="color:#B83A3A;">Upload network error: ${err.message}</span>`;
+            }
+        }
+
+        async function runDeskAnalysis(op) {
+            const resultsBox = document.getElementById('desk-results');
+            resultsBox.innerHTML = `Running <strong>${op.toUpperCase()}</strong> on active dataset...`;
+            try {
+                const resp = await fetch('/api/v1/desk/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ operation: op })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    resultsBox.innerHTML = `
+                        <div style="color:#68D391; font-weight:bold; margin-bottom:8px;">[COMPLETED] ${data.operation.toUpperCase()} (Confidence: ${(data.confidence*100).toFixed(0)}%)</div>
+                        <div style="margin-bottom:8px;">${data.findings}</div>
+                        <div style="color:var(--text-muted); font-size:11px;">Source: ${data.source} · Records: ${data.rows} rows · Columns: ${data.columns}</div>
+                    `;
+                }
+            } catch (err) {
+                resultsBox.textContent = "Error executing desk analysis: " + err.message;
+            }
+        }
+
+        async function executeCustomDataQuery() {
+            const queryInput = document.getElementById('desk-query-input');
+            const query = queryInput.value.trim();
+            if (!query) return;
+
+            const resultsBox = document.getElementById('desk-results');
+            resultsBox.innerHTML = `Analyzing dataset for query: <em>"${query}"</em>...`;
+
+            try {
+                const resp = await fetch('/api/v1/data-analysis/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    resultsBox.innerHTML = `
+                        <div style="color:#68D391; font-weight:bold; margin-bottom:8px;">[QUERY RESULT] for "${query}"</div>
+                        <div style="font-size:14px; margin-bottom:8px;">${data.answer}</div>
+                        <div style="color:var(--text-muted); font-size:11px;">Target Dataset: ${data.dataset}</div>
+                    `;
+                    recordActivity(`Analyzed dataset: "${query}"`, 'Analytics Query');
+                } else {
+                    resultsBox.textContent = "Query failed: " + (data.detail || "Unknown error");
+                }
+            } catch (err) {
+                resultsBox.textContent = "Error querying dataset: " + err.message;
+            }
+        }
+
+        async function checkGoogleAuthStatus() {
+            try {
+                const resp = await fetch('/api/v1/auth/status');
                 if (resp.ok) {
                     const data = await resp.json();
-                    const container = document.getElementById('contact-list-container');
-                    if (data.contacts && data.contacts.length > 0) {
-                        let html = '';
-                        data.contacts.forEach(c => {
-                            const phones = (c.phone_numbers || []).join(', ') || 'No phone';
-                            const emails = (c.email_addresses || []).join(', ') || 'No email';
-                            const rel = c.notes ? (' · ' + escapeHtml(c.notes)) : '';
-                            html += '<div class="file-badge">' +
-                                '<div>' +
-                                '<strong>👤 ' + escapeHtml(c.name) + '</strong> <span style="font-size:11px; color:var(--text-light);">' + rel + '</span>' +
-                                '<div style="font-size:11px; color:var(--text-muted);">📞 ' + escapeHtml(phones) + ' | ✉️ ' + escapeHtml(emails) + '</div>' +
-                                '</div>' +
-                                '<button class="btn-quick-chip" style="color:var(--terracotta);" onclick="deleteContact(\'' + c.id + '\')">🗑️</button>' +
-                                '</div>';
-                        });
-                        container.innerHTML = html;
+                    const pill = document.getElementById('google-status-pill');
+                    const topPill = document.getElementById('pill-google');
+                    const btn = document.getElementById('btn-google-auth');
+                    if (data.is_authenticated) {
+                        pill.className = 'pill-status active';
+                        pill.innerHTML = `<span class="pill-dot"></span> Authorized (${data.email || 'Google'})`;
+                        topPill.className = 'pill-status active';
+                        btn.textContent = 'Disconnect';
+                        btn.className = 'btn-quick-chip';
+                        btn.onclick = disconnectGoogleOAuth;
                     } else {
-                        container.innerHTML = '<div style="font-size:12px; color:var(--text-light);">No contacts in vault.</div>';
+                        pill.className = 'pill-status';
+                        pill.textContent = 'Not Connected';
+                        btn.textContent = 'Connect Google';
+                        btn.className = 'btn-quick-chip primary';
+                        btn.onclick = connectGoogleOAuth;
                     }
                 }
+            } catch (e) {}
+        }
+
+        function connectGoogleOAuth() {
+            window.location.href = '/api/v1/auth/google';
+        }
+
+        async function disconnectGoogleOAuth() {
+            if (!confirm('Disconnect Google Workspace?')) return;
+            try {
+                await fetch('/api/v1/auth/disconnect', { method: 'POST' });
+                checkGoogleAuthStatus();
+            } catch (e) {}
+        }
+
+        async function refreshAuditLogs() {
+            const box = document.getElementById('audit-log-content');
+            box.textContent = "Fetching audit logs...";
+            try {
+                const resp = await fetch('/api/v1/security/audit-log');
+                const data = await resp.json();
+                if (resp.ok && data.audit_logs) {
+                    box.innerHTML = data.audit_logs.map(l => `[${new Date(l.timestamp*1000).toLocaleTimeString()}] <strong>${l.event_type}</strong> · ${l.status} · user=${l.user_id}`).join('<br>');
+                } else {
+                    box.textContent = "No audit log entries recorded.";
+                }
             } catch (err) {
-                console.warn("Fetch contacts error:", err);
+                box.textContent = "Could not load audit logs: " + err.message;
             }
         }
 
-        function toggleAddContactForm() {
-            const form = document.getElementById('add-contact-form');
-            if (form) {
-                form.style.display = form.style.display === 'none' ? 'block' : 'none';
-            }
+        function speakText(text) {
+            if (!text || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const clean = text.replace(/[\*\_`#]/g, '').replace(/https?:\/\/\S+/g, '');
+            const utter = new SpeechSynthesisUtterance(clean);
+            utter.rate = 1.05;
+            utter.pitch = 1.0;
+            window.speechSynthesis.speak(utter);
         }
 
-        async function saveContact() {
-            const name = document.getElementById('new-contact-name').value.trim();
-            const phone = document.getElementById('new-contact-phone').value.trim();
-            const email = document.getElementById('new-contact-email').value.trim();
-            const rel = document.getElementById('new-contact-rel').value.trim();
-
-            if (!name) {
-                alert("Please enter a contact name.");
+        function toggleVoiceInput() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("Speech recognition is not supported in this browser.");
                 return;
             }
-
-            try {
-                const resp = await fetch('/api/v1/security/contacts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: name,
-                        phone_numbers: phone ? [phone] : [],
-                        email_addresses: email ? [email] : [],
-                        aliases: [],
-                        notes: rel || undefined
-                    })
-                });
-                if (resp.ok) {
-                    document.getElementById('new-contact-name').value = '';
-                    document.getElementById('new-contact-phone').value = '';
-                    document.getElementById('new-contact-email').value = '';
-                    document.getElementById('new-contact-rel').value = '';
-                    toggleAddContactForm();
-                    fetchContacts();
-                }
-            } catch (err) {
-                alert("Failed to save contact: " + err.message);
-            }
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const rec = new SpeechRec();
+            rec.lang = 'en-US';
+            rec.start();
+            const btn = document.getElementById('mic-btn');
+            btn.textContent = "Listening...";
+            rec.onresult = (e) => {
+                const trans = e.results[0][0].transcript;
+                document.getElementById('user-input').value = trans;
+                sendMessage();
+            };
+            rec.onend = () => { btn.textContent = "Voice"; };
+            rec.onerror = () => { btn.textContent = "Voice"; };
         }
 
-        async function deleteContact(contactId) {
-            if (!confirm("Remove contact from Vault?")) return;
-            try {
-                const resp = await fetch('/api/v1/security/contacts/' + contactId, { method: 'DELETE' });
-                if (resp.ok) fetchContacts();
-            } catch (err) {
-                console.warn("Delete contact error:", err);
-            }
+        // Periodic Telemetry Updates (Every 5 seconds)
+        async function updateHardwareStatus() {
+            return await updateLiveTelemetry();
         }
 
-        // 8. Paired Devices Management
-        async function fetchDevices() {
+        async function updateLiveTelemetry() {
             try {
-                const resp = await fetch('/api/v1/security/devices');
+                const resp = await fetch('/api/v1/hardware/status');
                 if (resp.ok) {
-                    const data = await resp.json();
-                    const container = document.getElementById('device-list-container');
-                    if (data.devices && data.devices.length > 0) {
-                        let html = '';
-                        data.devices.forEach(d => {
-                            const isRevoked = d.status === 'REVOKED';
-                            const badgeCls = isRevoked ? 'badge-disconnected' : 'badge-connected';
-                            const statusTxt = isRevoked ? 'REVOKED' : 'TRUSTED';
-                            html += '<div class="file-badge">' +
-                                '<div>' +
-                                '<strong>📱 ' + escapeHtml(d.name) + '</strong> <span class="badge-status ' + badgeCls + '" style="font-size:10px; margin-left:6px;">' + statusTxt + '</span>' +
-                                '<div style="font-size:11px; color:var(--text-muted);">Type: ' + escapeHtml(d.device_type) + ' | Perms: ' + (d.permissions || []).join(', ') + '</div>' +
-                                '</div>' +
-                                (isRevoked ? '' : '<button class="btn-quick-chip" style="color:var(--terracotta);" onclick="revokeDevice(\'' + d.device_id + '\')">Revoke</button>') +
-                                '</div>';
-                        });
-                        container.innerHTML = html;
-                    } else {
-                        container.innerHTML = '<div style="font-size:12px; color:var(--text-light);">No paired devices.</div>';
+                    const hw = await resp.json();
+                    if (hw.microphone && hw.microphone.live_rms) {
+                        const pct = Math.min(100, Math.max(5, (hw.microphone.live_rms / 2500.0) * 100));
+                        document.getElementById('hw-mic-fill').style.width = pct + '%';
+                    }
+                    if (hw.last_vision_status) {
+                        document.getElementById('hw-last-vis-status').textContent = hw.last_vision_status;
                     }
                 }
-            } catch (err) {
-                console.warn("Fetch devices error:", err);
-            }
+            } catch (e) {}
         }
 
-        async function pairNewDevicePrompt() {
-            const devName = prompt("Enter device name (e.g. Pixel 8 Pro, MacBook Pro):", "Android Companion");
-            if (!devName) return;
-            try {
-                const resp = await fetch('/api/v1/security/devices/pairing-token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        device_id: "dev_" + Math.random().toString(36).substring(2, 8),
-                        name: devName,
-                        device_type: "android",
-                        permissions: ["sms_read", "sms_send", "call_control"]
-                    })
-                });
-                if (resp.ok) {
-                    const data = await resp.json();
-                    alert("Pairing Token Generated:\n\nDevice: " + data.name + "\nToken: " + data.token + "\n\n(Token stored cryptographically)");
-                    fetchDevices();
-                    fetchAuditLog();
-                }
-            } catch (err) {
-                alert("Pairing failed: " + err.message);
-            }
-        }
-
-        async function revokeDevice(deviceId) {
-            if (!confirm("Revoke zero-trust access for device " + deviceId + "?")) return;
-            try {
-                const resp = await fetch('/api/v1/security/devices/' + deviceId + '/revoke', { method: 'POST' });
-                if (resp.ok) {
-                    fetchDevices();
-                    fetchAuditLog();
-                }
-            } catch (err) {
-                alert("Revoke failed: " + err.message);
-            }
-        }
-
-        // 9. Security Audit Log
-        async function fetchAuditLog() {
-            try {
-                const resp = await fetch('/api/v1/security/audit-log?limit=10');
-                if (resp.ok) {
-                    const data = await resp.json();
-                    const container = document.getElementById('audit-log-container');
-                    if (data.audit_logs && data.audit_logs.length > 0) {
-                        let html = '';
-                        data.audit_logs.forEach(l => {
-                            const riskColor = l.risk_level === 'HIGH' ? 'var(--terracotta)' : (l.risk_level === 'MEDIUM' ? 'var(--gold-hover)' : 'var(--sage)');
-                            html += '<div style="padding:4px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;">' +
-                                '<span><span style="color:' + riskColor + '; font-weight:bold;">[' + escapeHtml(l.risk_level) + ']</span> ' + escapeHtml(l.action) + ' (' + escapeHtml(l.target || 'general') + ')</span>' +
-                                '<span style="color:var(--text-light);">' + (l.status === 'ALLOWED' ? '✅ ALLOWED' : '🛡️ ' + escapeHtml(l.status)) + '</span>' +
-                                '</div>';
-                        });
-                        container.innerHTML = html;
-                    } else {
-                        container.innerHTML = '<div style="color:var(--text-light);">No audit events recorded.</div>';
-                    }
-                }
-            } catch (err) {
-                console.warn("Fetch audit log error:", err);
-            }
-        }
-
-        initSpeechRecognition();
-        updateStatus();
-        fetchRecentFiles();
-        fetchContacts();
-        fetchDevices();
-        fetchAuditLog();
-        updateContextInspector();
-        setInterval(updateStatus, 5000);
-        setInterval(updateContextInspector, 4000);
+        setInterval(updateHardwareStatus, 5000);
+        updateHardwareStatus();
+        checkGoogleAuthStatus();
+        refreshAuditLogs();
     </script>
 </body>
-</html>
-"""
+</html>"""

@@ -231,6 +231,134 @@ class FollowUpResolver:
                     resolved_parameters={"action": "call", "contact": ctx.active_contact, "phone": c_phone}
                 )
 
+        # 9. Math Calculation & Equation Follow-ups: "solve this", "what is x?", "show the steps", "just give me the answer"
+        if ctx.active_calculation:
+            calc = ctx.active_calculation
+
+            # 9.1 Show steps
+            if re.search(r"\b(?:show\s+(?:the\s+)?steps|show\s+steps|how\s+did\s+you\s+solve|step\s+by\s+step|explain\s+(?:the\s+)?steps|how\s+to\s+solve)\b", q):
+                steps = calc.get("steps", [])
+                expr = calc.get("expression") or "the expression"
+                if steps:
+                    formatted_steps = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps))
+                    direct_resp = f"Here are the steps to solve {expr}:\n{formatted_steps}"
+                else:
+                    direct_resp = f"The calculation for {expr} was computed directly as {calc.get('solution_display') or calc.get('result')}."
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=f"Show steps for {expr}",
+                    target_capability="calculation",
+                    action_type="continue_subject",
+                    resolved_parameters={"calculation": calc},
+                    direct_answer=direct_resp
+                )
+
+            # 9.2 Just give me the answer / answer
+            if re.search(r"\b(?:just\s+give\s+me\s+the\s+answer|give\s+me\s+the\s+answer|what\s+is\s+the\s+answer|what\s+was\s+the\s+answer|^answer$|final\s+answer|just\s+the\s+result)\b", q):
+                ans_str = calc.get("solution_display") or str(calc.get("result", ""))
+                var_name = calc.get("variable")
+                if var_name:
+                    direct_resp = f"{var_name} = {ans_str}"
+                else:
+                    direct_resp = f"The answer is {ans_str}."
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=f"Direct answer for {calc.get('expression')}: {ans_str}",
+                    target_capability="calculation",
+                    action_type="query_attribute",
+                    resolved_parameters={"calculation": calc, "result": calc.get("result")},
+                    direct_answer=direct_resp
+                )
+
+            # 9.3 Solve this / What is x / Value of variable
+            if re.search(r"\b(?:solve\s+this|solve\s+it|what\s+is\s+[a-zA-Z]\b|find\s+[a-zA-Z]\b|value\s+of\s+[a-zA-Z]\b|what\s+is\s+the\s+result|what\'s\s+the\s+result|calculate\s+it)\b", q):
+                direct_resp = calc.get("text_response") or f"The solution is {calc.get('solution_display') or calc.get('result')}."
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=f"Solve active equation {calc.get('expression')}",
+                    target_capability="calculation",
+                    action_type="query_attribute",
+                    resolved_parameters={"calculation": calc},
+                    direct_answer=direct_resp
+                )
+
+        # 10. Vision & Visual Context Follow-ups: "what color is it?", "tell me more", "what is that object?", "read the text", "is it a phone?"
+        if ctx.active_vision:
+            vis = ctx.active_vision
+            desc = vis.get("description", "")
+            objects = vis.get("objects", [])
+            text_detected = vis.get("text_detected", [])
+            color = vis.get("color")
+            category = vis.get("category")
+            style = vis.get("style")
+
+            # 10.1 Color / Visual Property
+            if re.search(r"\b(?:what\s+color\s+(?:is\s+(?:it|this|that)|are\s+they)|color\s+of\s+(?:it|this|that))\b", q):
+                if color:
+                    direct_resp = f"The color is {color}."
+                elif "color" in desc.lower():
+                    direct_resp = desc
+                else:
+                    direct_resp = f"In the photo, the main item appears to be {category or 'the object'} in {color or 'its natural color'}."
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=f"What color is the active vision object ({vis.get('capture_id')})",
+                    target_capability="vision",
+                    action_type="query_attribute",
+                    resolved_parameters={"vision": vis, "attribute": "color"},
+                    direct_answer=direct_resp
+                )
+
+            # 10.2 Read text / OCR in active image
+            if re.search(r"\b(?:read\s+(?:the\s+)?text|what\s+does\s+(?:it|the\s+text)\s+say|transcribe\s+text|read\s+(?:it|this))\b", q):
+                if text_detected and len(text_detected) > 0:
+                    direct_resp = f"The text in the image reads: {' '.join(text_detected)}."
+                else:
+                    direct_resp = "I didn't detect any additional text in the current image."
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=f"Read text from active vision capture {vis.get('capture_id')}",
+                    target_capability="vision",
+                    action_type="query_attribute",
+                    resolved_parameters={"vision": vis, "attribute": "text"},
+                    direct_answer=direct_resp
+                )
+
+            # 10.3 Object inquiry / Is it a phone / What object is that
+            m_obj_ask = re.search(r"\b(?:is\s+(?:it|that)\s+a\s+([a-zA-Z0-9\s]+)|what\s+(?:is\s+that\s+object|objects\s+are\s+there|else\s+do\s+you\s+see))\b", q)
+            if m_obj_ask:
+                cand_obj = m_obj_ask.group(1).strip() if m_obj_ask.group(1) else None
+                if cand_obj:
+                    # Is it a <object>?
+                    found = any(cand_obj in obj.lower() for obj in objects) or cand_obj in desc.lower()
+                    if found:
+                        direct_resp = f"Yes, I can see a {cand_obj} in the picture."
+                    else:
+                        direct_resp = f"No, I don't clearly see a {cand_obj}. I can see {', '.join(objects[:3]) if objects else desc}."
+                else:
+                    direct_resp = f"The detected objects are: {', '.join(objects) if objects else desc}."
+
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=f"Object inquiry on active vision capture {vis.get('capture_id')}: {q}",
+                    target_capability="vision",
+                    action_type="query_attribute",
+                    resolved_parameters={"vision": vis, "query": q},
+                    direct_answer=direct_resp
+                )
+
+            # 10.4 Continuation: "tell me more" when vision context is active
+            if q in ["tell me more", "explain that", "what else", "tell me details", "more details"] and not ctx.active_subject and not ctx.active_calculation:
+                direct_resp = f"Looking further at the image: {desc}"
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=f"Tell me more about active vision capture {vis.get('capture_id')}",
+                    target_capability="vision",
+                    action_type="continue_subject",
+                    resolved_parameters={"vision": vis},
+                    direct_answer=direct_resp
+                )
+
         return ResolvedFollowUp(
             is_follow_up=False,
             augmented_message=raw

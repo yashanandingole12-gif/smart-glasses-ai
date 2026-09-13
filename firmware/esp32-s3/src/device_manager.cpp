@@ -30,23 +30,23 @@ void DeviceManager::init() {
     ButtonManager::getInstance().setOnPressStartCallback([]() {
         Serial.println("[BUTTON] >>> PRESS START -> Sending TALK_START");
         AudioManager::getInstance().startMicrophone();
-        BleManager::getInstance().sendEvent("TALK_START", "{\"action\":\"listen\"}");
+        BleManager::getInstance().sendEvent("TALK_START");
     });
 
     ButtonManager::getInstance().setOnReleaseCallback([]() {
         Serial.println("[BUTTON] <<< RELEASE -> Sending TALK_STOP");
         AudioManager::getInstance().stopMicrophone();
-        BleManager::getInstance().sendEvent("TALK_STOP", "{\"action\":\"stop_listen\"}");
+        BleManager::getInstance().sendEvent("TALK_STOP");
     });
 
     ButtonManager::getInstance().setOnPressCallback([]() {
-        Serial.println("[BUTTON] CLICK -> Sending BUTTON_PRESSED (short_press)");
-        BleManager::getInstance().sendEvent("BUTTON_PRESSED", "{\"type\":\"short_press\"}");
+        Serial.println("[BUTTON] CLICK -> Sending BUTTON_PRESSED");
+        BleManager::getInstance().sendEvent("BUTTON_PRESSED");
     });
 
     ButtonManager::getInstance().setOnLongPressCallback([]() {
-        Serial.println("[BUTTON] HOLD -> Sending BUTTON_LONG_PRESSED (long_press)");
-        BleManager::getInstance().sendEvent("BUTTON_LONG_PRESSED", "{\"type\":\"long_press\"}");
+        Serial.println("[BUTTON] HOLD -> Sending BUTTON_LONG_PRESSED");
+        BleManager::getInstance().sendEvent("BUTTON_LONG_PRESSED");
     });
 
     // Setup BLE command callback

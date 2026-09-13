@@ -37,6 +37,7 @@ class ActiveSessionContext:
         }
         self.active_document: Optional[Dict[str, Any]] = None
         self.active_calculation: Optional[Dict[str, Any]] = None
+        self.active_vision: Optional[Dict[str, Any]] = None
         self.previous_intent: Optional[str] = None
         self.previous_response: Optional[str] = None
         self.previous_tool_result: Optional[Any] = None
@@ -60,6 +61,7 @@ class ActiveSessionContext:
             "active_search": self.active_search,
             "active_document": self.active_document,
             "active_calculation": self.active_calculation,
+            "active_vision": self.active_vision,
             "previous_intent": self.previous_intent,
             "previous_response": self.previous_response,
             "previous_tool_result": self.previous_tool_result,
@@ -96,6 +98,14 @@ class ConversationContextEngine:
             ctx = self._sessions[session_id]
             ctx.touch()
             return ctx
+
+    def get_context(self, session_id: str) -> ActiveSessionContext:
+        """Alias for get_session for consistent API access."""
+        return self.get_session(session_id)
+
+    def clear_context(self, session_id: str):
+        """Alias for clear for consistent API access."""
+        self.clear(session_id)
 
     def update_subject(self, session_id: str, subject: str, entity_data: Optional[Dict[str, Any]] = None):
         with self._lock:
@@ -184,12 +194,64 @@ class ConversationContextEngine:
             }
             ctx.touch()
 
-    def update_calculation(self, session_id: str, expression: str, result: str):
+    def update_calculation(
+        self,
+        session_id: str,
+        expression: str,
+        result: Any,
+        variable: Optional[str] = None,
+        approx_result: Optional[Any] = None,
+        steps: Optional[List[str]] = None,
+        solution_display: Optional[str] = None,
+        text_response: Optional[str] = None,
+        raw_query: Optional[str] = None
+    ):
         with self._lock:
             ctx = self.get_session(session_id)
             ctx.active_calculation = {
                 "expression": expression,
-                "result": result
+                "result": result,
+                "variable": variable,
+                "approx_result": approx_result,
+                "steps": list(steps) if steps else [],
+                "solution_display": solution_display or str(result),
+                "text_response": text_response or f"Result is {result}",
+                "raw_query": raw_query
+            }
+            ctx.touch()
+
+    def update_vision_context(
+        self,
+        session_id: str,
+        capture_id: str,
+        metadata: Dict[str, Any],
+        result: Dict[str, Any],
+        description: str,
+        objects: Optional[List[str]] = None,
+        text_detected: Optional[List[str]] = None,
+        raw_query: Optional[str] = None
+    ):
+        with self._lock:
+            ctx = self.get_session(session_id)
+            ctx.active_vision = {
+                "capture_id": capture_id,
+                "timestamp": metadata.get("timestamp", time.time()),
+                "device_id": metadata.get("device_id", "SmartGlasses-S3"),
+                "width": metadata.get("width", 640),
+                "height": metadata.get("height", 480),
+                "mime_type": metadata.get("mime_type", "image/jpeg"),
+                "byte_size": metadata.get("byte_size", 0),
+                "checksum": metadata.get("checksum", ""),
+                "description": description,
+                "objects": list(objects) if objects else [],
+                "text_detected": list(text_detected) if text_detected else [],
+                "structured_attributes": result.get("structured_attributes", {}),
+                "category": result.get("category"),
+                "color": result.get("color"),
+                "style": result.get("style"),
+                "raw_query": raw_query,
+                "provider": result.get("provider", "gemini-flash"),
+                "latency_ms": result.get("latency_ms", 0.0)
             }
             ctx.touch()
 

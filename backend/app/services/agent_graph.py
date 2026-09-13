@@ -15,8 +15,11 @@ from backend.app.services.memory_repository import memory_repository
 from backend.app.services.personality_engine import personality_engine
 from backend.app.services.conversation_context_engine import conversation_context_engine
 from backend.app.services.follow_up_resolver import follow_up_resolver
+from backend.app.services.math_engine import math_engine
 from backend.app.services.contact_vault import contact_vault
 from backend.app.services.device_security_service import device_security_service
+from backend.app.services.vision_service import vision_service
+from backend.app.services.hardware_bridge import hardware_bridge
 from backend.app.models.schemas import RiskLevel, AgentAction
 
 logger = logging.getLogger("SmartGlasses.AgentGraph")
@@ -394,6 +397,92 @@ async def run_agent(
             "confirmation_prompt": None,
             "timings": {"agent_ms": 2.0},
             "routing_metadata": {"tier_used": "FAST", "resolved_referent": True},
+            "steps_count": 1
+        }
+
+    # 2. Deterministic Math Engine Fast-Path (<5ms)
+    math_eval = math_engine.evaluate(user_message)
+    if math_eval is not None:
+        math_reply = math_eval.get("text_response", "Calculation completed.")
+        conversation_context_engine.update_calculation(
+            session_id=session_id,
+            expression=math_eval.get("equation") or math_eval.get("expression") or user_message,
+            result=math_eval.get("result"),
+            variable=math_eval.get("variable"),
+            approx_result=math_eval.get("approx_result"),
+            steps=math_eval.get("steps"),
+            solution_display=math_eval.get("solution_display"),
+            text_response=math_reply,
+            raw_query=user_message
+        )
+        memory_repository.save_message(session_id, "user", user_message)
+        memory_repository.save_message(session_id, "assistant", math_reply)
+        conversation_context_engine.update_turn(session_id, intent="calculation", response=math_reply)
+        return {
+            "response": math_reply,
+            "actions": [],
+            "requires_confirmation": False,
+            "confirmation_prompt": None,
+            "timings": {"agent_ms": 1.5},
+            "routing_metadata": {"tier_used": "FAST", "math_operation": math_eval.get("operation")},
+            "steps_count": 1
+        }
+
+    # 3. Vision & Scene Understanding Fast-Path (<100ms)
+    q_clean = user_message.lower().strip("?.!, ")
+    is_vision_query = any(
+        k in q_clean for k in [
+            "what do you see", "what do u see", "describe this", "describe what you see",
+            "describe the picture", "what is in front of me", "what's in front of me",
+            "look at this", "read this", "analyze this image", "analyze the image",
+            "what am i looking at", "tell me what you see"
+        ]
+    )
+    if is_vision_query:
+        # Obtain frame from payload or capture hardware frame
+        raw_b64 = (context_payload or {}).get("image_base64")
+        if not raw_b64:
+            cam_res = hardware_bridge.capture_camera_frame()
+            raw_b64 = cam_res.get("base64_data", "")
+
+        frame_bytes = b""
+        if raw_b64:
+            try:
+                import base64 as b64_mod
+                frame_bytes = b64_mod.b64decode(raw_b64)
+            except Exception as e:
+                logger.warning(f"Failed to decode base64 image: {e}")
+
+        vis_result = vision_service.analyze_image(
+            image_bytes=frame_bytes,
+            user_query=user_message,
+            session_id=session_id,
+            device_id="SmartGlasses-S3"
+        )
+        spoken_desc = vis_result.get("description", "I see the scene in front of you.")
+        memory_repository.save_message(session_id, "user", user_message)
+        memory_repository.save_message(session_id, "assistant", spoken_desc)
+        conversation_context_engine.update_turn(session_id, intent="vision", response=spoken_desc)
+
+        return {
+            "response": spoken_desc,
+            "actions": [
+                AgentAction(
+                    tool_name="vision_analyze",
+                    tool_input={"query": user_message, "capture_id": vis_result.get("capture_id")},
+                    risk_level=RiskLevel.READ,
+                    status="executed",
+                    result=vis_result
+                )
+            ],
+            "requires_confirmation": False,
+            "confirmation_prompt": None,
+            "timings": {"agent_ms": vis_result.get("latency_ms", 50.0)},
+            "routing_metadata": {
+                "tier_used": "FAST",
+                "vision_provider": vis_result.get("provider", "gemini-flash"),
+                "capture_id": vis_result.get("capture_id")
+            },
             "steps_count": 1
         }
 

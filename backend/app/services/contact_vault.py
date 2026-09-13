@@ -198,6 +198,85 @@ class PersonalContactVault:
                 for r in rows
             ]
 
+    def sync_google_contacts(self, google_contacts: List[Dict[str, Any]], user_id: str = "default_user") -> List[VaultContact]:
+        """
+        Safely synchronizes normalized Google Contacts into Contact Vault.
+        Deduplication rule: Merges only when an identical phone number or identical email address is found.
+        Never merges distinct individuals sharing common first names.
+        """
+        existing = self.list_contacts(user_id)
+        synced: List[VaultContact] = []
+
+        for gc in google_contacts:
+            name = gc.get("name", "").strip()
+            if not name:
+                continue
+
+            incoming_phones = set(gc.get("phone_numbers", []))
+            incoming_emails = set(gc.get("email_addresses", []))
+            incoming_aliases = set(gc.get("aliases", []))
+            company = gc.get("company") or gc.get("organization")
+            notes = gc.get("notes")
+
+            # Check for existing match by phone or email
+            match_contact: Optional[VaultContact] = None
+            for ex in existing:
+                ex_phones = set(ex.phone_numbers)
+                ex_emails = set(ex.email_addresses)
+                if (incoming_phones and ex_phones and bool(incoming_phones & ex_phones)) or \
+                   (incoming_emails and ex_emails and bool(incoming_emails & ex_emails)):
+                    match_contact = ex
+                    break
+
+            if match_contact:
+                # Merge identifiers into existing contact
+                merged_phones = list(set(match_contact.phone_numbers) | incoming_phones)
+                merged_emails = list(set(match_contact.email_addresses) | incoming_emails)
+                merged_aliases = list(set(match_contact.aliases) | incoming_aliases)
+                now = time.time()
+                with self._get_conn() as conn:
+                    conn.execute("""
+                        UPDATE personal_contacts
+                        SET aliases = ?, phone_numbers = ?, email_addresses = ?, company = COALESCE(company, ?), notes = COALESCE(notes, ?), updated_at = ?
+                        WHERE id = ? AND user_id = ?
+                    """, (
+                        json.dumps(merged_aliases),
+                        json.dumps(merged_phones),
+                        json.dumps(merged_emails),
+                        company,
+                        notes,
+                        now,
+                        match_contact.id,
+                        user_id
+                    ))
+                    conn.commit()
+                synced.append(VaultContact(
+                    id=match_contact.id,
+                    user_id=user_id,
+                    name=match_contact.name,
+                    aliases=merged_aliases,
+                    phone_numbers=merged_phones,
+                    email_addresses=merged_emails,
+                    company=match_contact.company or company,
+                    notes=match_contact.notes or notes,
+                    created_at=match_contact.created_at,
+                    updated_at=now
+                ))
+            else:
+                # Insert as new contact
+                new_c = self.add_contact(
+                    user_id=user_id,
+                    name=name,
+                    phone_numbers=list(incoming_phones),
+                    email_addresses=list(incoming_emails),
+                    aliases=list(incoming_aliases),
+                    company=company,
+                    notes=notes
+                )
+                synced.append(new_c)
+
+        return self.list_contacts(user_id)
+
     def delete_contact(self, contact_id: str, user_id: str = "default_user") -> bool:
         with self._get_conn() as conn:
             cur = conn.execute("DELETE FROM personal_contacts WHERE id = ? AND user_id = ?", (contact_id, user_id))

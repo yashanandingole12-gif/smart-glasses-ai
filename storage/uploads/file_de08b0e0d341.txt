@@ -1,1 +1,0 @@
-Smart Glasses AI System Architecture: LARA is the real-time AI assistant capable of multithreaded reasoning, Gmail integration, Google Calendar sync, and offline deterministic routing.

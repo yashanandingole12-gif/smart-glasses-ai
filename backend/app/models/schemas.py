@@ -120,13 +120,23 @@ class SessionResponse(BaseModel):
     device_type: str
 
 class VisionAnalyzeRequest(BaseModel):
-    session_id: str
-    image_base64: str
+    session_id: Optional[str] = "default_session"
+    image_base64: Optional[str] = None
     prompt: Optional[str] = "Describe what you see and extract any wearable/clothing details."
+    capture_id: Optional[str] = None
+    device_id: Optional[str] = "SmartGlasses-S3"
 
 class VisionAnalyzeResponse(BaseModel):
+    capture_id: Optional[str] = None
     description: str
+    objects: Optional[List[str]] = []
+    text_detected: Optional[List[str]] = []
+    confidence: Optional[float] = None
+    provider: Optional[str] = "gemini-flash"
+    latency_ms: Optional[float] = 0.0
     structured_attributes: Optional[Dict[str, Any]] = None
     category: Optional[str] = None
     color: Optional[str] = None
     style: Optional[str] = None
+    status: Optional[str] = "success"
+

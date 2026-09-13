@@ -40,6 +40,30 @@ class AIResponseRouter(
         val qLower = q.lowercase(Locale.ROOT)
         val tStart = System.currentTimeMillis()
 
+        // 0. Handle Confirmation of Pending Actions (SMS Dispatch, etc.)
+        if (confirmedAction == true && confirmedActionId != null) {
+            val ctx = context
+            if (ctx != null && confirmedActionId.startsWith("sms_")) {
+                val dest = pendingSendPhone ?: lastReadSmsPhone
+                val body = pendingSendMessage
+                if (!dest.isNullOrBlank() && !body.isNullOrBlank()) {
+                    val ok = SmsManagerHelper.sendSms(ctx, dest, body)
+                    val recName = pendingSendRecipient ?: lastReadSmsSender ?: dest
+                    pendingSendMessage = null
+                    pendingSendPhone = null
+                    pendingSendRecipient = null
+                    return WearableResponse(
+                        text = if (ok) "Message sent to $recName." else "Failed to send message to $recName.",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = if (ok) ResponseCapabilityStatus.ANSWERED else ResponseCapabilityStatus.FAILED,
+                        latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+                    )
+                }
+            }
+        }
+
         // 0. LAYER 0 — Native Telephony & Call Controls (<50ms on-device)
         if (isCallQuery(qLower)) {
             val callResp = handleLocalCallQuery(q, sessionId, tStart)
@@ -141,8 +165,13 @@ class AIResponseRouter(
         }
     }
 
+    private var lastReadSmsIndex: Int = 0
+    private var lastReadSmsList: List<com.smartglasses.ai.core.sms.SmsItem> = emptyList()
     private var lastReadSmsSender: String? = null
     private var lastReadSmsPhone: String? = null
+    private var pendingSendMessage: String? = null
+    private var pendingSendPhone: String? = null
+    private var pendingSendRecipient: String? = null
 
     private val contactSmsPatterns = listOf(
         Regex("""(?:did|has)\s+([a-zA-Z0-9\s]+?)\s+(?:message|text|sms)(?:\s+me)?\??$"""),
@@ -151,6 +180,18 @@ class AIResponseRouter(
         Regex("""(?:messages?|sms|texts?)\s+(?:from|by)\s+([a-zA-Z0-9\s]+?)\??$"""),
         Regex("""([a-zA-Z0-9\s]+?)\s+(?:ka|se)\s+(?:sms|message|text)"""),
         Regex("""([a-zA-Z0-9\s]+?)\s+ne\s+(?:sms|message|text)\s+(?:bheja|bheja\s+kya)""")
+    )
+
+    private val composeSmsPatterns = listOf(
+        Regex("""^(?:send|compose)\s+(?:an?\s+)?(?:sms|message|text)\s+to\s+([a-zA-Z0-9\s]+?)\s+(?:saying|that|:)\s+(.+)$"""),
+        Regex("""^(?:send\s+to)\s+([a-zA-Z0-9\s]+?)\s+(?:saying|that|:)\s+(.+)$"""),
+        Regex("""^(?:text|message)\s+([a-zA-Z0-9\s]+?)\s+(?:saying|that|:)\s+(.+)$""")
+    )
+
+    private val paginationKeywords = listOf(
+        "other message", "other messages", "next message", "read next message", "next sms",
+        "read other", "more messages", "previous message", "purane message", "doosra message",
+        "aur message", "read more messages"
     )
 
     private fun isSmsQuery(qLower: String): Boolean {
@@ -162,6 +203,12 @@ class AIResponseRouter(
             "who sent it", "who sent this", "who is the sender", "reply that", "reply to him"
         )
         if (smsKeywords.any { qLower.contains(it) } || qLower == "sms" || qLower == "messages" || qLower.startsWith("reply ")) {
+            return true
+        }
+        if (paginationKeywords.any { qLower.contains(it) }) {
+            return true
+        }
+        if (composeSmsPatterns.any { it.containsMatchIn(qLower) }) {
             return true
         }
         return contactSmsPatterns.any { it.containsMatchIn(qLower) }
@@ -192,18 +239,9 @@ class AIResponseRouter(
         }
 
         val qLower = query.lowercase().trim()
-        var targetContact: String? = null
-        for (pattern in contactSmsPatterns) {
-            val match = pattern.find(qLower)
-            if (match != null) {
-                targetContact = match.groupValues[1].trim()
-                break
-            }
-        }
-
         val latMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
 
-        // Handle 'who sent it' follow-up
+        // 1. Handle 'who sent it' follow-up
         if (listOf("who sent it", "who sent this", "who is the sender", "who sent").any { qLower.contains(it) }) {
             val s = lastReadSmsSender
             val respText = if (s != null) "That message was sent by $s." else "I don't have a recent message in context."
@@ -217,10 +255,13 @@ class AIResponseRouter(
             )
         }
 
-        // Handle 'reply that ...' follow-up
+        // 2. Handle 'reply that ...' follow-up
         if (qLower.startsWith("reply")) {
             val replyBody = qLower.removePrefix("reply").removePrefix(" to him").removePrefix(" that").trim()
             val target = lastReadSmsSender ?: "contact"
+            pendingSendMessage = replyBody
+            pendingSendPhone = lastReadSmsPhone
+            pendingSendRecipient = target
             return WearableResponse(
                 text = "I have prepared an SMS to $target: '$replyBody'. Should I send it?",
                 sessionId = sessionId,
@@ -234,9 +275,109 @@ class AIResponseRouter(
             )
         }
 
-        // Contact-specific query
+        // 3. Handle Compose / Send SMS: "send message to Papa saying I reached"
+        for (pattern in composeSmsPatterns) {
+            val match = pattern.find(qLower)
+            if (match != null) {
+                val recipient = match.groupValues[1].trim()
+                val body = match.groupValues[2].trim()
+
+                val matchedContacts = SmsManagerHelper.findPhoneNumbersForContact(ctx, recipient)
+                val distinctNames = matchedContacts.map { it.first }.distinct()
+                if (distinctNames.size > 1) {
+                    val namesList = distinctNames.joinToString(" or ")
+                    return WearableResponse(
+                        text = "I found multiple contacts for '$recipient': $namesList. Which one would you like to message?",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
+
+                val destPhone = if (matchedContacts.isNotEmpty()) {
+                    matchedContacts.first().second
+                } else if (recipient.replace(Regex("""[\s\-]"""), "").all { it.isDigit() || it == '+' }) {
+                    recipient.replace(Regex("""[\s\-]"""), "")
+                } else {
+                    null
+                }
+
+                val resolvedName = if (matchedContacts.isNotEmpty()) matchedContacts.first().first else recipient
+
+                if (destPhone != null) {
+                    pendingSendMessage = body
+                    pendingSendPhone = destPhone
+                    pendingSendRecipient = resolvedName
+                    return WearableResponse(
+                        text = "I have drafted a message to $resolvedName: '$body'. Shall I send it?",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.TOOL,
+                        requiresConfirmation = true,
+                        confirmationPrompt = "Send SMS to $resolvedName: '$body'?",
+                        confirmationActionId = "sms_send_${System.currentTimeMillis()}",
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                } else {
+                    return WearableResponse(
+                        text = "I couldn't find a phone number for $recipient.",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
+            }
+        }
+
+        // 4. Handle Pagination: "other messages", "next message", "read more"
+        if (paginationKeywords.any { qLower.contains(it) }) {
+            if (lastReadSmsList.isEmpty()) {
+                lastReadSmsList = SmsManagerHelper.readRecentMessages(ctx, limit = 10)
+                lastReadSmsIndex = 0
+            }
+            val nextIdx = lastReadSmsIndex + 1
+            if (nextIdx < lastReadSmsList.size) {
+                lastReadSmsIndex = nextIdx
+                val msg = lastReadSmsList[nextIdx]
+                val sender = msg.contactName ?: msg.address
+                lastReadSmsSender = sender
+                lastReadSmsPhone = msg.address
+                return WearableResponse(
+                    text = "Message ${nextIdx + 1} from $sender: ${msg.body}",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.TOOL,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = latMs
+                )
+            } else {
+                return WearableResponse(
+                    text = "You don't have any other unread messages.",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.TOOL,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = latMs
+                )
+            }
+        }
+
+        // 5. Contact-specific query: "messages from Papa"
+        var targetContact: String? = null
+        for (pattern in contactSmsPatterns) {
+            val match = pattern.find(qLower)
+            if (match != null) {
+                targetContact = match.groupValues[1].trim()
+                break
+            }
+        }
+
         if (!targetContact.isNullOrBlank()) {
-            // Check for multiple contact matches (disambiguation)
             val matchedContacts = SmsManagerHelper.findPhoneNumbersForContact(ctx, targetContact)
             val distinctNames = matchedContacts.map { it.first }.distinct()
             if (distinctNames.size > 1) {
@@ -251,7 +392,7 @@ class AIResponseRouter(
                 )
             }
 
-            val messages = SmsManagerHelper.searchMessages(ctx, targetContact, limit = 3)
+            val messages = SmsManagerHelper.searchMessages(ctx, targetContact, limit = 5)
             if (messages.isEmpty()) {
                 return WearableResponse(
                     text = "No messages found from $targetContact.",
@@ -263,6 +404,8 @@ class AIResponseRouter(
                 )
             }
 
+            lastReadSmsList = messages
+            lastReadSmsIndex = 0
             val latest = messages.first()
             val sender = latest.contactName ?: latest.address
             lastReadSmsSender = sender
@@ -271,7 +414,7 @@ class AIResponseRouter(
             val text = if (messages.size == 1) {
                 "Message from $sender: ${latest.body}"
             } else {
-                "You have ${messages.size} messages from $sender. Latest: ${latest.body}"
+                "You have ${messages.size} messages from $sender. Latest: ${latest.body}. Say 'next message' to hear more."
             }
 
             return WearableResponse(
@@ -284,8 +427,8 @@ class AIResponseRouter(
             )
         }
 
-        // General recent messages query
-        val messages = SmsManagerHelper.readRecentMessages(ctx, limit = 3)
+        // 6. General recent messages query
+        val messages = SmsManagerHelper.readRecentMessages(ctx, limit = 10)
         if (messages.isEmpty()) {
             return WearableResponse(
                 text = "You don't have any messages I can read.",
@@ -297,6 +440,8 @@ class AIResponseRouter(
             )
         }
 
+        lastReadSmsList = messages
+        lastReadSmsIndex = 0
         val latest = messages.first()
         val sender = latest.contactName ?: latest.address
         lastReadSmsSender = sender
@@ -305,7 +450,7 @@ class AIResponseRouter(
         val text = if (messages.size == 1) {
             "You have 1 message from $sender: ${latest.body}"
         } else {
-            "You have ${messages.size} messages. Most recent from $sender: ${latest.body}"
+            "You have ${messages.size} messages. Most recent from $sender: ${latest.body}. Say 'next message' to hear more."
         }
 
         return WearableResponse(
@@ -406,11 +551,35 @@ class AIResponseRouter(
                         latencyMs = latMs
                     )
                 }
+                if (matchedContacts.size > 1) {
+                    val numbersList = matchedContacts.mapIndexed { idx, pair -> "option ${idx + 1}: ${pair.second}" }.joinToString(" or ")
+                    return WearableResponse(
+                        text = "I found multiple numbers for '${matchedContacts.first().first}': $numbersList. Which one would you like to call?",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
                 if (matchedContacts.isNotEmpty()) {
                     val contact = matchedContacts.first()
                     callController?.makeCall(contact.second)
                     return WearableResponse(
                         text = "Calling ${contact.first}.",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
+
+                val cleanTarget = target.replace(Regex("""[\s\-]"""), "")
+                if (cleanTarget.all { it.isDigit() || it == '+' } && cleanTarget.length >= 3) {
+                    callController?.makeCall(cleanTarget)
+                    return WearableResponse(
+                        text = "Calling $cleanTarget.",
                         sessionId = sessionId,
                         source = ResponseSource.TOOL,
                         unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,

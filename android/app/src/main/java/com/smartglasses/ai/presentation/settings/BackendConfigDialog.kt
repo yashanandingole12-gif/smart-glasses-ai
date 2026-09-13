@@ -29,35 +29,38 @@ fun BackendConfigDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = WearableDarkSurface),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, WearableCardBorder, RoundedCornerShape(16.dp))
+                .border(1.dp, LaraBorderLight, RoundedCornerShape(16.dp))
         ) {
             Column(
                 modifier = Modifier
-                    .padding(20.dp)
+                    .padding(24.dp)
                     .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
                     text = "BACKEND CONFIGURATION",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = CyanNeon,
-                    letterSpacing = 1.sp
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LaraMutedOrange,
+                    letterSpacing = 1.2.sp
                 )
 
                 Text(
                     text = "Configure FastAPI backend host URL. Support Android emulator (10.0.2.2), physical LAN IP, or HTTPS domain.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
+                    fontSize = 13.sp,
+                    color = LaraTextSecondaryLight,
+                    lineHeight = 18.sp
                 )
 
                 // Presets
                 Text(
                     text = "Quick Presets:",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextMuted
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = LaraTextSecondaryLight
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -84,14 +87,14 @@ fun BackendConfigDialog(
                         urlInput = it
                         testResult = null
                     },
-                    label = { Text("Server URL", color = TextSecondary) },
+                    label = { Text("Server URL", color = LaraTextSecondaryLight) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = CyanNeon,
-                        unfocusedBorderColor = WearableCardBorder,
-                        cursorColor = CyanNeon
+                        focusedTextColor = LaraTextPrimaryLight,
+                        unfocusedTextColor = LaraTextPrimaryLight,
+                        focusedBorderColor = LaraMutedOrange,
+                        unfocusedBorderColor = LaraBorderLight,
+                        cursorColor = LaraMutedOrange
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -100,7 +103,7 @@ fun BackendConfigDialog(
                 testResult?.let { (success, message) ->
                     Text(
                         text = if (success) "✓ $message" else "✗ $message",
-                        color = if (success) EmeraldNeon else CrimsonNeon,
+                        color = if (success) LaraEmerald else LaraMutedRed,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -122,13 +125,14 @@ fun BackendConfigDialog(
                             }
                         },
                         enabled = !isTesting,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CyanNeon),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = LaraMutedOrange),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LaraMutedOrange),
                         modifier = Modifier.weight(1f)
                     ) {
                         if (isTesting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
-                                color = CyanNeon,
+                                color = LaraMutedOrange,
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -142,8 +146,8 @@ fun BackendConfigDialog(
                             onDismiss()
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = CyanNeon,
-                            contentColor = WearableDarkBackground
+                            containerColor = LaraMutedOrange,
+                            contentColor = Color.White
                         ),
                         modifier = Modifier.weight(1f)
                     ) {

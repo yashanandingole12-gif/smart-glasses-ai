@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -44,6 +46,7 @@ class SpeechRecognizerManager(
         private const val TAG = "SmartGlasses.STT"
     }
 
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var speechRecognizer: SpeechRecognizer? = null
     private var isSessionActive = false
     private var sessionStartTime = 0L
@@ -59,10 +62,11 @@ class SpeechRecognizerManager(
     val audioRms: StateFlow<Float> = _audioRms.asStateFlow()
 
     init {
-        initRecognizer()
+        mainHandler.post {
+            initRecognizer()
+        }
     }
 
-    @Synchronized
     private fun initRecognizer() {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
             Log.e(TAG, "STT_ERROR: Speech recognition service not available on this device")
@@ -75,6 +79,7 @@ class SpeechRecognizerManager(
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
                 setRecognitionListener(createRecognitionListener())
             }
+            Log.i(TAG, "STT_INIT: SpeechRecognizer created successfully on Main Thread.")
         } catch (e: Exception) {
             Log.e(TAG, "STT_ERROR: Failed to initialize SpeechRecognizer (${e.message})")
             _sttState.value = STTState.ERROR
@@ -86,12 +91,12 @@ class SpeechRecognizerManager(
             override fun onReadyForSpeech(params: Bundle?) {
                 _sttState.value = STTState.LISTENING
                 val lang = languageManager.currentLanguage.value
-                Log.i(TAG, "STT_READY: language=${lang.localeTag} timestamp=${System.currentTimeMillis()}")
+                Log.i(TAG, "STT_READY: Listening for voice... (Language=${lang.localeTag})")
             }
 
             override fun onBeginningOfSpeech() {
                 _sttState.value = STTState.LISTENING
-                Log.i(TAG, "STT_START: speech input detected")
+                Log.i(TAG, "STT_START: Speech detected by phone microphone")
             }
 
             override fun onRmsChanged(rmsdB: Float) {
@@ -102,7 +107,7 @@ class SpeechRecognizerManager(
 
             override fun onEndOfSpeech() {
                 _sttState.value = STTState.PROCESSING
-                Log.i(TAG, "STT_STOP: end of speech detected, processing results")
+                Log.i(TAG, "STT_STOP: End of speech detected, processing audio transcript...")
             }
 
             override fun onError(error: Int) {
@@ -113,11 +118,13 @@ class SpeechRecognizerManager(
                 Log.w(TAG, "STT_ERROR: code=$error msg='$errMsg' lang=${lang.localeTag} duration=${durationMs}ms")
                 isSessionActive = false
 
-                // Controlled Single-Retry for Regional Languages on timeout or no match
-                if (!hasRetried && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) {
+                // Controlled Single-Retry for regional languages or speech timeouts
+                if (!hasRetried && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error == SpeechRecognizer.ERROR_CLIENT)) {
                     hasRetried = true
-                    Log.i(TAG, "STT_RETRY: Attempting controlled single retry for language=${lang.localeTag}")
-                    startListeningInternal(isRetry = true)
+                    Log.i(TAG, "STT_RETRY: Attempting retry for language=${lang.localeTag}")
+                    mainHandler.postDelayed({
+                        startListeningInternal(isRetry = true)
+                    }, 200)
                     return
                 }
 
@@ -143,8 +150,7 @@ class SpeechRecognizerManager(
                 val textLen = text.length
                 val lang = languageManager.currentLanguage.value
                 
-                // Safe metadata log (do not print raw transcript in production)
-                Log.i(TAG, "STT_FINAL: text_length=$textLen language=${lang.localeTag} duration=${durationMs}ms timestamp=${System.currentTimeMillis()}")
+                Log.i(TAG, "STT_FINAL: Transcribed '${text}' (${textLen} chars, ${durationMs}ms, lang=${lang.localeTag})")
 
                 val meta = STTSessionMetadata(
                     requestedLanguage = lang,
@@ -167,8 +173,7 @@ class SpeechRecognizerManager(
                 val text = matches?.firstOrNull() ?: ""
                 if (text.isNotBlank()) {
                     _partialTranscript.value = text
-                    val lang = languageManager.currentLanguage.value
-                    Log.d(TAG, "STT_PARTIAL: text_length=${text.length} language=${lang.localeTag} timestamp=${System.currentTimeMillis()}")
+                    Log.d(TAG, "STT_PARTIAL: '${text}'")
                 }
             }
 
@@ -176,13 +181,13 @@ class SpeechRecognizerManager(
         }
     }
 
-    @Synchronized
     fun startListening() {
-        hasRetried = false
-        startListeningInternal(isRetry = false)
+        mainHandler.post {
+            hasRetried = false
+            startListeningInternal(isRetry = false)
+        }
     }
 
-    @Synchronized
     private fun startListeningInternal(isRetry: Boolean) {
         // 1. Permission check
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -199,8 +204,13 @@ class SpeechRecognizerManager(
 
         // 2. Prevent concurrent / overlapping sessions
         if (isSessionActive) {
-            Log.w(TAG, "STT_WARN: Session already active, resetting recognizer before start")
-            cancel()
+            Log.w(TAG, "STT_WARN: Session already active, resetting recognizer before restart")
+            try {
+                speechRecognizer?.cancel()
+            } catch (e: Exception) {
+                Log.w(TAG, "Error cancelling previous session: ${e.message}")
+            }
+            isSessionActive = false
         }
 
         if (speechRecognizer == null) {
@@ -220,13 +230,15 @@ class SpeechRecognizerManager(
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, targetLocale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, targetLocale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-            // Enable offline / online hybrid recognition
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1200L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 500L)
         }
 
-        Log.i(TAG, "STT_START: requesting recognition for language=${targetLang.localeTag} (isRetry=$isRetry)")
+        Log.i(TAG, "STT_START: SpeechRecognizer.startListening() initiated for ${targetLang.displayName} (${targetLocale.toLanguageTag()})")
 
         try {
             speechRecognizer?.startListening(intent)
@@ -243,36 +255,42 @@ class SpeechRecognizerManager(
         }
     }
 
-    @Synchronized
     fun stopListening() {
-        try {
-            speechRecognizer?.stopListening()
-            _sttState.value = STTState.PROCESSING
-        } catch (e: Exception) {
-            Log.w(TAG, "STT_WARN: stopListening error: ${e.message}")
+        mainHandler.post {
+            try {
+                speechRecognizer?.stopListening()
+                _sttState.value = STTState.PROCESSING
+                Log.i(TAG, "STT_STOP: stopListening called.")
+            } catch (e: Exception) {
+                Log.w(TAG, "STT_WARN: stopListening error: ${e.message}")
+            }
         }
     }
 
-    @Synchronized
     fun cancel() {
-        try {
-            speechRecognizer?.cancel()
-            isSessionActive = false
-            _sttState.value = STTState.IDLE
-        } catch (e: Exception) {
-            Log.w(TAG, "STT_WARN: cancel error: ${e.message}")
+        mainHandler.post {
+            try {
+                speechRecognizer?.cancel()
+                isSessionActive = false
+                _sttState.value = STTState.IDLE
+                Log.i(TAG, "STT_CANCEL: Session cancelled.")
+            } catch (e: Exception) {
+                Log.w(TAG, "STT_WARN: cancel error: ${e.message}")
+            }
         }
     }
 
-    @Synchronized
     fun destroy() {
-        try {
-            isSessionActive = false
-            speechRecognizer?.destroy()
-            speechRecognizer = null
-            _sttState.value = STTState.IDLE
-        } catch (e: Exception) {
-            Log.w(TAG, "STT_WARN: destroy error: ${e.message}")
+        mainHandler.post {
+            try {
+                isSessionActive = false
+                speechRecognizer?.destroy()
+                speechRecognizer = null
+                _sttState.value = STTState.IDLE
+                Log.i(TAG, "STT_DESTROY: Recognizer destroyed.")
+            } catch (e: Exception) {
+                Log.w(TAG, "STT_WARN: destroy error: ${e.message}")
+            }
         }
     }
 
@@ -291,3 +309,4 @@ class SpeechRecognizerManager(
         }
     }
 }
+

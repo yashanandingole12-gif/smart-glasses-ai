@@ -122,6 +122,23 @@ class MockMessagingProvider(MessagingProvider):
                     return {"status": "found", "message": m}
         return {"status": "not_found", "message": "Message not found."}
 
+    def inject_incoming_sms(self, sender: str, phone: str, text: str) -> Dict[str, Any]:
+        """Injects a real-time incoming SMS received by the Android companion service."""
+        new_msg = {
+            "id": f"sms_{len(self._mock_messages) + 1:03d}",
+            "sender": sender or "Unknown",
+            "phone": phone or "",
+            "text": text[:160],
+            "timestamp": "Just now",
+            "read": False
+        }
+        self._mock_messages.insert(0, new_msg)
+        logger.info(f"Injected live Android SMS from '{sender}' ({phone})")
+        return {
+            "status": "received",
+            "message": new_msg
+        }
+
     def send_message(self, recipient: str, text: str, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
         # Sensitive data redaction for logging
         logger.info(f"Executing SMS send to recipient '{recipient}' (len={len(text)})")
