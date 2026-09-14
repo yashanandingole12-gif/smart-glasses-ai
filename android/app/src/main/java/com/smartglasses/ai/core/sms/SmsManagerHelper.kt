@@ -193,6 +193,19 @@ object SmsManagerHelper {
         return messages
     }
 
+    /**
+     * Reads recent SMS messages and applies on-device spam & promotional ad filtering.
+     * Returns a pair of (filtered relevant messages, count of filtered-out spam/promos).
+     */
+    fun readFilteredMessages(context: Context, limit: Int = 10, includePromotions: Boolean = false): Pair<List<SmsItem>, Int> {
+        val rawMessages = readRecentMessages(context, limit = 20)
+        if (rawMessages.isEmpty()) {
+            return Pair(emptyList(), 0)
+        }
+        val (filtered, promoCount) = SmsSpamFilter.filterRelevantMessages(rawMessages, includePromotions = includePromotions)
+        return Pair(filtered.take(limit), promoCount)
+    }
+
     fun searchMessages(context: Context, query: String, limit: Int = 5): List<SmsItem> {
         if (!hasReadPermission(context) || query.isBlank()) return emptyList()
 

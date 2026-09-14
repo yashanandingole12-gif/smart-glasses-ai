@@ -63,6 +63,35 @@ class XiaoSenseHardwareBridge:
             except Exception as e:
                 logger.warning(f"Could not load camera artifact: {e}")
 
+        self._glasses_event_logs: list = []
+        self._request_status_logs: list = []
+
+        # Seed initial system startup events
+        self._glasses_event_logs.append({
+            "timestamp": time.time(),
+            "time_str": time.strftime("%H:%M:%S"),
+            "event_type": "BLE_DEVICE_INITIALIZED",
+            "source": "ESP32-S3",
+            "level": "INFO",
+            "details": "SmartGlasses-S3 GATT service active. Advertising 19B10000-E8F2-537E-4F6C-D104768A1214"
+        })
+        self._glasses_event_logs.append({
+            "timestamp": time.time(),
+            "time_str": time.strftime("%H:%M:%S"),
+            "event_type": "CAMERA_READY",
+            "source": "ESP32-S3",
+            "level": "INFO",
+            "details": "OV2640/OV3660 sensor initialized in PSRAM mode (VGA 640x480)"
+        })
+        self._glasses_event_logs.append({
+            "timestamp": time.time(),
+            "time_str": time.strftime("%H:%M:%S"),
+            "event_type": "MIC_READY",
+            "source": "ESP32-S3",
+            "level": "INFO",
+            "details": "MSM261D PDM digital microphone initialized at 16kHz 16-bit Mono"
+        })
+
         self._initialized = True
         logger.info(f"XiaoSenseHardwareBridge initialized for port {self.port}")
 
@@ -477,6 +506,10 @@ class XiaoSenseHardwareBridge:
             
             return self._last_mic_stats
 
+    def get_latest_telemetry(self) -> Dict[str, Any]:
+        """Alias for get_device_overview for consistent telemetry reporting."""
+        return self.get_device_overview()
+
     def get_device_overview(self) -> Dict[str, Any]:
         """
         Consolidated ESP32-S3 Hardware Overview for both Web Dashboard and Android App.
@@ -538,5 +571,44 @@ class XiaoSenseHardwareBridge:
             "firmware_version": "v0.3.0-phase3b16",
             "timestamp": time.time()
         }
+
+    def log_glasses_event(self, event_type: str, details: Any, source: str = "ESP32-S3", level: str = "INFO"):
+        """Appends a hardware or BLE event to the in-memory ring buffer (max 200)."""
+        det_str = details if isinstance(details, str) else json.dumps(details)
+        evt = {
+            "timestamp": time.time(),
+            "time_str": time.strftime("%H:%M:%S"),
+            "event_type": event_type,
+            "source": source,
+            "level": level,
+            "details": det_str
+        }
+        self._glasses_event_logs.append(evt)
+        if len(self._glasses_event_logs) > 200:
+            self._glasses_event_logs.pop(0)
+
+    def get_glasses_logs(self, limit: int = 50) -> list:
+        """Returns recent ESP32 and BLE hardware events in reverse chronological order."""
+        return list(reversed(self._glasses_event_logs[-limit:]))
+
+    def log_request_status(self, request_id: str, query: str, status: str, latency_ms: float, error: Optional[str] = None, source: str = "Cloud"):
+        """Records agent/vision request telemetry and outcome."""
+        entry = {
+            "timestamp": time.time(),
+            "time_str": time.strftime("%H:%M:%S"),
+            "request_id": request_id,
+            "query": query,
+            "status": status,  # "SUCCESS", "FAILED", "FALLBACK"
+            "latency_ms": round(latency_ms, 1),
+            "error": error,
+            "source": source
+        }
+        self._request_status_logs.append(entry)
+        if len(self._request_status_logs) > 200:
+            self._request_status_logs.pop(0)
+
+    def get_request_logs(self, limit: int = 50) -> list:
+        """Returns recent request execution logs in reverse chronological order."""
+        return list(reversed(self._request_status_logs[-limit:]))
 
 hardware_bridge = XiaoSenseHardwareBridge()

@@ -357,6 +357,22 @@ class LLMService:
             (has_email_context and ("read" in msg_lower or "padho" in msg_lower or "वाचा" in last_user_msg))
         )
         if is_email_query:
+            if "send" in msg_lower or "compose" in msg_lower or "write" in msg_lower or "draft" in msg_lower:
+                recipient = "Rahul" if "rahul" in msg_lower else "contact"
+                body = "the meeting is moved to four."
+                if "saying" in msg_lower:
+                    body = msg_lower.split("saying", 1)[1].strip()
+                return LLMResponse(
+                    tool_calls=[ToolCall(name="gmail_send_message", arguments={"recipient": recipient, "subject": "Meeting Update", "body": body})],
+                    provider="mock",
+                    model=self.model
+                )
+            if "reply" in msg_lower:
+                return LLMResponse(
+                    tool_calls=[ToolCall(name="gmail_reply_message", arguments={"message_id": "msg_001", "body": "I will attend the sync."})],
+                    provider="mock",
+                    model=self.model
+                )
             if "read" in msg_lower or "first" in msg_lower or "second" in msg_lower or "third" in msg_lower or "वाचा" in last_user_msg or "पढ़ो" in last_user_msg:
                 idx = 1
                 if "second" in msg_lower or "2" in msg_lower:

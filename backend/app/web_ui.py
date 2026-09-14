@@ -499,6 +499,10 @@ def get_dashboard_html() -> str:
                 <div class="nav-item" onclick="showTab('assistant', this)">Assistant</div>
                 <div class="nav-item" onclick="showTab('activity', this)">Activity</div>
                 <div class="nav-item" onclick="showTab('devices', this)">Devices</div>
+                <div class="nav-item" onclick="showTab('glasses-logs', this)">Glasses Live Logs</div>
+                <div class="nav-item" onclick="showTab('conv-stream', this)">Glasses Conversation</div>
+                <div class="nav-item" onclick="showTab('requests', this)">Request Status Hub</div>
+                <div class="nav-item" onclick="showTab('contacts', this)">Quick Contacts Hub</div>
                 <div class="nav-item" onclick="showTab('files', this)">Files</div>
                 <div class="nav-item" onclick="showTab('desk', this)">Desk & Data Analysis</div>
                 <div class="nav-item" onclick="showTab('automations', this)">Automations Center</div>
@@ -819,6 +823,119 @@ def get_dashboard_html() -> str:
                     <div id="audit-log-content" style="max-height:240px; overflow-y:auto; font-family:'JetBrains Mono', monospace; font-size:11px; background:var(--bg-subtle); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
                         Loading security audit entries...
                     </div>
+                </div>
+            </div>
+
+            <!-- View: Glasses & BLE Live Logs -->
+            <div id="view-glasses-logs" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Seeed Studio XIAO ESP32-S3 Sense — Live BLE & Hardware Stream</span>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn-quick-chip primary" onclick="refreshGlassesLogs()">Refresh Stream</button>
+                            <span class="pill-status active"><span class="pill-dot"></span> LIVE POLLING (3s)</span>
+                        </div>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+                        Real-time hardware event stream from ESP32-S3 smart glasses temple button, digital microphone, OV2640 camera frames, and BLE characteristic writes.
+                    </p>
+                    <table class="table-luxury">
+                        <thead>
+                            <tr>
+                                <th style="width:90px;">Time</th>
+                                <th style="width:180px;">Event Type</th>
+                                <th style="width:90px;">Source</th>
+                                <th style="width:70px;">Level</th>
+                                <th>Details / Payload</th>
+                            </tr>
+                        </thead>
+                        <tbody id="glasses-logs-tbody">
+                            <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading smart glasses hardware logs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View: Glasses <-> Android <-> Cloud Conversation Stream -->
+            <div id="view-conv-stream" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Glasses & Android Conversation History</span>
+                        <button class="btn-quick-chip" onclick="refreshConversationStream()">Refresh Stream</button>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+                        Chronological record of all spoken user queries captured on Glasses / Android and synthesized voice replies.
+                    </p>
+                    <div id="conv-stream-container" style="display:flex; flex-direction:column; gap:12px; max-height:500px; overflow-y:auto; padding:8px 0;">
+                        <div style="color:var(--text-muted); font-size:13px;">Loading conversation history...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Request Telemetry (Generated vs Failed Requests) -->
+            <div id="view-requests" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Request Execution Telemetry & Status</span>
+                        <button class="btn-quick-chip" onclick="refreshRequestLogs()">Refresh Requests</button>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+                        Real-time audit of all assistant requests, fast-path routing outcomes, execution latency, and error diagnostics.
+                    </p>
+                    <table class="table-luxury">
+                        <thead>
+                            <tr>
+                                <th style="width:90px;">Time</th>
+                                <th>Request ID / Query</th>
+                                <th style="width:120px;">Status</th>
+                                <th style="width:110px;">Latency</th>
+                                <th>Error / Diagnostic Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requests-tbody">
+                            <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading request telemetry...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View: Quick Contacts Action Hub -->
+            <div id="view-contacts" class="console-view">
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Quick-Action Contact Hub</span>
+                        <span class="pill-status active"><span class="pill-dot"></span> 1-Tap Telephony Ready</span>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;">
+                        Instant telephony, SMS, and Email dispatch for hands-free smart glasses and mobile companion. Phone numbers are synthesized with natural digit spacing.
+                    </p>
+
+                    <div id="contacts-card-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Fast Custom Contact Action Card -->
+                <div class="card-luxury">
+                    <div class="card-header">
+                        <span class="card-title">Fast Manual Dispatch</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                        <div>
+                            <label style="font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Recipient Name / Number</label>
+                            <input type="text" id="manual-contact-target" class="command-input" style="margin-top:6px;" placeholder="e.g. Rahul or +1 555-0100">
+                        </div>
+                        <div>
+                            <label style="font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Message / Subject</label>
+                            <input type="text" id="manual-contact-msg" class="command-input" style="margin-top:6px;" placeholder="e.g. I am running 5 minutes late">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-quick-chip primary" onclick="triggerManualCall()">1-Tap Call</button>
+                        <button class="btn-quick-chip" onclick="triggerManualSms()">Send Fast SMS</button>
+                        <button class="btn-quick-chip" onclick="triggerManualEmail()">Send Fast Email</button>
+                    </div>
+                    <div id="manual-dispatch-status" style="margin-top:12px; font-size:13px; display:none;"></div>
                 </div>
             </div>
 
@@ -1255,8 +1372,249 @@ def get_dashboard_html() -> str:
             rec.onerror = () => { btn.textContent = "Voice"; };
         }
 
-        // Periodic Telemetry Updates (Every 5 seconds)
+        // -------------------------------------------------------------
+        // Glasses Logs, Conversation Stream, Requests & Contacts Hub
+        // -------------------------------------------------------------
+
+        async function refreshGlassesLogs() {
+            try {
+                const resp = await fetch('/api/v1/telemetry/glasses-logs?limit=40');
+                const data = await resp.json();
+                const tbody = document.getElementById('glasses-logs-tbody');
+                if (data.success && data.logs && data.logs.length > 0) {
+                    tbody.innerHTML = data.logs.map(l => {
+                        let lvlColor = l.level === 'ERROR' ? 'var(--red)' : (l.level === 'WARN' ? 'var(--amber)' : '#68D391');
+                        return `
+                            <tr>
+                                <td style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">${l.time_str}</td>
+                                <td><strong style="color:var(--text-primary);">${l.event_type}</strong></td>
+                                <td><span class="pill-status">${l.source}</span></td>
+                                <td><span style="color:${lvlColor}; font-weight:700; font-size:11px;">${l.level}</span></td>
+                                <td style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-secondary);">${typeof l.details === 'object' ? JSON.stringify(l.details) : l.details}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No hardware events logged yet.</td></tr>';
+                }
+            } catch (err) {
+                console.error("Failed to fetch glasses logs", err);
+            }
+        }
+
+        async function refreshConversationStream() {
+            try {
+                const resp = await fetch('/api/v1/telemetry/conversation-stream?limit=30');
+                const data = await resp.json();
+                const container = document.getElementById('conv-stream-container');
+                if (data.success && data.messages && data.messages.length > 0) {
+                    container.innerHTML = data.messages.map(m => {
+                        const isUser = m.role === 'user';
+                        const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString();
+                        return `
+                            <div style="background:${isUser ? 'var(--bg-subtle)' : 'var(--bg-surface-elevated)'}; border:1px solid var(--border); border-left:3px solid ${isUser ? 'var(--orange)' : '#68D391'}; padding:12px 16px; border-radius:var(--radius-sm);">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                    <span style="font-size:11px; font-weight:700; color:${isUser ? 'var(--orange)' : '#68D391'}; text-transform:uppercase;">
+                                        ${isUser ? 'Glasses User (Voice/Button)' : 'LARA AI Assistant'}
+                                    </span>
+                                    <span style="font-size:10px; color:var(--text-muted);">${timeStr}</span>
+                                </div>
+                                <div style="font-size:13px; color:var(--text-primary); line-height:1.5;">${m.content}</div>
+                                <div style="margin-top:6px; display:flex; justify-content:flex-end;">
+                                    <button class="btn-quick-chip" style="padding:2px 8px; font-size:10px;" onclick="speakText('${m.content.replace(/'/g, "\\'")}')">Speak</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">No conversation history available.</div>';
+                }
+            } catch (err) {
+                console.error("Failed to fetch conversation stream", err);
+            }
+        }
+
+        async function refreshRequestLogs() {
+            try {
+                const resp = await fetch('/api/v1/telemetry/requests?limit=40');
+                const data = await resp.json();
+                const tbody = document.getElementById('requests-tbody');
+                if (data.success && data.requests && data.requests.length > 0) {
+                    tbody.innerHTML = data.requests.map(r => {
+                        const isSuccess = r.status === 'SUCCESS';
+                        const badgeStyle = isSuccess 
+                            ? 'background:rgba(45,125,70,0.2); color:#68D391; border:1px solid rgba(45,125,70,0.4);' 
+                            : 'background:rgba(184,58,58,0.2); color:#F56565; border:1px solid rgba(184,58,58,0.4);';
+                        return `
+                            <tr>
+                                <td style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">${r.time_str}</td>
+                                <td>
+                                    <div style="font-size:13px; font-weight:600; color:var(--text-primary);">${r.query}</div>
+                                    <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">${r.request_id}</div>
+                                </td>
+                                <td>
+                                    <span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; ${badgeStyle}">
+                                        ${r.status}
+                                    </span>
+                                </td>
+                                <td><strong style="color:var(--orange);">${r.latency_ms}ms</strong></td>
+                                <td style="font-size:12px; color:${r.error ? '#F56565' : 'var(--text-muted)'};">${r.error || 'None (Processed cleanly)'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No requests recorded yet.</td></tr>';
+                }
+            } catch (err) {
+                console.error("Failed to fetch requests", err);
+            }
+        }
+
+        async function loadContactsHub() {
+            try {
+                const resp = await fetch('/api/v1/contacts/list');
+                const data = await resp.json();
+                const grid = document.getElementById('contacts-card-grid');
+                if (data.success && data.contacts) {
+                    grid.innerHTML = data.contacts.map(c => `
+                        <div style="background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                                <div>
+                                    <div style="font-size:15px; font-weight:700; color:var(--text-primary);">${c.name}</div>
+                                    <div style="font-size:11px; color:var(--orange); font-weight:600; text-transform:uppercase;">${c.role}</div>
+                                </div>
+                                ${c.starred ? '<span style="font-size:11px; color:#ECC94B; font-weight:700;">★ Priority</span>' : ''}
+                            </div>
+                            <div style="font-size:12px; font-family:'JetBrains Mono',monospace; color:var(--text-secondary); margin-bottom:4px;">${c.phone}</div>
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">${c.email}</div>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-quick-chip primary" style="padding:4px 10px; font-size:11px;" onclick="triggerQuickCall('${c.name}', '${c.phone}')">Call</button>
+                                <button class="btn-quick-chip" style="padding:4px 10px; font-size:11px;" onclick="triggerQuickSms('${c.name}', '${c.phone}')">SMS</button>
+                                <button class="btn-quick-chip" style="padding:4px 10px; font-size:11px;" onclick="triggerQuickEmail('${c.name}', '${c.email}')">Email</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error("Failed to load contacts", err);
+            }
+        }
+
+        async function triggerQuickCall(name, phone) {
+            try {
+                const resp = await fetch('/api/v1/contacts/call', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, phone: phone })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    speakText(data.speech_response);
+                    recordActivity(`Initiated call to ${name} (${phone})`, 'Telephony');
+                    refreshGlassesLogs();
+                    refreshRequestLogs();
+                }
+            } catch (e) {
+                alert("Call trigger failed: " + e.message);
+            }
+        }
+
+        async function triggerQuickSms(name, phone) {
+            const msg = prompt(`Enter SMS message for ${name}:`, "I am on my way.");
+            if (!msg) return;
+            try {
+                const resp = await fetch('/api/v1/contacts/sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, phone: phone, message: msg })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    speakText(data.speech_response);
+                    recordActivity(`Sent SMS to ${name}: "${msg}"`, 'SMS Dispatch');
+                    refreshGlassesLogs();
+                    refreshRequestLogs();
+                }
+            } catch (e) {
+                alert("SMS dispatch failed: " + e.message);
+            }
+        }
+
+        async function triggerQuickEmail(name, email) {
+            const subj = prompt(`Enter Email subject for ${name}:`, "Smart Glasses Update");
+            if (!subj) return;
+            try {
+                const resp = await fetch('/api/v1/contacts/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, email: email, subject: subj, body: "Sent from Smart Glasses Web Console." })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    speakText(data.speech_response);
+                    recordActivity(`Sent Email to ${name} (${subj})`, 'Email Dispatch');
+                    refreshGlassesLogs();
+                    refreshRequestLogs();
+                }
+            } catch (e) {
+                alert("Email dispatch failed: " + e.message);
+            }
+        }
+
+        async function triggerManualCall() {
+            const target = document.getElementById('manual-contact-target').value.trim();
+            if (!target) { alert("Please specify recipient name or phone number."); return; }
+            triggerQuickCall(target, target);
+        }
+
+        async function triggerManualSms() {
+            const target = document.getElementById('manual-contact-target').value.trim();
+            const msg = document.getElementById('manual-contact-msg').value.trim() || "Status update from smart glasses.";
+            if (!target) { alert("Please specify recipient name or phone number."); return; }
+            try {
+                const resp = await fetch('/api/v1/contacts/sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: target, phone: target, message: msg })
+                });
+                const data = await resp.json();
+                const statusBox = document.getElementById('manual-dispatch-status');
+                statusBox.style.display = 'block';
+                statusBox.innerHTML = `<span style="color:#68D391;">✓ ${data.speech_response}</span>`;
+                speakText(data.speech_response);
+                refreshGlassesLogs();
+                refreshRequestLogs();
+            } catch (e) {
+                alert("Manual SMS failed: " + e.message);
+            }
+        }
+
+        async function triggerManualEmail() {
+            const target = document.getElementById('manual-contact-target').value.trim();
+            const msg = document.getElementById('manual-contact-msg').value.trim() || "Smart Glasses report.";
+            if (!target) { alert("Please specify recipient name or email address."); return; }
+            try {
+                const resp = await fetch('/api/v1/contacts/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: target, email: target, subject: "Smart Glasses Dispatch", body: msg })
+                });
+                const data = await resp.json();
+                const statusBox = document.getElementById('manual-dispatch-status');
+                statusBox.style.display = 'block';
+                statusBox.innerHTML = `<span style="color:#68D391;">✓ ${data.speech_response}</span>`;
+                speakText(data.speech_response);
+                refreshGlassesLogs();
+                refreshRequestLogs();
+            } catch (e) {
+                alert("Manual Email failed: " + e.message);
+            }
+        }
+
+        // Periodic Telemetry Updates (Every 3-5 seconds)
         async function updateHardwareStatus() {
+            refreshGlassesLogs();
+            refreshRequestLogs();
             return await updateLiveTelemetry();
         }
 
@@ -1276,10 +1634,12 @@ def get_dashboard_html() -> str:
             } catch (e) {}
         }
 
-        setInterval(updateHardwareStatus, 5000);
+        setInterval(updateHardwareStatus, 3500);
         updateHardwareStatus();
         checkGoogleAuthStatus();
         refreshAuditLogs();
+        loadContactsHub();
+        refreshConversationStream();
     </script>
 </body>
 </html>"""

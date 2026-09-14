@@ -105,7 +105,7 @@ class TestSmartGlassFormatter:
     def test_call_action_formatting(self):
         text = smart_glass_formatter.format_call_action("call_make", "Rahul Sharma", "+919876543210")
         assert "Calling Rahul Sharma" in text
-        assert "+919876543210" in text
+        assert "9 8 7 6 5" in text or "98765" in text
 
 
 class TestEntityResolver:

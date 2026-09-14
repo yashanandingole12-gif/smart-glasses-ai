@@ -335,3 +335,23 @@ def _tool_product_search(category: str, color: str = None, style: str = None):
 def _tool_academic_research_search(query: str, limit: int = 5):
     return academic_research_search(query=query, limit=limit)
 
+@registry.register(
+    name="tabular_data_query",
+    description="Query uploaded documents, CSVs, or tabular financial datasets using natural language.",
+    risk_level=RiskLevel.READ,
+    requires_confirmation=False
+)
+def _tool_tabular_data_query(query: str):
+    from backend.app.tools.data_tools import tabular_data_query
+    return tabular_data_query(query=query)
+
+@registry.register(
+    name="tabular_data_operation",
+    description="Perform statistical calculation, anomaly detection, or summarization on tabular data.",
+    risk_level=RiskLevel.READ,
+    requires_confirmation=False
+)
+def _tool_tabular_data_operation(operation: str, dataset_name: str = None):
+    from backend.app.tools.data_tools import tabular_data_operation
+    return tabular_data_operation(operation=operation, dataset_name=dataset_name)
+

@@ -128,7 +128,7 @@ class LanguageBridge:
 # ---------------------------------------------------------------------------
 
 class ArxivConnector:
-    BASE = "http://export.arxiv.org/api/query"
+    BASE = "https://export.arxiv.org/api/query"
 
     def search(self, query: str, limit: int) -> List[Paper]:
         params = {
@@ -136,15 +136,19 @@ class ArxivConnector:
             "start": 0,
             "max_results": limit,
         }
+        headers = {"User-Agent": "LARA-Academic-Research/1.0 (https://smartglasses.ai; mailto:research@smartglasses.ai)"}
         try:
-            resp = requests.get(self.BASE, params=params, timeout=15)
+            resp = requests.get(self.BASE, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
         except requests.RequestException:
             return []
 
         import xml.etree.ElementTree as ET
         ns = {"a": "http://www.w3.org/2005/Atom"}
-        root = ET.fromstring(resp.text)
+        try:
+            root = ET.fromstring(resp.text)
+        except Exception:
+            return []
         papers = []
         for entry in root.findall("a:entry", ns):
             title = entry.findtext("a:title", default="", namespaces=ns).strip()
@@ -166,7 +170,9 @@ class SemanticScholarConnector:
         self.api_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
 
     def search(self, query: str, limit: int) -> List[Paper]:
-        headers = {"x-api-key": self.api_key} if self.api_key else {}
+        headers = {"User-Agent": "LARA-Academic-Research/1.0 (mailto:research@smartglasses.ai)"}
+        if self.api_key:
+            headers["x-api-key"] = self.api_key
         params = {
             "query": query,
             "limit": limit,
@@ -203,8 +209,9 @@ class CrossrefConnector:
 
     def search(self, query: str, limit: int) -> List[Paper]:
         params = {"query": query, "rows": limit, "mailto": self.mailto}
+        headers = {"User-Agent": f"LARA-Academic-Research/1.0 (mailto:{self.mailto})"}
         try:
-            resp = requests.get(self.BASE, params=params, timeout=15)
+            resp = requests.get(self.BASE, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
         except requests.RequestException:
             return []
@@ -241,10 +248,11 @@ class PubMedConnector:
 
     def search(self, query: str, limit: int) -> List[Paper]:
         params = {"db": "pubmed", "term": query, "retmax": limit, "retmode": "json"}
+        headers = {"User-Agent": "LARA-Academic-Research/1.0 (mailto:research@smartglasses.ai)"}
         if self.api_key:
             params["api_key"] = self.api_key
         try:
-            resp = requests.get(self.SEARCH_URL, params=params, timeout=15)
+            resp = requests.get(self.SEARCH_URL, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
             ids = resp.json().get("esearchresult", {}).get("idlist", [])
         except requests.RequestException:
@@ -257,7 +265,7 @@ class PubMedConnector:
         if self.api_key:
             sum_params["api_key"] = self.api_key
         try:
-            resp = requests.get(self.SUMMARY_URL, params=sum_params, timeout=15)
+            resp = requests.get(self.SUMMARY_URL, params=sum_params, headers=headers, timeout=15)
             resp.raise_for_status()
             result = resp.json().get("result", {})
         except requests.RequestException:

@@ -124,5 +124,16 @@ class LatencyMetrics(BaseModel):
             lines.append(f"  BACKEND_TOTAL: {self.total_ms / 1000.0:.2f}s ({self.total_ms:.1f}ms)")
         return "\n".join(lines)
 
-def log_request_metrics(metrics: LatencyMetrics):
+def log_request_metrics(metrics: LatencyMetrics, query: str = "", status: str = "SUCCESS", error: Optional[str] = None):
     logger.info("\n" + metrics.formatted_log())
+    try:
+        from backend.app.services.hardware_bridge import hardware_bridge
+        hardware_bridge.log_request_status(
+            request_id=metrics.request_id,
+            query=query or metrics.metadata.get("query", "Voice Command"),
+            status=status,
+            latency_ms=metrics.total_ms or 0.0,
+            error=error
+        )
+    except Exception:
+        pass

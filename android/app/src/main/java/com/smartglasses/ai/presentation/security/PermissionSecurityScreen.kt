@@ -1,5 +1,8 @@
 package com.smartglasses.ai.presentation.security
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,26 +17,48 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.smartglasses.ai.core.permissions.PermissionManager
 import com.smartglasses.ai.presentation.home.WearableHomeViewModel
 import com.smartglasses.ai.presentation.theme.*
 
 /**
- * LARA Permission Center, Temporary Access & Security Profile:
- * - Grouped permissions with human rationale (Communication, Intelligence, Context, Files)
- * - Temporary data access revocation
- * - Security audit log
- * - Server connection configuration
+ * LARA Permission Center, Real-Time Access Governance & Security Profile:
+ * - Dynamic, live permission indicators checking actual Android system state
+ * - One-click "Grant Missing Permissions" runtime dialog launcher
+ * - Direct System App Settings shortcut for permanent authorization
+ * - Temporary data access revocation and memory purging
  */
 @Composable
 fun PermissionSecurityScreen(
     viewModel: WearableHomeViewModel,
     onOpenConfigDialog: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
+
+    var refreshKey by remember { mutableStateOf(0) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        refreshKey++
+        viewModel.checkBackendHealth()
+    }
+
+    val hasAudio = remember(refreshKey) { PermissionManager.hasAudioPermission(context) }
+    val hasLocation = remember(refreshKey) { PermissionManager.hasLocationPermission(context) }
+    val hasSms = remember(refreshKey) { PermissionManager.hasSmsPermission(context) }
+    val hasContacts = remember(refreshKey) { PermissionManager.hasContactsPermission(context) }
+    val hasPhone = remember(refreshKey) { PermissionManager.hasPhonePermission(context) }
+    val hasBluetooth = remember(refreshKey) { PermissionManager.hasBluetoothPermission(context) }
+
+    val missingPermissions = remember(refreshKey) { PermissionManager.getMissingPermissions(context) }
+    val allGranted = missingPermissions.isEmpty()
 
     Scaffold(
         containerColor = LaraIvory
@@ -62,13 +87,102 @@ fun PermissionSecurityScreen(
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = "Access Governance & Audit Integrity",
+                            text = "Access Governance & Hardware Control",
                             fontSize = 12.sp,
                             color = LaraTextSecondaryLight
                         )
                     }
                     IconButton(onClick = onOpenConfigDialog) {
                         Icon(Icons.Default.Settings, contentDescription = "Config", tint = LaraCharcoal)
+                    }
+                }
+            }
+
+            // Quick Status & Action Card
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (allGranted) Color(0xFFF0FDF4) else Color(0xFFFFFBEB)
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (allGranted) LaraEmerald.copy(alpha = 0.4f) else LaraAmber.copy(alpha = 0.4f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    if (allGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = if (allGranted) LaraEmerald else LaraAmber,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    if (allGranted) "ALL PERMISSIONS ACTIVE" else "PERMISSIONS REQUIRED",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = LaraCharcoal
+                                )
+                            }
+                            Text(
+                                if (allGranted) "SECURE" else "${missingPermissions.size} MISSING",
+                                color = if (allGranted) LaraEmerald else LaraAmber,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = if (allGranted)
+                                "LARA has authoritative access for hands-free voice, real SMS read/write, calling, and contacts."
+                            else
+                                "Some capabilities like real SMS, voice calling, or contacts resolution are restricted until authorized.",
+                            fontSize = 11.sp,
+                            color = LaraTextSecondaryLight,
+                            lineHeight = 15.sp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (!allGranted) {
+                                Button(
+                                    onClick = {
+                                        permissionLauncher.launch(PermissionManager.REQUIRED_PERMISSIONS)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = LaraCharcoal),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(vertical = 8.dp)
+                                ) {
+                                    Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Grant Missing", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    PermissionManager.openAppSettings(context)
+                                },
+                                modifier = Modifier.weight(1f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, LaraCharcoal.copy(alpha = 0.3f)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp)
+                            ) {
+                                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = LaraCharcoal)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("App Settings", fontSize = 11.sp, color = LaraCharcoal, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }
@@ -104,6 +218,76 @@ fun PermissionSecurityScreen(
                 }
             }
 
+            // Group 1: Communication Permissions
+            item {
+                Text(
+                    text = "COMMUNICATION PERMISSIONS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LaraTextSecondaryLight,
+                    letterSpacing = 0.8.sp
+                )
+            }
+            item {
+                PermissionCategoryItem(
+                    title = "Telephony & Calls",
+                    description = "Enables hands-free dialing to contacts and call control upon voice command.",
+                    stateText = if (hasPhone) "AUTHORIZED" else "ACTION REQUIRED",
+                    isGranted = hasPhone
+                )
+            }
+            item {
+                PermissionCategoryItem(
+                    title = "SMS Dispatch & Receiver",
+                    description = "Allows reading real SMS messages and drafting replies with spam/ad filtering.",
+                    stateText = if (hasSms) "AUTHORIZED" else "ACTION REQUIRED",
+                    isGranted = hasSms
+                )
+            }
+            item {
+                PermissionCategoryItem(
+                    title = "Contacts Directory",
+                    description = "Resolves contact names, aliases, and phone numbers locally on-device.",
+                    stateText = if (hasContacts) "AUTHORIZED" else "ACTION REQUIRED",
+                    isGranted = hasContacts
+                )
+            }
+
+            // Group 2: Intelligence & Sensors
+            item {
+                Text(
+                    text = "INTELLIGENCE & SENSOR CAPABILITIES",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = LaraTextSecondaryLight,
+                    letterSpacing = 0.8.sp
+                )
+            }
+            item {
+                PermissionCategoryItem(
+                    title = "Microphone (Local & ESP32)",
+                    description = "Captures audio bursts on push-to-talk or hands-free wake word.",
+                    stateText = if (hasAudio) "AUTHORIZED" else "ACTION REQUIRED",
+                    isGranted = hasAudio
+                )
+            }
+            item {
+                PermissionCategoryItem(
+                    title = "Location Context",
+                    description = "Provides local temporal and environmental awareness for weather and queries.",
+                    stateText = if (hasLocation) "AUTHORIZED" else "ACTION REQUIRED",
+                    isGranted = hasLocation
+                )
+            }
+            item {
+                PermissionCategoryItem(
+                    title = "Bluetooth & BLE Glasses",
+                    description = "Connects to Seeed Studio XIAO ESP32-S3 Sense smart glasses hardware.",
+                    stateText = if (hasBluetooth) "AUTHORIZED" else "ACTION REQUIRED",
+                    isGranted = hasBluetooth
+                )
+            }
+
             // Temporary Data Access Card
             item {
                 Card(
@@ -127,7 +311,7 @@ fun PermissionSecurityScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Active session context expires automatically after 15 minutes of inactivity. Memory tokens are securely hashed.",
+                            text = "Active session context expires automatically after 15 minutes of inactivity. Sensitive tokens are never logged.",
                             fontSize = 11.sp,
                             color = LaraTextSecondaryLight,
                             lineHeight = 15.sp
@@ -144,68 +328,6 @@ fun PermissionSecurityScreen(
                         }
                     }
                 }
-            }
-
-            // Group 1: Communication Permissions
-            item {
-                Text(
-                    text = "COMMUNICATION PERMISSIONS",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = LaraTextSecondaryLight,
-                    letterSpacing = 0.8.sp
-                )
-            }
-            item {
-                PermissionCategoryItem(
-                    title = "Telephony & Calls",
-                    description = "Enables hands-free dialing to verified contacts upon voice command.",
-                    stateText = "AUTHORIZED",
-                    isGranted = true
-                )
-            }
-            item {
-                PermissionCategoryItem(
-                    title = "SMS Dispatch & Receiver",
-                    description = "Allows reading and drafting messages with explicit user confirmation.",
-                    stateText = "AUTHORIZED",
-                    isGranted = true
-                )
-            }
-            item {
-                PermissionCategoryItem(
-                    title = "Contacts Directory",
-                    description = "Resolves contact names, aliases, and phone numbers locally.",
-                    stateText = "AUTHORIZED",
-                    isGranted = true
-                )
-            }
-
-            // Group 2: Intelligence & Sensors
-            item {
-                Text(
-                    text = "INTELLIGENCE & SENSOR CAPABILITIES",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = LaraTextSecondaryLight,
-                    letterSpacing = 0.8.sp
-                )
-            }
-            item {
-                PermissionCategoryItem(
-                    title = "Microphone (Local & ESP32)",
-                    description = "Captures short audio bursts on push-to-talk. No continuous cloud streaming.",
-                    stateText = if (state.isMicrophoneReady) "AUTHORIZED" else "REQUIRED",
-                    isGranted = state.isMicrophoneReady
-                )
-            }
-            item {
-                PermissionCategoryItem(
-                    title = "Smart Glasses Camera",
-                    description = "Captures individual frames strictly upon explicit user request.",
-                    stateText = "AUTHORIZED",
-                    isGranted = true
-                )
             }
         }
     }

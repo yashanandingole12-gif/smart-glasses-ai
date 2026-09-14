@@ -427,11 +427,17 @@ class AIResponseRouter(
             )
         }
 
-        // 6. General recent messages query
-        val messages = SmsManagerHelper.readRecentMessages(ctx, limit = 10)
+        // 6. General recent messages query with On-Device Spam & Ad Filter
+        val wantsPromos = qLower.contains("promo") || qLower.contains("advertisement") || qLower.contains("ad") || qLower.contains("spam")
+        val (messages, filteredCount) = SmsManagerHelper.readFilteredMessages(ctx, limit = 10, includePromotions = wantsPromos)
         if (messages.isEmpty()) {
+            val emptyMsg = if (filteredCount > 0) {
+                "You have no personal messages ($filteredCount promotional messages filtered out)."
+            } else {
+                "You don't have any messages right now."
+            }
             return WearableResponse(
-                text = "You don't have any messages I can read.",
+                text = emptyMsg,
                 sessionId = sessionId,
                 source = ResponseSource.TOOL,
                 unifiedSource = UnifiedSource.TOOL,
@@ -447,10 +453,11 @@ class AIResponseRouter(
         lastReadSmsSender = sender
         lastReadSmsPhone = latest.address
 
+        val filterSuffix = if (filteredCount > 0 && !wantsPromos) " ($filteredCount promotions filtered)." else ""
         val text = if (messages.size == 1) {
-            "You have 1 message from $sender: ${latest.body}"
+            "You have 1 message from $sender: ${latest.body}$filterSuffix"
         } else {
-            "You have ${messages.size} messages. Most recent from $sender: ${latest.body}. Say 'next message' to hear more."
+            "You have ${messages.size} messages$filterSuffix. Latest from $sender: ${latest.body}. Say 'next message' to hear more."
         }
 
         return WearableResponse(

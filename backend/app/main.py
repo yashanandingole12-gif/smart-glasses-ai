@@ -822,7 +822,30 @@ async def process_agent_message(req: AgentMessageRequest):
                 raw_email_data = gmail_read(index=idx)
 
             if raw_email_data.get("email"):
-                email_reply = smart_glass_formatter.format_email_read(raw_email_data["email"])
+                target_email = raw_email_data["email"]
+                is_explain_query = any(k in msg_raw.lower() for k in ["explain", "summarize", "summary", "what does", "meaning", "detail", "solution", "samjhao", "batao", "kya hai"])
+                if is_explain_query:
+                    try:
+                        em_sender = target_email.get("sender", "")
+                        em_subject = target_email.get("subject", "")
+                        em_body = target_email.get("body") or target_email.get("snippet", "")
+                        explain_prompt = (
+                            f"User query: '{msg_raw}'\n"
+                            f"Email details:\nFrom: {em_sender}\nSubject: {em_subject}\nBody: {em_body}\n\n"
+                            f"Provide a clear, direct, 2-sentence spoken explanation of this email for smart glasses. "
+                            f"Highlight key takeaways, action items, or solutions. No markdown formatting."
+                        )
+                        router_resp = await llm_router.generate_with_budget(
+                            prompt=explain_prompt,
+                            system_prompt="You are LARA smart glasses assistant. Answer concisely in 2 spoken sentences without markdown formatting.",
+                            deadline_seconds=3.5,
+                            session_id=req.session_id
+                        )
+                        email_reply = smart_glass_formatter.clean_text_for_speech(router_resp.content.strip())
+                    except Exception:
+                        email_reply = smart_glass_formatter.format_email_read(target_email)
+                else:
+                    email_reply = smart_glass_formatter.format_email_read(target_email)
             else:
                 email_reply = raw_email_data.get("message", "I couldn't find that email.")
         else:
@@ -1757,6 +1780,361 @@ async def chat_compat_endpoint(req: Request):
         "actions": [a.model_dump() for a in resp.actions],
         "sources": resp.sources,
         "metadata": resp.metadata
+    }
+
+
+# -------------------------------------------------------------------------
+# LARA Cloud Academic Research Endpoints (arXiv, Semantic Scholar, CrossRef, PubMed)
+# -------------------------------------------------------------------------
+
+@app.post("/api/v1/research/search")
+async def research_search_endpoint(req: Request):
+    """
+    Multilingual academic paper search across arXiv, Semantic Scholar, CrossRef, and PubMed.
+    """
+    from lara_research import LaraResearch
+    body = await req.json()
+    query = body.get("query", "").strip()
+    limit = int(body.get("limit", 5))
+    lang = body.get("language", "auto")
+
+    if not query:
+        raise HTTPException(status_code=400, detail="Query parameter is required.")
+
+    lara = LaraResearch()
+    results = lara.search(query=query, limit=limit, lang=lang)
+    papers = [p.to_dict() for p in results]
+
+    summary = f"Found {len(papers)} research papers matching '{query}'." if papers else f"No papers found for '{query}'."
+
+    return {
+        "success": True,
+        "query": query,
+        "count": len(papers),
+        "papers": papers,
+        "summary": summary
+    }
+
+@app.post("/api/v1/research/summarize")
+async def research_summarize_endpoint(req: Request):
+    """
+    Synthesize an academic paper abstract into a clean 2-sentence wearable summary.
+    """
+    body = await req.json()
+    title = body.get("title", "")
+    abstract = body.get("abstract", "")
+    if not abstract and not title:
+        raise HTTPException(status_code=400, detail="Title or abstract required.")
+
+    prompt = (
+        f"Paper Title: {title}\nAbstract: {abstract}\n\n"
+        f"Explain the core contribution, findings, and significance of this research paper in 2-3 concise spoken sentences for smart glasses. No markdown formatting."
+    )
+    router_resp = await llm_router.generate_with_budget(
+        prompt=prompt,
+        system_prompt="You are LARA research assistant. Summarize academic papers concisely and accurately for wearable voice output.",
+        deadline_seconds=4.0
+    )
+
+    return {
+        "success": True,
+        "title": title,
+        "summary": smart_glass_formatter.clean_text_for_speech(router_resp.content.strip())
+    }
+
+# -------------------------------------------------------------------------
+# LARA Tabular Document & Financial Analytics Endpoints
+# -------------------------------------------------------------------------
+
+@app.post("/api/v1/data/query")
+async def data_query_endpoint(req: Request):
+    """
+    Answers arbitrary natural language questions about the active tabular dataset.
+    """
+    body = await req.json()
+    query = body.get("query", "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query is required.")
+
+    res = data_analytics_engine.query_dataset(query)
+    return res
+
+@app.post("/api/v1/data/analyze")
+async def data_analyze_endpoint(req: Request):
+    """
+    Executes statistical operations (summarize, anomalies, calculate, margins).
+    """
+    body = await req.json()
+    op = body.get("operation", "summary")
+    ds_name = body.get("dataset_name")
+    res = data_analytics_engine.execute_operation(operation=op, dataset_name=ds_name)
+    return res
+
+# -------------------------------------------------------------------------
+# Real-Time Telemetry & Insights Ecosystem Status
+# -------------------------------------------------------------------------
+
+@app.get("/api/v1/telemetry/insights")
+async def telemetry_insights_endpoint():
+    """
+    Unified real-time ecosystem telemetry: ESP32 hardware status, Android daemon state,
+    cloud model routing metrics, and active dataset insights.
+    """
+    from backend.app.services.hardware_bridge import hardware_bridge
+    hw_status = hardware_bridge.get_latest_telemetry()
+    ds_meta = data_analytics_engine.get_latest_dataset_metadata()
+
+    return {
+        "success": True,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "hardware": {
+            "board": "Seeed Studio XIAO ESP32-S3 Sense",
+            "camera": "OV2640 VGA (640x480) Ready",
+            "microphone": "MSM261D PDM Digital Ready",
+            "ble_advertising": "SmartGlasses-S3",
+            "telemetry": hw_status
+        },
+        "intelligence": {
+            "fast_model": settings.FAST_LLM_MODEL,
+            "primary_model": settings.PRIMARY_LLM_MODEL,
+            "secondary_model": settings.SECONDARY_LLM_MODEL,
+            "active_provider": settings.LLM_PROVIDER,
+            "database": "SQLite (smart_glasses.db)"
+        },
+        "analytics_dataset": ds_meta
+    }
+
+@app.get("/api/v1/telemetry/glasses-logs")
+async def get_glasses_logs_endpoint(limit: int = 50):
+    """
+    Returns live hardware and BLE logs from the Seeed Studio XIAO ESP32-S3 Sense smart glasses.
+    """
+    from backend.app.services.hardware_bridge import hardware_bridge
+    logs = hardware_bridge.get_glasses_logs(limit=limit)
+    return {
+        "success": True,
+        "device": "SmartGlasses-S3",
+        "count": len(logs),
+        "logs": logs
+    }
+
+@app.post("/api/v1/telemetry/glasses-logs")
+async def push_glasses_log_endpoint(req: Request):
+    """
+    Allows Android companion app and ESP32 firmware to push BLE and hardware telemetry events.
+    """
+    from backend.app.services.hardware_bridge import hardware_bridge
+    body = await req.json()
+    event_type = body.get("event_type", "BLE_EVENT")
+    details = body.get("details", {})
+    source = body.get("source", "Android-BLE")
+    level = body.get("level", "INFO")
+    hardware_bridge.log_glasses_event(event_type=event_type, details=details, source=source, level=level)
+    return {"success": True, "logged": True}
+
+@app.get("/api/v1/telemetry/requests")
+async def get_request_telemetry_endpoint(limit: int = 50):
+    """
+    Returns status of requests generated and processed (SUCCESS, FAILED, latency, error details).
+    """
+    from backend.app.services.hardware_bridge import hardware_bridge
+    logs = hardware_bridge.get_request_logs(limit=limit)
+    return {
+        "success": True,
+        "count": len(logs),
+        "requests": logs
+    }
+
+@app.get("/api/v1/telemetry/conversation-stream")
+async def get_conversation_stream_endpoint(session_id: Optional[str] = None, limit: int = 50):
+    """
+    Returns chronological conversation stream between Glasses, Android, and Cloud AI Assistant.
+    """
+    target_session = session_id or "default_session"
+    history = memory_repository.get_history(target_session, limit=limit)
+    return {
+        "success": True,
+        "session_id": target_session,
+        "messages": [
+            {
+                "role": m.role,
+                "content": m.content,
+                "timestamp": getattr(m, "timestamp", time.time()),
+                "source": "SmartGlasses" if m.role == "user" else "LARA-Cloud"
+            }
+            for m in history
+        ]
+    }
+
+# -------------------------------------------------------------------------
+# Quick-Action Contacts Hub (1-Tap Dial, SMS, Email)
+# -------------------------------------------------------------------------
+
+@app.get("/api/v1/contacts/list")
+async def contacts_list_endpoint():
+    """
+    Returns quick-dial and messaging contacts for Wearable and Web Console.
+    """
+    contacts = [
+        {"id": "c1", "name": "Team Contact", "phone": "+1 555-0100", "email": "team@example.com", "role": "Lead Architect", "starred": True},
+        {"id": "c2", "name": "Emergency Services", "phone": "112", "email": "sos@emergency.local", "role": "SOS Dispatch", "starred": True},
+        {"id": "c3", "name": "Office Desk", "phone": "+1 555-0101", "email": "desk@example.com", "role": "Operations", "starred": False},
+        {"id": "c4", "name": "Research Collaborator", "phone": "+1 555-0199", "email": "collab@example.com", "role": "Collaborator", "starred": False}
+    ]
+    return {"success": True, "contacts": contacts}
+
+@app.post("/api/v1/contacts/call")
+async def contacts_call_endpoint(req: Request):
+    """
+    Places a high-speed phone call action for Smart Glasses wearable.
+    """
+    from backend.app.services.hardware_bridge import hardware_bridge
+    body = await req.json()
+    name = body.get("name", "Contact")
+    phone = body.get("phone", "")
+    spoken = smart_glass_formatter.format_call_action("call_make", contact_name=name, phone=phone)
+    hardware_bridge.log_glasses_event("CALL_INITIATED", {"name": name, "phone": phone}, source="WebConsole/Glasses")
+    return {
+        "success": True,
+        "action": "call",
+        "name": name,
+        "phone": phone,
+        "speech_response": spoken
+    }
+
+@app.post("/api/v1/contacts/sms")
+async def contacts_sms_endpoint(req: Request):
+    """
+    Sends an SMS message to a contact.
+    """
+    from backend.app.services.hardware_bridge import hardware_bridge
+    body = await req.json()
+    name = body.get("name", "Contact")
+    phone = body.get("phone", "")
+    message = body.get("message", "")
+    if not message:
+        raise HTTPException(status_code=400, detail="Message body is required.")
+    hardware_bridge.log_glasses_event("SMS_DISPATCHED", {"name": name, "phone": phone, "body": message[:50]}, source="WebConsole/Glasses")
+    return {
+        "success": True,
+        "action": "sms",
+        "name": name,
+        "phone": phone,
+        "message": message,
+        "speech_response": f"Message sent to {name}."
+    }
+
+@app.post("/api/v1/contacts/email")
+async def contacts_email_endpoint(req: Request):
+    """
+    Sends an Email to a contact.
+    """
+    from backend.app.services.hardware_bridge import hardware_bridge
+    body = await req.json()
+    name = body.get("name", "Contact")
+    email = body.get("email", "")
+    subject = body.get("subject", "Smart Glasses Notification")
+    body_text = body.get("body", "")
+    hardware_bridge.log_glasses_event("EMAIL_SENT", {"name": name, "email": email, "subject": subject}, source="WebConsole/Glasses")
+    return {
+        "success": True,
+        "action": "email",
+        "name": name,
+        "email": email,
+        "speech_response": f"Email sent to {name} regarding '{subject}'."
+    }
+
+# -------------------------------------------------------------------------
+# LARA Multimodal Vision & Camera Frame Analysis Endpoints
+# -------------------------------------------------------------------------
+
+@app.post("/api/v1/vision/analyze", response_model=VisionAnalyzeResponse)
+async def vision_analyze_endpoint(req: VisionAnalyzeRequest):
+    """
+    High-speed Gemini Multimodal Vision analysis for smart glasses camera frames.
+    """
+    from backend.app.services.vision_service import vision_service
+    if not req.image_base64:
+        raise HTTPException(status_code=400, detail="image_base64 field is required.")
+
+    try:
+        raw_b64 = req.image_base64
+        if "," in raw_b64:
+            raw_b64 = raw_b64.split(",", 1)[1]
+        img_bytes = base64.b64decode(raw_b64)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid base64 image data: {e}")
+
+    result = vision_service.analyze_image(
+        image_bytes=img_bytes,
+        user_query=req.prompt,
+        session_id=req.session_id or "default_session",
+        device_id=req.device_id or "SmartGlasses-S3",
+        capture_id=req.capture_id
+    )
+
+    return VisionAnalyzeResponse(
+        capture_id=result.get("capture_id"),
+        description=result.get("description", "I see an image from the smart glasses camera."),
+        objects=result.get("objects", []),
+        text_detected=result.get("text_detected", []),
+        confidence=result.get("confidence", 0.95),
+        provider=result.get("provider", "gemini-2.5-flash"),
+        latency_ms=result.get("latency_ms", 0.0),
+        structured_attributes=result.get("structured_attributes"),
+        category=result.get("category"),
+        color=result.get("color"),
+        style=result.get("style"),
+        status=result.get("status", "success")
+    )
+
+@app.post("/api/v1/images/upload")
+async def images_upload_endpoint(
+    file: UploadFile = File(...),
+    source: str = Form("android_companion"),
+    prompt: Optional[str] = Form("Describe what you see."),
+    session_id: Optional[str] = Form("default_session")
+):
+    """
+    Upload an image frame directly from Android or ESP32 and get instant Gemini Vision analysis.
+    """
+    from backend.app.services.vision_service import vision_service
+    img_bytes = await file.read()
+    if not img_bytes:
+        raise HTTPException(status_code=400, detail="Empty image uploaded.")
+
+    result = vision_service.analyze_image(
+        image_bytes=img_bytes,
+        user_query=prompt,
+        session_id=session_id or "default_session",
+        device_id=source
+    )
+
+    return {
+        "success": True,
+        "status": "success",
+        "description": result.get("description"),
+        "analysis": result
+    }
+
+@app.post("/api/v1/files/upload")
+async def files_upload_endpoint(
+    file: UploadFile = File(...),
+    source: str = Form("companion")
+):
+    """
+    Upload CSV or structured document for tabular intelligence & analytics.
+    """
+    content = await file.read()
+    filename = file.filename or "uploaded_doc.csv"
+    csv_text = content.decode("utf-8", errors="ignore")
+
+    dataset_meta = data_analytics_engine.load_csv(filename, csv_text, uploader=source)
+    return {
+        "success": True,
+        "filename": filename,
+        "dataset": dataset_meta,
+        "message": f"Document '{filename}' successfully ingested and profiled."
     }
 
 

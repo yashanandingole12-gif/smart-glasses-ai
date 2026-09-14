@@ -31,6 +31,9 @@ class GlassesBackgroundService : Service() {
 
         const val ACTION_START = "com.smartglasses.ai.action.START_DAEMON"
         const val ACTION_STOP = "com.smartglasses.ai.action.STOP_DAEMON"
+        const val ACTION_TWS_AI_TRIGGER = "com.smartglasses.ai.action.TWS_AI_TRIGGER"
+
+        var onHandsFreeVoiceTriggered: (() -> Unit)? = null
 
         fun startService(context: Context) {
             val intent = Intent(context, GlassesBackgroundService::class.java).apply {
@@ -82,6 +85,12 @@ class GlassesBackgroundService : Service() {
         if (intent?.action == ACTION_STOP) {
             stopSelf()
             return START_NOT_STICKY
+        }
+
+        if (intent?.action == ACTION_TWS_AI_TRIGGER) {
+            Log.i(TAG, "Handling ACTION_TWS_AI_TRIGGER - Waking speech assistant hands-free")
+            onHandsFreeVoiceTriggered?.invoke()
+            return START_STICKY
         }
 
         Log.i(TAG, "GlassesBackgroundService onStartCommand - START_STICKY enabled.")

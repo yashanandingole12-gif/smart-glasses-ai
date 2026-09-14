@@ -16,15 +16,88 @@ class SmartGlassResponseFormatter:
     """
 
     @staticmethod
-    def clean_text_for_speech(text: str) -> str:
+    def normalize_numbers_for_speech(text: str) -> str:
+        """
+        Normalizes phone numbers, OTPs, currency, and long digit strings
+        so that Text-to-Speech engines pronounce them naturally as individual digits
+        rather than gigantic cardinal numbers (e.g. '98 billion...').
+        """
+        if not text:
+            return ""
+
+        res = text
+
+        # 1. Currency normalization
+        res = re.sub(r"₹\s*(\d+(?:\.\d+)?)", r"\1 rupees", res)
+        res = re.sub(r"(?:Rs\.?|INR)\s*(\d+(?:\.\d+)?)", r"\1 rupees", res, flags=re.IGNORECASE)
+        res = re.sub(r"\$\s*(\d+(?:\.\d+)?)", r"\1 dollars", res)
+        res = re.sub(r"€\s*(\d+(?:\.\d+)?)", r"\1 euros", res)
+
+        # 2. OTP & Verification codes: "OTP is 482910" -> "OTP is 4 8 2 9 1 0"
+        def format_otp_digits(match):
+            prefix = match.group(1)
+            digits = match.group(2)
+            spaced_digits = " ".join(list(digits))
+            return f"{prefix} {spaced_digits}"
+
+        res = re.sub(
+            r"\b(OTP(?:\s+is|\s*:)?|code(?:\s+is|\s*:)?|pin(?:\s+is|\s*:)?|verification\s+code(?:\s+is|\s*:)?)\s*(\d{4,8})\b",
+            format_otp_digits,
+            res,
+            flags=re.IGNORECASE
+        )
+
+        # 3. International Phone numbers with Country Code: +1 5550100 or +91 9876543210
+        def format_intl_phone(match):
+            country_code = match.group(1)
+            p1 = " ".join(list(match.group(2)))
+            p2 = " ".join(list(match.group(3)))
+            return f"plus {country_code}, {p1}, {p2}"
+
+        res = re.sub(
+            r"\+(\d{1,3})[\s\-]?(\d{5})[\s\-]?(\d{5})\b",
+            format_intl_phone,
+            res
+        )
+
+        # 4. Standard 10-digit Phone numbers: 9876543210 or 555-0100000
+        def format_10digit_phone(match):
+            d1 = " ".join(list(match.group(1)))
+            d2 = " ".join(list(match.group(2)))
+            return f"{d1}, {d2}"
+
+        # Match 10 contiguous digits not preceded/followed by digits or decimal points
+        res = re.sub(
+            r"(?<![\d\.])(\d{5})(\d{5})(?![\d\.])",
+            format_10digit_phone,
+            res
+        )
+
+        # 5. Format remaining 4-9 digit standalone numeric codes
+        def format_generic_code(match):
+            digits = match.group(0)
+            return " ".join(list(digits))
+
+        res = re.sub(
+            r"(?<![\d\.])(\d{7,9})(?![\d\.])",
+            format_generic_code,
+            res
+        )
+
+        return res
+
+    @classmethod
+    def clean_text_for_speech(cls, text: str) -> str:
         """Removes markdown symbols, URLs, excess punctuation, and formatting."""
         if not text:
             return ""
         # Remove URLs
         cleaned = re.sub(r"https?://\S+", "", text)
         # Remove markdown bold/italics/code/bullets
-        cleaned = re.sub(r"[\*\_`#>]", "", cleaned)
+        cleaned = re.sub(r"[\*\_`#><\[\]\{\}\|]", "", cleaned)
         cleaned = re.sub(r"^\s*[-•\d+\.]+\s+", "", cleaned, flags=re.MULTILINE)
+        # Normalize digits, currency, and phone numbers for natural voice speech
+        cleaned = cls.normalize_numbers_for_speech(cleaned)
         # Collapse whitespace
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
         return cleaned
@@ -119,9 +192,10 @@ class SmartGlassResponseFormatter:
         return f"You have {count} messages. " + "; ".join(lines)
 
     def format_call_action(self, action: str, contact_name: Optional[str] = None, phone: Optional[str] = None) -> str:
+        formatted_phone = self.normalize_numbers_for_speech(phone) if phone else None
         if action == "call_make":
-            if contact_name and phone:
-                return f"Calling {contact_name} at {phone}."
+            if contact_name and formatted_phone:
+                return f"Calling {contact_name} at {formatted_phone}."
             elif contact_name:
                 return f"Calling {contact_name}."
             return "Initiating call."
@@ -151,11 +225,12 @@ class SmartGlassResponseFormatter:
         """
         Converts structured vision output into 1-3 concise spoken sentences
         for Smart Glasses TTS. Enforces zero markdown, zero LaTeX, zero JSON, zero URLs.
+        Provides conversational follow-up invites when user captures a photo.
         """
         if not description and not objects and not text_detected:
             return "I couldn't detect anything clearly in the photo."
 
-        aspect = (requested_aspect or "").lower()
+        aspect = (requested_aspect or "").lower().strip()
 
         # 1. OCR / Reading intent
         if any(w in aspect for w in ["read", "text", "what does it say", "words", "transcribe"]):
@@ -177,13 +252,14 @@ class SmartGlassResponseFormatter:
             return cleaned
 
         # 3. Object presence / what is that object
-        if any(w in aspect for w in ["object", "what is that", "what is in front", "scene"]):
+        if any(w in aspect for w in ["what object", "what is that object", "what is in front"]):
             if objects and len(objects) > 0:
                 obj_str = ", ".join(objects[:4])
                 cleaned_desc = self.clean_text_for_speech(description)
                 return f"In front of you, I see {obj_str}. {cleaned_desc}"
 
-        # 4. Standard concise description (1-3 sentences max)
+        # 4. Standard photo capture / General scene query:
+        # Provide a clear, natural description and an open conversational follow-up question
         cleaned = self.clean_text_for_speech(description)
         # Strip any LaTeX leftovers like \text, $, etc.
         cleaned = re.sub(r"\\[a-zA-Z]+|\$+", "", cleaned)
@@ -191,10 +267,25 @@ class SmartGlassResponseFormatter:
         cleaned = re.sub(r"\{.*?\}|\[.*?\]", "", cleaned)
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
 
-        # Split into sentences and keep at most 3
+        # Split into sentences and keep at most 2
         sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", cleaned) if s.strip()]
-        if not sentences:
-            return "I can see the scene in front of you."
-        return " ".join(sentences[:3])
+        base_desc = " ".join(sentences[:2]) if sentences else "I can see the scene in front of you."
+
+        # Is this a general capture / "what do you see" query?
+        is_general_capture = (
+            not aspect or
+            any(aspect.startswith(p) or p in aspect for p in [
+                "capture", "take pic", "take photo", "click", "what do you see",
+                "what is this", "photo", "pic", "image", "see", "describe"
+            ])
+        )
+
+        if is_general_capture:
+            prominent = objects[0] if objects and len(objects) > 0 else "this"
+            follow_up = f"What would you like to know about the {prominent}?" if prominent != "this" else "What would you like to know about it?"
+            if not base_desc.endswith("?"):
+                return f"{base_desc} {follow_up}"
+
+        return base_desc
 
 smart_glass_formatter = SmartGlassResponseFormatter()

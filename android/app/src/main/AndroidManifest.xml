@@ -93,6 +93,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- TWS Earbuds / Bluetooth Headset Multi-Tap AI Action Receiver -->
+        <receiver
+            android:name=".core.receiver.TwsMediaButtonReceiver"
+            android:exported="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

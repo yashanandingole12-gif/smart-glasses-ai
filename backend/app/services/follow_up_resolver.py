@@ -347,7 +347,19 @@ class FollowUpResolver:
                     direct_answer=direct_resp
                 )
 
-            # 10.4 Continuation: "tell me more" when vision context is active
+            # 10.4 General follow-up inquiry about the active image/object (e.g. "what brand?", "tell me about the laptop", "how does it work?")
+            if any(obj.lower() in q for obj in objects) or any(w in q for w in ["it", "that", "this", "laptop", "glasses", "device", "specs", "brand", "model", "price", "cost", "features"]):
+                prominent_obj = next((obj for obj in objects if obj.lower() in q), (objects[0] if objects else "the scene"))
+                aug_msg = f"Based on the camera photo where you see {desc} (objects: {', '.join(objects)}), answer the user's follow-up question: '{raw}'"
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=aug_msg,
+                    target_capability="vision",
+                    action_type="continue_subject",
+                    resolved_parameters={"vision": vis, "object": prominent_obj, "question": raw}
+                )
+
+            # 10.5 Continuation: "tell me more" when vision context is active
             if q in ["tell me more", "explain that", "what else", "tell me details", "more details"] and not ctx.active_subject and not ctx.active_calculation:
                 direct_resp = f"Looking further at the image: {desc}"
                 return ResolvedFollowUp(

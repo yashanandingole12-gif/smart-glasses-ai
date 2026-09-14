@@ -57,6 +57,13 @@ object PermissionManager {
         }
     }
 
+    fun hasContactsPermission(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
     fun hasSmsPermission(context: Context): Boolean {
         val read = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
         val send = ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
@@ -69,7 +76,27 @@ object PermissionManager {
         return call && state
     }
 
+    fun hasCallPermission(context: Context): Boolean = hasPhonePermission(context)
+
+    fun getMissingPermissions(context: Context): List<String> {
+        return REQUIRED_PERMISSIONS.filter { perm ->
+            ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED
+        }
+    }
+
     fun hasAllEssentialPermissions(context: Context): Boolean {
-        return hasRecordAudioPermission(context) && hasLocationPermission(context)
+        return getMissingPermissions(context).isEmpty()
+    }
+
+    fun openAppSettings(context: Context) {
+        try {
+            val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.fromParts("package", context.packageName, null)
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            android.util.Log.e("PermissionManager", "Could not open app settings: ${e.message}")
+        }
     }
 }
