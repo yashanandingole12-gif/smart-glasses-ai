@@ -30,6 +30,7 @@ class ActiveSessionContext:
             "selected": None
         }
         self.active_contact: Optional[Dict[str, Any]] = None
+        self.active_contact_disambiguation: Optional[Dict[str, Any]] = None
         self.active_search: Dict[str, Any] = {
             "query": None,
             "results": [],
@@ -58,6 +59,7 @@ class ActiveSessionContext:
             "active_calendar": self.active_calendar,
             "active_sms": self.active_sms,
             "active_contact": self.active_contact,
+            "active_contact_disambiguation": self.active_contact_disambiguation,
             "active_search": self.active_search,
             "active_document": self.active_document,
             "active_calculation": self.active_calculation,
@@ -175,6 +177,45 @@ class ConversationContextEngine:
         with self._lock:
             ctx = self.get_session(session_id)
             ctx.active_contact = dict(contact_data)
+            ctx.touch()
+
+    def update_contact_disambiguation(
+        self,
+        session_id: str,
+        candidates: List[Dict[str, Any]],
+        action: str = "call",
+        message_body: Optional[str] = None,
+        query: Optional[str] = None,
+        target_query: Optional[str] = None,
+        body: Optional[str] = None
+    ):
+        with self._lock:
+            ctx = self.get_session(session_id)
+            ctx.active_contact_disambiguation = {
+                "candidates": list(candidates),
+                "action": action,
+                "message_body": message_body or body,
+                "body": message_body or body,
+                "query": query or target_query,
+                "target_query": query or target_query,
+                "timestamp": time.time()
+            }
+            ctx.touch()
+
+    def get_active_contact_disambiguation(self, session_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            ctx = self.get_session(session_id)
+            if ctx.active_contact_disambiguation:
+                if (time.time() - ctx.active_contact_disambiguation.get("timestamp", 0)) > self.ttl_seconds:
+                    ctx.active_contact_disambiguation = None
+                    return None
+                return ctx.active_contact_disambiguation
+            return None
+
+    def clear_contact_disambiguation(self, session_id: str):
+        with self._lock:
+            ctx = self.get_session(session_id)
+            ctx.active_contact_disambiguation = None
             ctx.touch()
 
     def update_search(self, session_id: str, query: str, results: List[Dict[str, Any]]):

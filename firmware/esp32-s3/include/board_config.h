@@ -27,12 +27,20 @@
 #define I2S_MIC_DATA            41
 #define I2S_MIC_SAMPLE_RATE     16000
 
-// External I2S Speaker / DAC Pinout (MAX98357A / Bone Conduction)
+// External I2S Speaker / DAC Pinout (MAX98357A / Bone Conduction Transducer Amp)
+// Wiring to XIAO ESP32-S3:
+//   - MAX98357A BCLK  -> XIAO D8  (GPIO 7)
+//   - MAX98357A LRC   -> XIAO D9  (GPIO 8)
+//   - MAX98357A DIN   -> XIAO D10 (GPIO 9)
+//   - MAX98357A GND   -> GND
+//   - MAX98357A VIN   -> 3.3V or 5V (VBUS)
+//   - MAX98357A GAIN  -> GND (12dB gain) or open (9dB)
+//   - MAX98357A SD_MODE -> Open or 100k pull-up to VIN (Stereo / Left / Right)
 #define I2S_SPK_PORT            I2S_NUM_1
-#define I2S_SPK_BCLK            7
-#define I2S_SPK_LRCLK           8
-#define I2S_SPK_DATA            9
-#define I2S_SPK_SAMPLE_RATE     16000
+#define I2S_SPK_BCLK            7       // D8 / GPIO 7 (Bit Clock)
+#define I2S_SPK_LRCLK           8       // D9 / GPIO 8 (Left/Right Clock / WS)
+#define I2S_SPK_DATA            9       // D10 / GPIO 9 (Data Out -> DAC DIN)
+#define I2S_SPK_SAMPLE_RATE     16000   // 16kHz default sample rate (supports 8kHz - 48kHz)
 
 // On-board OV2640 Camera Pinout (Seeed Studio XIAO ESP32-S3 Sense Expansion)
 #define CAM_PIN_PWDN            -1

@@ -9,6 +9,7 @@ object BleProtocol {
     val EVENT_CHAR_UUID: UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
     val STATUS_CHAR_UUID: UUID = UUID.fromString("6e400004-b5a3-f393-e0a9-e50e24dcca9e")
     val BATTERY_CHAR_UUID: UUID = UUID.fromString("6e400005-b5a3-f393-e0a9-e50e24dcca9e")
+    val AUDIO_RX_CHAR_UUID: UUID = UUID.fromString("6e400006-b5a3-f393-e0a9-e50e24dcca9e")
 
     const val DEVICE_NAME_PREFIX = "SmartGlasses"
 
@@ -27,5 +28,9 @@ object BleProtocol {
     const val CMD_STOP_LISTENING = "STOP_LISTENING"
     const val CMD_CAPTURE_IMAGE = "CAPTURE_IMAGE"
     const val CMD_STATUS_REQUEST = "STATUS_REQUEST"
+    const val CMD_PLAY_MESSAGE_ALERT = "PLAY_MESSAGE_ALERT"
+    const val CMD_PLAY_AI_RESPONSE = "PLAY_AI_RESPONSE"
+    const val CMD_CALL_INCOMING = "CALL_INCOMING"
+    const val CMD_SPEAKER_TEST = "SPEAKER_TEST"
 }
 

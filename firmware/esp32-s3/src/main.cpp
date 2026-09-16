@@ -21,6 +21,29 @@ void streamBase64Data(const uint8_t* data, size_t len) {
     Serial.println();
 }
 
+void decodeAndPlayBase64Audio(const String& b64Str) {
+    if (b64Str.length() == 0) return;
+    size_t outLen = 0;
+    size_t maxDecoded = (b64Str.length() * 3) / 4 + 4;
+    uint8_t* pcmBuf = (uint8_t*)(psramFound() ? ps_malloc(maxDecoded) : malloc(maxDecoded));
+    if (!pcmBuf) {
+        Serial.println("[SPEAKER] ERROR: Memory allocation failed for audio decode.");
+        return;
+    }
+    int ret = mbedtls_base64_decode(pcmBuf, maxDecoded, &outLen, (const unsigned char*)b64Str.c_str(), b64Str.length());
+    if (ret == 0 && outLen > 0) {
+        Serial.printf("[SPEAKER] Playing decoded audio stream (%u bytes)...\n", (unsigned int)outLen);
+        if (outLen > 44 && memcmp(pcmBuf, "RIFF", 4) == 0) {
+            AudioManager::getInstance().playWavAudio(pcmBuf, outLen);
+        } else {
+            AudioManager::getInstance().playPcmAudio((const int16_t*)pcmBuf, outLen / sizeof(int16_t));
+        }
+    } else {
+        Serial.printf("[SPEAKER] Base64 decode error (code: %d)\n", ret);
+    }
+    free(pcmBuf);
+}
+
 void setup() {
     Serial.begin(115200);
     delay(500);
@@ -28,7 +51,7 @@ void setup() {
     Serial.println();
     Serial.println("==================================================");
     Serial.println("  LARA Smart Glasses AI Assistant (ESP32-S3)");
-    Serial.println("  Firmware: v0.2.0 | Multimodal & Vision Ready");
+    Serial.println("  Firmware: v0.3.0 | Multimodal, Vision & Speaker Ready");
     Serial.println("==================================================");
 
     esp_chip_info_t chip_info;
@@ -55,11 +78,13 @@ void loop() {
 
     if (millis() - lastHeartbeat >= 2000) {
         lastHeartbeat = millis();
-        Serial.printf("[HEARTBEAT] Uptime: %lu ms | Free Heap: %d KB | BLE: %s | Camera: %s\n", 
+        Serial.printf("[HEARTBEAT] Uptime: %lu ms | Free Heap: %d KB | BLE: %s | Camera: %s | Mic: %s | Speaker: %s\n", 
                       millis(), 
                       ESP.getFreeHeap() / 1024,
                       BleManager::getInstance().isClientConnected() ? "CONNECTED" : "ADVERTISING (SmartGlasses-S3)",
-                      CameraManager::getInstance().isAvailable() ? "READY (VGA 640x480)" : "NOT_ATTACHED");
+                      CameraManager::getInstance().isAvailable() ? "READY (VGA 640x480)" : "NOT_ATTACHED",
+                      AudioManager::getInstance().isInitialized() ? "READY" : "OFFLINE",
+                      AudioManager::getInstance().isSpeakerInitialized() ? "READY (I2S TX)" : "OFFLINE");
     }
 
     if (liveMicStreaming && (millis() - lastMicStream >= 100)) {
@@ -74,10 +99,11 @@ void loop() {
         String input = Serial.readStringUntil('\n');
         input.trim();
         if (input == "STATUS" || input == "PING") {
-            Serial.printf("[DIAGNOSTIC] Board: Seeed XIAO ESP32-S3 | Free Heap: %d KB | Camera: %s | Mic: %s | CPU: %d MHz\n", 
+            Serial.printf("[DIAGNOSTIC] Board: Seeed XIAO ESP32-S3 | Free Heap: %d KB | Camera: %s | Mic: %s | Spk: %s | CPU: %d MHz\n", 
                           ESP.getFreeHeap() / 1024, 
                           CameraManager::getInstance().isAvailable() ? "READY (VGA 640x480)" : "NOT_ATTACHED",
                           AudioManager::getInstance().isInitialized() ? "READY" : "OFFLINE",
+                          AudioManager::getInstance().isSpeakerInitialized() ? "READY" : "OFFLINE",
                           getCpuFrequencyMhz());
         } else if (input == "WAKE" || input == "TALK" || input == "START") {
             AudioManager::getInstance().triggerVoiceWakeSession();
@@ -89,6 +115,54 @@ void loop() {
         } else if (input == "DISABLE_VAD") {
             AudioManager::getInstance().setVadEnabled(false);
             Serial.println("[VAD] Automatic Hands-Free Voice Detection DISABLED");
+        } else if (input == "PLAY_MESSAGE_ALERT" || input == "MESSAGE_ALERT" || input == "PLAY_ALERT") {
+            Serial.println("[SPEAKER] Playing Incoming Message Notification Chime");
+            AudioManager::getInstance().playSound(SoundEffect::SOUND_MESSAGE_ALERT);
+        } else if (input == "PLAY_AI_RESPONSE" || input == "AI_RESPONSE") {
+            Serial.println("[SPEAKER] Playing AI Response Ready Chime");
+            AudioManager::getInstance().playSound(SoundEffect::SOUND_AI_RESPONSE);
+        } else if (input == "PLAY_WAKE") {
+            Serial.println("[SPEAKER] Playing Wake-up Prompt Chime");
+            AudioManager::getInstance().playSound(SoundEffect::SOUND_WAKE);
+        } else if (input == "PLAY_CALL") {
+            Serial.println("[SPEAKER] Playing Incoming Call Ringtone");
+            AudioManager::getInstance().playSound(SoundEffect::SOUND_CALL_INCOMING);
+        } else if (input == "PLAY_SUCCESS") {
+            AudioManager::getInstance().playSound(SoundEffect::SOUND_SUCCESS);
+        } else if (input == "PLAY_ERROR") {
+            AudioManager::getInstance().playSound(SoundEffect::SOUND_ERROR);
+        } else if (input.startsWith("PLAY_TONE")) {
+            uint16_t freq = 880;
+            uint32_t dur = 300;
+            int space1 = input.indexOf(' ');
+            if (space1 > 0) {
+                int space2 = input.indexOf(' ', space1 + 1);
+                if (space2 > 0) {
+                    freq = input.substring(space1 + 1, space2).toInt();
+                    dur = input.substring(space2 + 1).toInt();
+                } else {
+                    freq = input.substring(space1 + 1).toInt();
+                }
+            }
+            Serial.printf("[SPEAKER] Playing Tone: %u Hz for %u ms\n", freq, dur);
+            AudioManager::getInstance().playTone(freq, dur);
+        } else if (input.startsWith("SET_VOLUME") || input.startsWith("VOLUME")) {
+            int spaceIdx = input.indexOf(' ');
+            if (spaceIdx > 0) {
+                uint8_t vol = input.substring(spaceIdx + 1).toInt();
+                AudioManager::getInstance().setVolume(vol);
+                AudioManager::getInstance().playSound(SoundEffect::SOUND_SUCCESS);
+            }
+        } else if (input.startsWith("PLAY_AUDIO_BASE64")) {
+            int spaceIdx = input.indexOf(' ');
+            if (spaceIdx > 0) {
+                String b64 = input.substring(spaceIdx + 1);
+                decodeAndPlayBase64Audio(b64);
+            }
+        } else if (input == "SPK_TEST" || input == "SPEAKER_TEST" || input == "DIAGNOSE_SPK") {
+            AudioManager::getInstance().runSpeakerDiagnostic();
+        } else if (input == "AUDIO_TEST" || input == "DIAGNOSE_AUDIO") {
+            AudioManager::getInstance().runFullAudioDiagnostic();
         } else if (input == "MIC_TEST" || input == "DIAGNOSE_MIC" || input == "MIC") {
             AudioManager::getInstance().runMicrophoneDiagnostic(3500);
         } else if (input == "MIC_SAMPLE") {

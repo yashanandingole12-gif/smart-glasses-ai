@@ -1,0 +1,35 @@
+# Version Control & IDE
+.git
+.gitignore
+.idea
+.vscode
+.gemini
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+
+# Android Build & Gradle
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/*.keystore
+
+# Firmware PlatformIO builds
+firmware/.pio
+firmware/.vscode
+
+# Local logs and temporary databases
+*.log
+scratch/
+artifacts/
+.DS_Store

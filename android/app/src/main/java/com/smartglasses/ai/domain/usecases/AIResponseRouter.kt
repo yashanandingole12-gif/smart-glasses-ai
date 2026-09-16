@@ -40,9 +40,21 @@ class AIResponseRouter(
         val qLower = q.lowercase(Locale.ROOT)
         val tStart = System.currentTimeMillis()
 
-        // 0. Handle Confirmation of Pending Actions (SMS Dispatch, etc.)
+        // 0. Handle Confirmation of Pending Actions (SMS Dispatch, Call Confirmation, etc.)
         if (confirmedAction == true && confirmedActionId != null) {
             val ctx = context
+            if (confirmedActionId.startsWith("call_dial_")) {
+                val dialNumber = confirmedActionId.removePrefix("call_dial_")
+                callController?.makeCall(dialNumber)
+                return WearableResponse(
+                    text = "Calling $dialNumber.",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+                )
+            }
             if (ctx != null && confirmedActionId.startsWith("sms_")) {
                 val dest = pendingSendPhone ?: lastReadSmsPhone
                 val body = pendingSendMessage
@@ -62,6 +74,93 @@ class AIResponseRouter(
                     )
                 }
             }
+        }
+
+        // 0.05 Handle Active Contact Disambiguation for Calls & SMS
+        val disambigCallCandidates = pendingCallDisambiguation
+        if (disambigCallCandidates != null && disambigCallCandidates.isNotEmpty()) {
+            val selected = resolveDisambiguationOption(qLower, disambigCallCandidates)
+            if (selected != null) {
+                pendingCallDisambiguation = null
+                callController?.makeCall(selected.second)
+                return WearableResponse(
+                    text = "Calling ${selected.first}.",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+                )
+            }
+        }
+
+        val disambigSmsCandidates = pendingSmsDisambiguation
+        if (disambigSmsCandidates != null && disambigSmsCandidates.isNotEmpty()) {
+            val selected = resolveDisambiguationOption(qLower, disambigSmsCandidates)
+            if (selected != null) {
+                val body = pendingSmsDisambiguationBody ?: "I will get back to you shortly."
+                pendingSmsDisambiguation = null
+                pendingSmsDisambiguationBody = null
+                pendingSendMessage = body
+                pendingSendPhone = selected.second
+                pendingSendRecipient = selected.first
+                return WearableResponse(
+                    text = "I have drafted a message to ${selected.first}: '$body'. Shall I send it?",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.TOOL,
+                    requiresConfirmation = true,
+                    confirmationPrompt = "Send SMS to ${selected.first}: '$body'?",
+                    confirmationActionId = "sms_send_${System.currentTimeMillis()}",
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+                )
+            }
+        }
+
+        // 0.08 Conversational Lifecycle & Session Management
+        val lifecycleGreetings = listOf("hey lara", "hi lara", "hello lara", "lara", "wake up lara", "hey assistant")
+        if (lifecycleGreetings.any { qLower == it || qLower.startsWith("$it ") }) {
+            val bat = telemetry.batteryPercentage
+            val ctx = context
+            val unreadCount = ctx?.let {
+                try {
+                    val (unread, _) = SmsManagerHelper.readFilteredMessages(it, limit = 5, includePromotions = false)
+                    unread.size
+                } catch (_: Exception) { 0 }
+            } ?: 0
+            val unreadPart = if (unreadCount > 0) " You have $unreadCount personal message${if (unreadCount > 1) "s" else ""}." else ""
+            return WearableResponse(
+                text = "Hello! LARA is active and ready. Battery is at $bat%.$unreadPart How can I help you today?",
+                sessionId = sessionId,
+                source = ResponseSource.LOCAL_DETERMINISTIC,
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+            )
+        }
+
+        val lifecycleDismiss = listOf("goodbye lara", "bye lara", "sleep lara", "shutdown lara", "turn off lara", "goodbye", "alvida")
+        if (lifecycleDismiss.any { qLower == it || qLower.startsWith("$it ") }) {
+            // Clean active session context
+            lastReadSmsIndex = 0
+            lastReadSmsList = emptyList()
+            lastReadSmsSender = null
+            lastReadSmsPhone = null
+            pendingSendMessage = null
+            pendingSendPhone = null
+            pendingSendRecipient = null
+            pendingCallDisambiguation = null
+            pendingSmsDisambiguation = null
+            pendingSmsDisambiguationBody = null
+            return WearableResponse(
+                text = "Goodbye! Putting LARA to sleep. Say 'Hey LARA' whenever you need me.",
+                sessionId = sessionId,
+                source = ResponseSource.LOCAL_DETERMINISTIC,
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+            )
         }
 
         // 0. LAYER 0 — Native Telephony & Call Controls (<50ms on-device)
@@ -172,6 +271,49 @@ class AIResponseRouter(
     private var pendingSendMessage: String? = null
     private var pendingSendPhone: String? = null
     private var pendingSendRecipient: String? = null
+    private var pendingCallDisambiguation: List<Pair<String, String>>? = null
+    private var pendingSmsDisambiguation: List<Pair<String, String>>? = null
+    private var pendingSmsDisambiguationBody: String? = null
+
+    private fun resolveDisambiguationOption(qLower: String, candidates: List<Pair<String, String>>): Pair<String, String>? {
+        if (candidates.isEmpty()) return null
+
+        // 1. Ordinal / Index matching ("first", "1", "second", "2", "option 1", "pehla", "doosra")
+        val ordinalMap = mapOf(
+            "first" to 0, "1st" to 0, "1" to 0, "one" to 0, "pehla" to 0, "option 1" to 0, "option one" to 0,
+            "second" to 1, "2nd" to 1, "2" to 1, "two" to 1, "doosra" to 1, "option 2" to 0, "option two" to 1,
+            "third" to 2, "3rd" to 2, "3" to 2, "three" to 2, "teesra" to 2, "option 3" to 2,
+            "fourth" to 3, "4th" to 3, "4" to 3, "four" to 3, "chautha" to 3,
+            "fifth" to 4, "5th" to 4, "5" to 4, "five" to 4
+        )
+
+        for ((key, idx) in ordinalMap) {
+            if (qLower.contains(key) || qLower == key) {
+                if (idx in candidates.indices) {
+                    return candidates[idx]
+                }
+            }
+        }
+
+        // 2. Direct name or substring matching
+        for (cand in candidates) {
+            val nameLower = cand.first.lowercase()
+            val surname = if (nameLower.contains(" ")) nameLower.substringAfterLast(" ") else ""
+            if (qLower.contains(nameLower) || (surname.isNotEmpty() && qLower.contains(surname))) {
+                return cand
+            }
+        }
+
+        // 3. Phone type / number matching
+        for (cand in candidates) {
+            val phoneClean = cand.second.replace(Regex("""[^\d]"""), "")
+            if (phoneClean.isNotEmpty() && qLower.contains(phoneClean)) {
+                return cand
+            }
+        }
+
+        return null
+    }
 
     private val contactSmsPatterns = listOf(
         Regex("""(?:did|has)\s+([a-zA-Z0-9\s]+?)\s+(?:message|text|sms)(?:\s+me)?\??$"""),
@@ -285,9 +427,24 @@ class AIResponseRouter(
                 val matchedContacts = SmsManagerHelper.findPhoneNumbersForContact(ctx, recipient)
                 val distinctNames = matchedContacts.map { it.first }.distinct()
                 if (distinctNames.size > 1) {
+                    pendingSmsDisambiguation = matchedContacts
+                    pendingSmsDisambiguationBody = body
                     val namesList = distinctNames.joinToString(" or ")
                     return WearableResponse(
                         text = "I found multiple contacts for '$recipient': $namesList. Which one would you like to message?",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
+                if (matchedContacts.size > 1) {
+                    pendingSmsDisambiguation = matchedContacts
+                    pendingSmsDisambiguationBody = body
+                    val numbersList = matchedContacts.mapIndexed { idx, pair -> "option ${idx + 1}: ${pair.second}" }.joinToString(" or ")
+                    return WearableResponse(
+                        text = "I found multiple numbers for '${matchedContacts.first().first}': $numbersList. Which one would you like to message?",
                         sessionId = sessionId,
                         source = ResponseSource.TOOL,
                         unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
@@ -540,14 +697,58 @@ class AIResponseRouter(
         }
 
         // 4. Outgoing Call: "call [name]"
-        val callMatch = Regex("""^(?:call|phone|dial|make a call to)\s+([a-zA-Z0-9\s]+?)(?:\s+please|\s+now)?$""").find(qLower)
+        val callMatch = Regex("""^(?:call|phone|dial|make a call to)\s+([a-zA-Z0-9\s\-+]+?)(?:\s+please|\s+now)?$""").find(qLower)
         if (callMatch != null) {
             val target = callMatch.groupValues[1].trim()
+            val cleanTarget = target.replace(Regex("""[\s\-]"""), "")
+            val isNumeric = cleanTarget.isNotEmpty() && cleanTarget.all { it.isDigit() || it == '+' }
+
+            // 4A. Direct phone number dialing & 10-digit safety rule
+            if (isNumeric) {
+                val pureDigits = cleanTarget.filter { it.isDigit() }
+                val emergencyNumbers = setOf("100", "101", "102", "108", "112", "911", "1091", "1098")
+                if (pureDigits in emergencyNumbers) {
+                    callController?.makeCall(cleanTarget)
+                    return WearableResponse(
+                        text = "Calling emergency services at $cleanTarget.",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                } else if (pureDigits.length < 10) {
+                    return WearableResponse(
+                        text = "The number $cleanTarget has only ${pureDigits.length} digits, which is less than the standard 10-digit format. Shall I proceed to call anyway?",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        requiresConfirmation = true,
+                        confirmationPrompt = "Call $cleanTarget (${pureDigits.length} digits)?",
+                        confirmationActionId = "call_dial_$cleanTarget",
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                } else {
+                    callController?.makeCall(cleanTarget)
+                    return WearableResponse(
+                        text = "Calling $cleanTarget.",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
+            }
+
+            // 4B. Contact Lookup & Disambiguation
             val ctx = context
             if (ctx != null) {
                 val matchedContacts = SmsManagerHelper.findPhoneNumbersForContact(ctx, target)
                 val distinctNames = matchedContacts.map { it.first }.distinct()
                 if (distinctNames.size > 1) {
+                    pendingCallDisambiguation = matchedContacts
                     val namesList = distinctNames.joinToString(" or ")
                     return WearableResponse(
                         text = "I found multiple contacts for '$target': $namesList. Which one would you like to call?",
@@ -559,6 +760,7 @@ class AIResponseRouter(
                     )
                 }
                 if (matchedContacts.size > 1) {
+                    pendingCallDisambiguation = matchedContacts
                     val numbersList = matchedContacts.mapIndexed { idx, pair -> "option ${idx + 1}: ${pair.second}" }.joinToString(" or ")
                     return WearableResponse(
                         text = "I found multiple numbers for '${matchedContacts.first().first}': $numbersList. Which one would you like to call?",
@@ -581,21 +783,8 @@ class AIResponseRouter(
                         latencyMs = latMs
                     )
                 }
-
-                val cleanTarget = target.replace(Regex("""[\s\-]"""), "")
-                if (cleanTarget.all { it.isDigit() || it == '+' } && cleanTarget.length >= 3) {
-                    callController?.makeCall(cleanTarget)
-                    return WearableResponse(
-                        text = "Calling $cleanTarget.",
-                        sessionId = sessionId,
-                        source = ResponseSource.TOOL,
-                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
-                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
-                        latencyMs = latMs
-                    )
-                }
             }
-            // If contact not directly resolved locally, return clean message or fallthrough to cloud
+            // If contact not directly resolved locally, return clean message
             return WearableResponse(
                 text = "Calling $target.",
                 sessionId = sessionId,

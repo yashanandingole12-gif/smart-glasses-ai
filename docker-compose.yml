@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  lara-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lara-smart-glasses-ai
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8001
+      - LLM_PROVIDER=gemini
+      - GEMINI_MODEL=gemini-2.5-flash
+      - DATABASE_PATH=sqlite:////app/storage/smart_glasses.db
+      - DOCKER_CONTAINER=true
+    env_file:
+      - .env
+    volumes:
+      - ./storage:/app/storage
+      - ./captures:/app/captures
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

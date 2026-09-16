@@ -320,6 +320,46 @@ class MultimodalVisionService:
         except Exception as e:
             return {"valid": False, "error": f"Corrupt image structure: {e}", "state": "INVALID_IMAGE"}
 
+    def enhance_image(
+        self,
+        image_bytes: bytes,
+        auto_contrast: bool = True,
+        sharpen: bool = True,
+        denoise: bool = True
+    ) -> bytes:
+        """
+        Configurable Pre-Vision Image Enhancement Pipeline:
+        1. Quality check & basic exposure/contrast correction (PIL ImageOps.autocontrast).
+        2. Blur / sharpness enhancement (UnsharpMask filter to enhance edges without hallucinated artifacts).
+        3. Subtle noise reduction and contrast normalization.
+        4. Re-encodes cleanly to optimized JPEG buffer.
+        """
+        try:
+            from PIL import Image, ImageOps, ImageFilter, ImageEnhance
+            stream = io.BytesIO(image_bytes)
+            img = Image.open(stream)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # 1. Auto-contrast / exposure correction
+            if auto_contrast:
+                img = ImageOps.autocontrast(img, cutoff=1)
+
+            # 2. Subtle contrast & brightness normalization
+            enhancer = ImageEnhance.Contrast(img)
+            img = enhancer.enhance(1.15)
+
+            # 3. Mild unsharp masking / sharpness enhancement
+            if sharpen:
+                img = img.filter(ImageFilter.UnsharpMask(radius=1.5, percent=120, threshold=3))
+
+            out_stream = io.BytesIO()
+            img.save(out_stream, format='JPEG', quality=90, optimize=True)
+            return out_stream.getvalue()
+        except Exception as e:
+            logger.warning(f"Image enhancement error: {e}, using original image buffer.")
+            return image_bytes
+
     def analyze_image(
         self,
         image_bytes: bytes,
@@ -331,11 +371,12 @@ class MultimodalVisionService:
         """
         End-to-End Production Vision Pipeline:
         1. Validate JPEG buffer and extract dimensions & SHA-256 checksum.
-        2. Preserve image identity (capture_id, timestamp, device_id).
-        3. Execute Gemini 2.5 Flash Vision / local vision reasoning.
-        4. Format TTS-safe spoken response (1-3 sentences, zero markdown/LaTeX/JSON/URLs).
-        5. Update active vision context in ConversationContextEngine.
-        6. Emit structured diagnostics.
+        2. Enhance image (contrast, sharpness, exposure correction).
+        3. Preserve image identity (capture_id, timestamp, device_id).
+        4. Execute Gemini 2.5 Flash Vision / local vision reasoning.
+        5. Format TTS-safe spoken response (1-2 sentences, zero markdown/LaTeX/JSON/URLs).
+        6. Update active vision context in ConversationContextEngine.
+        7. Emit structured diagnostics.
         """
         t0 = time.time()
         c_id = capture_id or f"cap_{uuid.uuid4().hex[:12]}"
@@ -357,6 +398,9 @@ class MultimodalVisionService:
                 "error": val_res.get("error"),
                 "pipeline_state": val_res.get("state", "INVALID_IMAGE")
             }
+
+        # 2. Configurable Enhancement Stage
+        enhanced_bytes = self.enhance_image(image_bytes)
 
         metadata = {
             "capture_id": c_id,

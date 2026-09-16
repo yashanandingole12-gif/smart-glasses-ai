@@ -77,31 +77,85 @@ object SmsManagerHelper {
         }
     }
 
+    private val RELATION_ALIASES = mapOf(
+        "papa" to listOf("papa", "dad", "father", "pita", "pitaji", "pa"),
+        "dad" to listOf("dad", "papa", "father", "pita", "pitaji"),
+        "father" to listOf("father", "papa", "dad", "pitaji"),
+        "mummy" to listOf("mummy", "mom", "mother", "maa", "ma", "mum"),
+        "mom" to listOf("mom", "mummy", "mother", "maa", "ma"),
+        "mother" to listOf("mother", "mummy", "mom", "maa"),
+        "bade papa" to listOf("bade papa", "badepapa", "bada papa", "tau", "tauji", "tau ji"),
+        "badepapa" to listOf("bade papa", "badepapa", "bada papa", "tau", "tauji", "tau ji"),
+        "badi mummy" to listOf("badi mummy", "badimummy", "badi ma", "badi maa", "tai", "taiji", "tai ji"),
+        "badimummy" to listOf("badi mummy", "badimummy", "badi ma", "badi maa", "tai", "taiji", "tai ji"),
+        "chacha" to listOf("chacha", "chachaji", "chacha ji", "kaka"),
+        "chachi" to listOf("chachi", "chachiji", "chachi ji", "kaki"),
+        "mama" to listOf("mama", "mamaji", "mama ji"),
+        "mami" to listOf("mami", "mamiji", "mami ji"),
+        "dada" to listOf("dada", "dadaji", "dada ji", "grandpa"),
+        "dadi" to listOf("dadi", "dadiji", "dadi ji", "grandma"),
+        "nana" to listOf("nana", "nanaji", "nana ji"),
+        "nani" to listOf("nani", "naniji", "nani ji"),
+        "bhaiya" to listOf("bhaiya", "bhai", "brother"),
+        "bhai" to listOf("bhai", "bhaiya", "brother"),
+        "didi" to listOf("didi", "behen", "sister")
+    )
+
     fun findPhoneNumbersForContact(context: Context, nameQuery: String): List<Pair<String, String>> {
         if (!hasContactsPermission(context) || nameQuery.isBlank()) return emptyList()
         val results = mutableListOf<Pair<String, String>>()
+        val seenNumbers = mutableSetOf<String>()
+
+        // Generate query variations with alias and honorific stripping
+        val queries = mutableListOf<String>()
+        val trimmed = nameQuery.trim()
+        val lower = trimmed.lowercase(java.util.Locale.ROOT)
+        queries.add(trimmed)
+
+        // Honorific stripping ("Chacha Ji" -> "Chacha", "Rohan Sir" -> "Rohan")
+        val stripped = lower
+            .replace(Regex("""\b(?:ji|sir|mam|uncle|aunty|bhaiya|didi|bhai)\b"""), "")
+            .trim()
+        if (stripped.isNotBlank() && stripped != lower) {
+            queries.add(stripped)
+        }
+
+        // Relational aliases expansion
+        val aliases = RELATION_ALIASES[lower] ?: RELATION_ALIASES[stripped]
+        if (aliases != null) {
+            queries.addAll(aliases)
+        }
+
         try {
             val uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
-            val selection = "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?"
-            val args = arrayOf("%$nameQuery%")
-            context.contentResolver.query(
-                uri,
-                arrayOf(
-                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                    ContactsContract.CommonDataKinds.Phone.NUMBER
-                ),
-                selection,
-                args,
-                null
-            )?.use {
-                val nameIdx = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
-                val numIdx = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                while (it.moveToNext()) {
-                    val name = it.getString(nameIdx) ?: nameQuery
-                    val num = it.getString(numIdx) ?: ""
-                    if (num.isNotBlank()) {
-                        results.add(Pair(name, num.replace(Regex("""[\s\-]"""), "")))
+            val nameIdx = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
+            val numIdx = ContactsContract.CommonDataKinds.Phone.NUMBER
+
+            for (q in queries.distinct()) {
+                val selection = "$nameIdx LIKE ?"
+                val args = arrayOf("%$q%")
+                context.contentResolver.query(
+                    uri,
+                    arrayOf(nameIdx, numIdx),
+                    selection,
+                    args,
+                    null
+                )?.use { cursor ->
+                    val colName = cursor.getColumnIndexOrThrow(nameIdx)
+                    val colNum = cursor.getColumnIndexOrThrow(numIdx)
+                    while (cursor.moveToNext()) {
+                        val name = cursor.getString(colName) ?: trimmed
+                        val rawNum = cursor.getString(colNum) ?: ""
+                        val cleanNum = rawNum.replace(Regex("""[\s\-]"""), "")
+                        if (cleanNum.isNotBlank() && !seenNumbers.contains(cleanNum)) {
+                            seenNumbers.add(cleanNum)
+                            results.add(Pair(name, cleanNum))
+                        }
                     }
+                }
+                // If direct exact matches found on primary query, break early
+                if (results.isNotEmpty() && q == trimmed) {
+                    break
                 }
             }
         } catch (_: Exception) {}

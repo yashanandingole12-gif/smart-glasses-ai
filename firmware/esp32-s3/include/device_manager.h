@@ -25,7 +25,9 @@ public:
 
 private:
     DeviceManager();
+    bool _wasConnected = false;
     unsigned long _lastBatteryReportTime = 0;
     unsigned long _lastActivityTime = 0;
     void handleIncomingCommand(const String& cmdJson);
 };
+

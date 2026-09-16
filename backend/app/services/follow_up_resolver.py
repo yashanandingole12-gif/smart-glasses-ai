@@ -231,6 +231,72 @@ class FollowUpResolver:
                     resolved_parameters={"action": "call", "contact": ctx.active_contact, "phone": c_phone}
                 )
 
+        # 8.1 Active Contact Disambiguation Resolution: "the first one", "Rahul Sharma", "Sharma", "second", "1", "2", "mobile"
+        if ctx.active_contact_disambiguation and ctx.active_contact_disambiguation.get("candidates"):
+            dis = ctx.active_contact_disambiguation
+            candidates = dis["candidates"]
+            action = dis.get("action", "call")
+            msg_body = dis.get("message_body")
+
+            selected_cand = None
+            # 1. Check ordinal match ("the first one", "2", "second")
+            if ordinal_match:
+                idx_str = ordinal_match.group(1)
+                idx = ordinal_map.get(idx_str, 1)
+                if 1 <= idx <= len(candidates):
+                    selected_cand = candidates[idx - 1]
+
+            # 2. Check candidate name / surname match
+            if not selected_cand:
+                for c in candidates:
+                    c_name = (c.get("name") if isinstance(c, dict) else getattr(c, "name", "")).lower()
+                    c_surname = c_name.split()[-1] if " " in c_name else ""
+                    if q in c_name or (c_surname and c_surname in q) or (c_name in q):
+                        selected_cand = c
+                        break
+
+            # 3. Check phone type / relationship match
+            if not selected_cand and any(w in q for w in ["mobile", "cell", "work", "office", "home"]):
+                for c in candidates:
+                    rel = (c.get("relationship") if isinstance(c, dict) else getattr(c, "relationship", "") or "").lower()
+                    notes = (c.get("notes") if isinstance(c, dict) else getattr(c, "notes", "") or "").lower()
+                    if any(w in q for w in [rel, notes]):
+                        selected_cand = c
+                        break
+                if not selected_cand and candidates:
+                    selected_cand = candidates[0]
+
+            if selected_cand:
+                cand_name = selected_cand.get("name") if isinstance(selected_cand, dict) else getattr(selected_cand, "name", "")
+                cand_phone = selected_cand.get("phone") if isinstance(selected_cand, dict) else getattr(selected_cand, "phone", "")
+                if not cand_phone and isinstance(selected_cand, dict) and selected_cand.get("phone_numbers"):
+                    cand_phone = selected_cand["phone_numbers"][0]
+
+                ctx.active_contact = {"name": cand_name, "phone": cand_phone}
+                ctx.active_contact_disambiguation = None
+
+                from backend.app.services.smart_glass_formatter import smart_glass_formatter
+                if action == "call":
+                    spoken = smart_glass_formatter.format_call_action("call_make", contact_name=cand_name, phone=cand_phone)
+                    return ResolvedFollowUp(
+                        is_follow_up=True,
+                        augmented_message=f"Call {cand_name} at {cand_phone}",
+                        target_capability="contact",
+                        action_type="mutate",
+                        resolved_parameters={"action": "call", "contact": cand_name, "phone": cand_phone},
+                        direct_answer=spoken
+                    )
+                elif action == "sms":
+                    body_text = msg_body or "I will get back to you shortly."
+                    return ResolvedFollowUp(
+                        is_follow_up=True,
+                        augmented_message=f"Send SMS to {cand_name}: {body_text}",
+                        target_capability="sms",
+                        action_type="reply",
+                        resolved_parameters={"recipient": cand_name, "phone": cand_phone, "body": body_text, "requires_confirmation": True},
+                        direct_answer=f"I have drafted a message to {cand_name}: '{body_text}'. Shall I send it?"
+                    )
+
         # 9. Math Calculation & Equation Follow-ups: "solve this", "what is x?", "show the steps", "just give me the answer"
         if ctx.active_calculation:
             calc = ctx.active_calculation

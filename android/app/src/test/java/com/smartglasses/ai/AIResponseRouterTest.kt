@@ -13,6 +13,7 @@ import com.smartglasses.ai.domain.usecases.LocalDeterministicResolver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -133,5 +134,80 @@ class AIResponseRouterTest {
         assertEquals(ResponseSource.LOCAL_AI, resp.source)
         assertEquals(AiAvailabilityState.LOCAL_ONLY, changedState)
         assertTrue(resp.text.isNotBlank())
+    }
+
+    @Test
+    fun testHeyLaraLifecycleGreeting() = runBlocking {
+        val resp = router.routeQuery(
+            sessionId = "sess_7",
+            query = "Hey LARA",
+            telemetry = telemetry,
+            connectionState = ConnectionState.CONNECTED
+        )
+        assertEquals(ResponseSource.LOCAL_DETERMINISTIC, resp.source)
+        assertTrue(resp.text.contains("LARA is active"))
+        assertTrue(resp.text.contains("84%"))
+    }
+
+    @Test
+    fun testGoodbyeLaraLifecycleCleanup() = runBlocking {
+        val resp = router.routeQuery(
+            sessionId = "sess_8",
+            query = "Goodbye LARA",
+            telemetry = telemetry,
+            connectionState = ConnectionState.CONNECTED
+        )
+        assertEquals(ResponseSource.LOCAL_DETERMINISTIC, resp.source)
+        assertTrue(resp.text.contains("Goodbye! Putting LARA to sleep"))
+    }
+
+    @Test
+    fun testTenDigitPhoneSafetyRuleEnforcement() = runBlocking {
+        // 9-digit number should NOT dial automatically; must require confirmation
+        val respShort = router.routeQuery(
+            sessionId = "sess_call1",
+            query = "call 98765-4321",
+            telemetry = telemetry,
+            connectionState = ConnectionState.CONNECTED
+        )
+        assertTrue(respShort.requiresConfirmation)
+        assertTrue(respShort.text.contains("less than the standard 10-digit format"))
+
+        // Standard 10-digit number dials directly
+        val respValid = router.routeQuery(
+            sessionId = "sess_call2",
+            query = "call 9876543210",
+            telemetry = telemetry,
+            connectionState = ConnectionState.CONNECTED
+        )
+        assertFalse(respValid.requiresConfirmation)
+        assertTrue(respValid.text.contains("Calling 9876543210"))
+    }
+
+    @Test
+    fun testOfflineLocalAiProgrammingKnowledge() = runBlocking {
+        val respArray = router.routeQuery(
+            sessionId = "sess_slm1",
+            query = "what is an array",
+            telemetry = telemetry,
+            connectionState = ConnectionState.DISCONNECTED
+        )
+        assertTrue(respArray.text.contains("data structure"))
+
+        val respTuple = router.routeQuery(
+            sessionId = "sess_slm2",
+            query = "what is a tuple",
+            telemetry = telemetry,
+            connectionState = ConnectionState.DISCONNECTED
+        )
+        assertTrue(respTuple.text.contains("immutable"))
+
+        val respUnit = router.routeQuery(
+            sessionId = "sess_slm3",
+            query = "10 km to miles",
+            telemetry = telemetry,
+            connectionState = ConnectionState.DISCONNECTED
+        )
+        assertTrue(respUnit.text.contains("6.21 miles"))
     }
 }
