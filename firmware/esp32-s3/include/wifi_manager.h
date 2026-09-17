@@ -21,6 +21,8 @@ public:
 private:
     WiFiManager();
     bool _connected = false;
+    bool _connecting = false;
     String _currentSsid = "";
-    unsigned long _lastReconnectAttempt = 0;
+    unsigned long _connectStartTime = 0;
+    uint32_t _timeoutMs = 15000;
 };

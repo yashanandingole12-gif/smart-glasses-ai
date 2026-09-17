@@ -558,36 +558,33 @@ void AudioManager::stopVoiceWakeSession() {
 void AudioManager::update() {
     if (!_micInitialized) return;
 
-    if (millis() - _lastDiagnosticTime >= 100) {
+    if (millis() - _lastDiagnosticTime >= 120) {
         _lastDiagnosticTime = millis();
         float rms = getAudioLevelRMS();
 
         if (_vadEnabled) {
-            if (rms > 250.0f) {
+            // Filter out ambient noise (< 450 RMS)
+            if (rms > 450.0f) {
                 _lastSpeechTime = millis();
                 _consecutiveVoiceFrames++;
 
-                if (!_speechActive && _consecutiveVoiceFrames >= 2) {
+                if (!_speechActive && _consecutiveVoiceFrames >= 3) {
                     _speechActive = true;
                     _speechStartTime = millis();
-                    playSound(SoundEffect::SOUND_WAKE);
                     startMicrophone();
                     Serial.printf("[VOICE WAKE] >>> Speech Detected (RMS: %.0f) -> Sending TALK_START to Mobile Phone\n", rms);
                     BleManager::getInstance().sendEvent("TALK_START");
-                } else if (_speechActive) {
-                    Serial.printf("[ESP32 MIC] Live Audio RMS: %.0f (Speaking)\n", rms);
                 }
             } else {
                 if (_consecutiveVoiceFrames > 0 && !_speechActive) {
                     _consecutiveVoiceFrames--;
                 }
 
-                if (_speechActive && (millis() - _lastSpeechTime > 1200)) {
+                if (_speechActive && (millis() - _lastSpeechTime > 1500)) {
                     _speechActive = false;
                     _consecutiveVoiceFrames = 0;
                     stopMicrophone();
-                    playSound(SoundEffect::SOUND_PTT_STOP);
-                    Serial.println("[VOICE WAKE] <<< Silence Detected (1.2s) -> Sending TALK_STOP to Mobile Phone");
+                    Serial.println("[VOICE WAKE] <<< Silence Detected (1.5s) -> Sending TALK_STOP to Mobile Phone");
                     BleManager::getInstance().sendEvent("TALK_STOP");
                 }
             }

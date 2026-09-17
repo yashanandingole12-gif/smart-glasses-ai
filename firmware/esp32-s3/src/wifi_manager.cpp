@@ -14,46 +14,26 @@ bool WiFiManager::connectToNetwork(const String& ssid, const String& password, u
     
     Serial.println();
     Serial.println("==================================================");
-    Serial.printf("[WIFI] Connecting to SSID: '%s'...\n", ssid.c_str());
+    Serial.printf("[WIFI] Initiating Non-blocking Connection to SSID: '%s'...\n", ssid.c_str());
     Serial.println("==================================================");
 
     WiFi.disconnect(true);
-    delay(100);
+    delay(20);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), password.c_str());
 
-    unsigned long start = millis();
-    while (WiFi.status() != WL_CONNECTED && (millis() - start < timeoutMs)) {
-        delay(300);
-        Serial.print(".");
-    }
-    Serial.println();
-
-    if (WiFi.status() == WL_CONNECTED) {
-        _connected = true;
-        _currentSsid = ssid;
-        String ip = WiFi.localIP().toString();
-        int rssi = WiFi.RSSI();
-        Serial.printf("[WIFI] Connected successfully!\n");
-        Serial.printf("[WIFI] IP Address: %s | RSSI: %d dBm | Gateway: %s\n", 
-                      ip.c_str(), rssi, WiFi.gatewayIP().toString().c_str());
-
-        // Notify companion app over BLE
-        String statusJson = "{\"connected\":true,\"ip\":\"" + ip + "\",\"ssid\":\"" + ssid + "\",\"rssi\":" + String(rssi) + "}";
-        BleManager::getInstance().sendEvent("WIFI_STATUS", statusJson);
-        return true;
-    } else {
-        _connected = false;
-        Serial.printf("[WIFI] Failed to connect to '%s' (Status: %d)\n", ssid.c_str(), WiFi.status());
-        String statusJson = "{\"connected\":false,\"ssid\":\"" + ssid + "\",\"error\":\"TIMEOUT_OR_AUTH_FAILURE\"}";
-        BleManager::getInstance().sendEvent("WIFI_STATUS", statusJson);
-        return false;
-    }
+    _connecting = true;
+    _connected = false;
+    _currentSsid = ssid;
+    _connectStartTime = millis();
+    _timeoutMs = timeoutMs;
+    return true;
 }
 
 void WiFiManager::disconnect() {
     WiFi.disconnect(true);
     _connected = false;
+    _connecting = false;
     _currentSsid = "";
     Serial.println("[WIFI] Disconnected from WiFi network.");
     BleManager::getInstance().sendEvent("WIFI_STATUS", "{\"connected\":false}");
@@ -78,8 +58,31 @@ int WiFiManager::getRssi() const {
 }
 
 void WiFiManager::update() {
-    // Monitor connection health
-    if (_connected && WiFi.status() != WL_CONNECTED) {
+    // 1. Asynchronous non-blocking connection handler
+    if (_connecting) {
+        if (WiFi.status() == WL_CONNECTED) {
+            _connected = true;
+            _connecting = false;
+            String ip = WiFi.localIP().toString();
+            int rssi = WiFi.RSSI();
+            Serial.printf("[WIFI] Connected successfully in background!\n");
+            Serial.printf("[WIFI] IP Address: %s | RSSI: %d dBm | Gateway: %s\n", 
+                          ip.c_str(), rssi, WiFi.gatewayIP().toString().c_str());
+
+            // Notify companion app over BLE without freezing connection
+            String statusJson = "{\"connected\":true,\"ip\":\"" + ip + "\",\"ssid\":\"" + _currentSsid + "\",\"rssi\":" + String(rssi) + "}";
+            BleManager::getInstance().sendEvent("WIFI_STATUS", statusJson);
+        } else if (millis() - _connectStartTime > _timeoutMs) {
+            _connecting = false;
+            _connected = false;
+            Serial.printf("[WIFI] Connection attempt to '%s' timed out (Status: %d)\n", _currentSsid.c_str(), WiFi.status());
+            String statusJson = "{\"connected\":false,\"ssid\":\"" + _currentSsid + "\",\"error\":\"TIMEOUT_OR_AUTH_FAILURE\"}";
+            BleManager::getInstance().sendEvent("WIFI_STATUS", statusJson);
+        }
+    }
+
+    // 2. Monitor ongoing connection health
+    if (_connected && WiFi.status() != WL_CONNECTED && !_connecting) {
         _connected = false;
         Serial.println("[WIFI] WARNING: Lost connection to WiFi network.");
         BleManager::getInstance().sendEvent("WIFI_STATUS", "{\"connected\":false,\"error\":\"CONNECTION_LOST\"}");
