@@ -210,4 +210,47 @@ class AIResponseRouterTest {
         )
         assertTrue(respUnit.text.contains("6.21 miles"))
     }
+
+    @Test
+    fun testMultiTurnSmsDraftingAndCancellation() = runBlocking {
+        // Step 1: User says "draft a message to Papa"
+        val resp1 = router.routeQuery(
+            sessionId = "sess_draft1",
+            query = "draft a message to Papa",
+            telemetry = telemetry,
+            connectionState = ConnectionState.CONNECTED
+        )
+        assertTrue(resp1.text.contains("What message would you like to draft for Papa"))
+
+        // Step 2: User cancels
+        val resp2 = router.routeQuery(
+            sessionId = "sess_draft1",
+            query = "cancel",
+            telemetry = telemetry,
+            connectionState = ConnectionState.CONNECTED
+        )
+        assertEquals("Draft cancelled.", resp2.text)
+    }
+
+    @Test
+    fun testMultiTurnSmsDraftingFollowUpExpansion() = runBlocking {
+        // Step 1: User initiates draft
+        val resp1 = router.routeQuery(
+            sessionId = "sess_draft2",
+            query = "draft an sms to Rahul",
+            telemetry = telemetry,
+            connectionState = ConnectionState.CONNECTED
+        )
+        assertTrue(resp1.text.contains("What message would you like to draft for Rahul"))
+
+        // Step 2: User provides intent
+        val resp2 = router.routeQuery(
+            sessionId = "sess_draft2",
+            query = "wish him happy birthday",
+            telemetry = telemetry,
+            connectionState = ConnectionState.CONNECTED
+        )
+        assertTrue(resp2.requiresConfirmation)
+        assertTrue(resp2.text.contains("happy birthday") || resp2.text.contains("wonderful"))
+    }
 }

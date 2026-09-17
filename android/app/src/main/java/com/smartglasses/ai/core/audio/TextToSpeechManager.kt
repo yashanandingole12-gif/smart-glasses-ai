@@ -34,8 +34,18 @@ class TextToSpeechManager(private val context: Context) {
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts?.language = Locale.getDefault()
-                tts?.setSpeechRate(1.05f)
+                tts?.setSpeechRate(0.98f)
                 tts?.setPitch(1.0f)
+
+                // Configure crystal-clear speech AudioAttributes
+                try {
+                    val audioAttributes = android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                    tts?.setAudioAttributes(audioAttributes)
+                } catch (_: Exception) {}
+
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {
                         _ttsState.value = AndroidTTSState.SPEAKING

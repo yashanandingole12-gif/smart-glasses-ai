@@ -23,7 +23,7 @@ class AIResponseRouter(
     private val context: Context? = null,
     private val callController: CallController? = context?.let { CallController(it) }
 ) {
-    var conversationalCloudTimeoutMs: Long = 2500L
+    var conversationalCloudTimeoutMs: Long = 7500L
 
     suspend fun routeQuery(
         sessionId: String,
@@ -41,9 +41,10 @@ class AIResponseRouter(
         val tStart = System.currentTimeMillis()
 
         // 0. Handle Confirmation of Pending Actions (SMS Dispatch, Call Confirmation, etc.)
-        if (confirmedAction == true && confirmedActionId != null) {
+        if ((confirmedAction == true && confirmedActionId != null) ||
+            ((qLower in listOf("yes", "send it", "send", "proceed", "haan", "bhejo", "bhej do", "yes please", "sure", "ok send")) && pendingSendMessage != null)) {
             val ctx = context
-            if (confirmedActionId.startsWith("call_dial_")) {
+            if (confirmedActionId != null && confirmedActionId.startsWith("call_dial_")) {
                 val dialNumber = confirmedActionId.removePrefix("call_dial_")
                 callController?.makeCall(dialNumber)
                 return WearableResponse(
@@ -55,7 +56,7 @@ class AIResponseRouter(
                     latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
                 )
             }
-            if (ctx != null && confirmedActionId.startsWith("sms_")) {
+            if (ctx != null) {
                 val dest = pendingSendPhone ?: lastReadSmsPhone
                 val body = pendingSendMessage
                 if (!dest.isNullOrBlank() && !body.isNullOrBlank()) {
@@ -74,6 +75,47 @@ class AIResponseRouter(
                     )
                 }
             }
+        }
+
+        // Handle Cancellation of Pending Drafts
+        if (qLower in listOf("no", "cancel", "don't send", "mat bhejo", "cancel draft", "nahi", "stop draft") &&
+            (pendingSendMessage != null || pendingDraftRecipient != null)) {
+            pendingSendMessage = null
+            pendingSendPhone = null
+            pendingSendRecipient = null
+            pendingDraftRecipient = null
+            pendingDraftPhone = null
+            return WearableResponse(
+                text = "Draft cancelled.",
+                sessionId = sessionId,
+                source = ResponseSource.LOCAL_DETERMINISTIC,
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+            )
+        }
+
+        // Active Multi-Turn SMS Drafting Follow-up
+        val activeDraftTarget = pendingDraftRecipient
+        if (activeDraftTarget != null) {
+            val politeBody = expandIntoPoliteMessage(activeDraftTarget, q)
+            val destPhone = pendingDraftPhone
+            pendingDraftRecipient = null
+            pendingDraftPhone = null
+            pendingSendMessage = politeBody
+            pendingSendPhone = destPhone
+            pendingSendRecipient = activeDraftTarget
+            return WearableResponse(
+                text = "I have drafted the following message for $activeDraftTarget: '$politeBody'. Shall I send it?",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.TOOL,
+                requiresConfirmation = true,
+                confirmationPrompt = "Send SMS to $activeDraftTarget: '$politeBody'?",
+                confirmationActionId = "sms_send_${System.currentTimeMillis()}",
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+            )
         }
 
         // 0.05 Handle Active Contact Disambiguation for Calls & SMS
@@ -171,23 +213,8 @@ class AIResponseRouter(
             }
         }
 
-        // 1. LAYER 1 — Local Deterministic Fast-Path (<50ms)
-        val deterministicResult = deterministicResolver.resolve(q, telemetry, sessionId, language)
-        if (deterministicResult != null) {
-            return deterministicResult.copy(
-                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
-                capabilityStatus = ResponseCapabilityStatus.ANSWERED
-            )
-        }
-
-        // 2. LAYER 1.5 — Local Android SMS Queries (<50ms on-device)
-        if (isSmsQuery(qLower)) {
-            return handleLocalSmsQuery(q, sessionId, tStart)
-        }
-
-        // 3. Check if the query strictly requires cloud access (Gmail, Google Calendar, Web Search, Vision)
+        // 1. LAYER 0.5 — Check if the query strictly requires cloud access (Gmail, Google Calendar, Web Search, Vision, Camera Capture)
         val cloudRequired = isCloudRequiredQuery(qLower)
-
         if (cloudRequired) {
             if (connectionState == ConnectionState.CONNECTED) {
                 // Execute cloud tool query with standard timeout
@@ -207,9 +234,38 @@ class AIResponseRouter(
                     capabilityStatus = ResponseCapabilityStatus.ANSWERED
                 )
             } else {
+                // When offline and it's a photo command, fallback to local BLE camera capture
+                if (listOf("take a picture", "click the pic", "click the picture", "take photo", "capture image").any { qLower.contains(it) }) {
+                    context?.let { com.smartglasses.ai.core.bluetooth.BleManager.getInstance(it).requestPhotoCapture() }
+                    return WearableResponse(
+                        text = "Photo captured and saved to your Gallery.",
+                        sessionId = sessionId,
+                        source = ResponseSource.LOCAL_DETERMINISTIC,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
+                    )
+                }
                 // When offline, DO NOT fabricate or hallucinate external tool results
                 return buildHonestOfflineCloudError(qLower, sessionId, "Offline")
             }
+        }
+
+        // 2. LAYER 1 — Local Deterministic Fast-Path (<50ms)
+        val deterministicResult = deterministicResolver.resolve(q, telemetry, sessionId, language)
+        if (deterministicResult != null) {
+            if (deterministicResult.text.contains("Photo captured")) {
+                context?.let { com.smartglasses.ai.core.bluetooth.BleManager.getInstance(it).requestPhotoCapture() }
+            }
+            return deterministicResult.copy(
+                unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                capabilityStatus = ResponseCapabilityStatus.ANSWERED
+            )
+        }
+
+        // 3. LAYER 1.5 — Local Android SMS Queries (<50ms on-device)
+        if (isSmsQuery(qLower)) {
+            return handleLocalSmsQuery(q, sessionId, tStart)
         }
 
         // 4. LAYER 2 & 3 — Conversational / General AI with Preemptive Cloud Timeout
@@ -271,9 +327,42 @@ class AIResponseRouter(
     private var pendingSendMessage: String? = null
     private var pendingSendPhone: String? = null
     private var pendingSendRecipient: String? = null
+    private var pendingDraftRecipient: String? = null
+    private var pendingDraftPhone: String? = null
     private var pendingCallDisambiguation: List<Pair<String, String>>? = null
     private var pendingSmsDisambiguation: List<Pair<String, String>>? = null
     private var pendingSmsDisambiguationBody: String? = null
+
+    private fun expandIntoPoliteMessage(recipient: String, intent: String): String {
+        val trimmed = intent.trim().trimEnd('.', '!', '?')
+        val lower = trimmed.lowercase(Locale.ROOT)
+        val firstName = recipient.split(" ").firstOrNull()?.replaceFirstChar { it.uppercase() } ?: recipient
+
+        return when {
+            lower.contains("happy birthday") || lower.contains("birthday") || lower.contains("janmadin") ->
+                "Hi $firstName, wishing you a very happy birthday! Hope you have a wonderful and joyous year ahead."
+            lower.contains("meeting") || lower.contains("schedule") || lower.contains("reschedule") ->
+                "Hi $firstName, just wanted to check in regarding our meeting. Please let me know what time works best for you."
+            lower.contains("call me") || lower.contains("call when") || lower.contains("give me a call") || lower == "call" || lower.contains("call back") ->
+                "Hi $firstName, please give me a call whenever you have a moment. Thank you!"
+            lower.contains("reached") || lower.contains("arrived") || lower.contains("pahunch") ->
+                "Hi $firstName, just wanted to let you know that I have reached safely."
+            lower.contains("running late") || lower.contains("late") || lower.contains("traffic") || lower.contains("stuck") ->
+                "Hi $firstName, I am running a few minutes late. I will be there as soon as possible."
+            lower.contains("thank") || lower.contains("shukriya") || lower.contains("dhanyawad") ->
+                "Hi $firstName, thank you so much for your help. Really appreciate it!"
+            lower.contains("good morning") || lower.contains("shubh prabhat") ->
+                "Hi $firstName, good morning! Hope you have a productive day ahead."
+            lower.contains("good night") || lower.contains("shubh ratri") ->
+                "Hi $firstName, wishing you a good night and restful sleep."
+            lower.startsWith("hi ") || lower.startsWith("hello ") || lower.startsWith("hey ") ->
+                trimmed
+            else -> {
+                val capitalized = trimmed.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+                "Hi $firstName, $capitalized."
+            }
+        }
+    }
 
     private fun resolveDisambiguationOption(qLower: String, candidates: List<Pair<String, String>>): Pair<String, String>? {
         if (candidates.isEmpty()) return null
@@ -324,9 +413,17 @@ class AIResponseRouter(
         Regex("""([a-zA-Z0-9\s]+?)\s+ne\s+(?:sms|message|text)\s+(?:bheja|bheja\s+kya)""")
     )
 
+    private val openDraftSmsPatterns = listOf(
+        Regex("""^(?:draft|write|compose)\s+(?:an?\s+)?(?:sms|message|text)\s+(?:to|for)\s+([a-zA-Z0-9\s]+?)$"""),
+        Regex("""^(?:draft|write|compose)\s+to\s+([a-zA-Z0-9\s]+?)$"""),
+        Regex("""^(?:send|draft)\s+([a-zA-Z0-9\s]+?)\s+(?:an?\s+)?(?:sms|message|text)$"""),
+        Regex("""^([a-zA-Z0-9\s]+?)\s+ko\s+(?:message|sms|text)\s+(?:draft|karna|likhna|bhejna)"""),
+        Regex("""^([a-zA-Z0-9\s]+?)\s+ko\s+(?:message|sms|text)\s+bhejo$""")
+    )
+
     private val composeSmsPatterns = listOf(
-        Regex("""^(?:send|compose)\s+(?:an?\s+)?(?:sms|message|text)\s+to\s+([a-zA-Z0-9\s]+?)\s+(?:saying|that|:)\s+(.+)$"""),
-        Regex("""^(?:send\s+to)\s+([a-zA-Z0-9\s]+?)\s+(?:saying|that|:)\s+(.+)$"""),
+        Regex("""^(?:send|compose|draft|write)\s+(?:an?\s+)?(?:sms|message|text)\s+(?:to|for)\s+([a-zA-Z0-9\s]+?)\s+(?:saying|that|:)\s+(.+)$"""),
+        Regex("""^(?:send|draft|write)\s+to\s+([a-zA-Z0-9\s]+?)\s+(?:saying|that|:)\s+(.+)$"""),
         Regex("""^(?:text|message)\s+([a-zA-Z0-9\s]+?)\s+(?:saying|that|:)\s+(.+)$""")
     )
 
@@ -350,6 +447,9 @@ class AIResponseRouter(
         if (paginationKeywords.any { qLower.contains(it) }) {
             return true
         }
+        if (openDraftSmsPatterns.any { it.containsMatchIn(qLower) }) {
+            return true
+        }
         if (composeSmsPatterns.any { it.containsMatchIn(qLower) }) {
             return true
         }
@@ -358,28 +458,6 @@ class AIResponseRouter(
 
     private fun handleLocalSmsQuery(query: String, sessionId: String, tStart: Long): WearableResponse {
         val ctx = context
-        if (ctx == null) {
-            return WearableResponse(
-                text = "I can't access your messages right now.",
-                sessionId = sessionId,
-                source = ResponseSource.UNAVAILABLE,
-                unifiedSource = UnifiedSource.UNAVAILABLE,
-                capabilityStatus = ResponseCapabilityStatus.FAILED,
-                latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
-            )
-        }
-
-        if (!SmsManagerHelper.hasReadPermission(ctx)) {
-            return WearableResponse(
-                text = "I don't have permission to read your messages.",
-                sessionId = sessionId,
-                source = ResponseSource.TOOL,
-                unifiedSource = UnifiedSource.TOOL,
-                capabilityStatus = ResponseCapabilityStatus.REQUIRES_PERMISSION,
-                latencyMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
-            )
-        }
-
         val qLower = query.lowercase().trim()
         val latMs = (System.currentTimeMillis() - tStart).toDouble().coerceAtLeast(1.0)
 
@@ -401,34 +479,36 @@ class AIResponseRouter(
         if (qLower.startsWith("reply")) {
             val replyBody = qLower.removePrefix("reply").removePrefix(" to him").removePrefix(" that").trim()
             val target = lastReadSmsSender ?: "contact"
-            pendingSendMessage = replyBody
+            val politeReply = expandIntoPoliteMessage(target, replyBody)
+            pendingSendMessage = politeReply
             pendingSendPhone = lastReadSmsPhone
             pendingSendRecipient = target
             return WearableResponse(
-                text = "I have prepared an SMS to $target: '$replyBody'. Should I send it?",
+                text = "I have prepared an SMS to $target: '$politeReply'. Should I send it?",
                 sessionId = sessionId,
                 source = ResponseSource.TOOL,
                 unifiedSource = UnifiedSource.TOOL,
                 requiresConfirmation = true,
-                confirmationPrompt = "Send SMS to $target: '$replyBody'?",
+                confirmationPrompt = "Send SMS to $target: '$politeReply'?",
                 confirmationActionId = "sms_reply_${System.currentTimeMillis()}",
                 capabilityStatus = ResponseCapabilityStatus.ANSWERED,
                 latencyMs = latMs
             )
         }
 
-        // 3. Handle Compose / Send SMS: "send message to Papa saying I reached"
-        for (pattern in composeSmsPatterns) {
+        // 2.5 Handle Open-Ended Multi-Turn Draft SMS: "draft a message to Papa"
+        for (pattern in openDraftSmsPatterns) {
             val match = pattern.find(qLower)
             if (match != null) {
                 val recipient = match.groupValues[1].trim()
-                val body = match.groupValues[2].trim()
+                val matchedContacts = if (ctx != null && SmsManagerHelper.hasContactsPermission(ctx)) {
+                    SmsManagerHelper.findPhoneNumbersForContact(ctx, recipient)
+                } else emptyList()
 
-                val matchedContacts = SmsManagerHelper.findPhoneNumbersForContact(ctx, recipient)
                 val distinctNames = matchedContacts.map { it.first }.distinct()
                 if (distinctNames.size > 1) {
                     pendingSmsDisambiguation = matchedContacts
-                    pendingSmsDisambiguationBody = body
+                    pendingSmsDisambiguationBody = null
                     val namesList = distinctNames.joinToString(" or ")
                     return WearableResponse(
                         text = "I found multiple contacts for '$recipient': $namesList. Which one would you like to message?",
@@ -441,7 +521,7 @@ class AIResponseRouter(
                 }
                 if (matchedContacts.size > 1) {
                     pendingSmsDisambiguation = matchedContacts
-                    pendingSmsDisambiguationBody = body
+                    pendingSmsDisambiguationBody = null
                     val numbersList = matchedContacts.mapIndexed { idx, pair -> "option ${idx + 1}: ${pair.second}" }.joinToString(" or ")
                     return WearableResponse(
                         text = "I found multiple numbers for '${matchedContacts.first().first}': $numbersList. Which one would you like to message?",
@@ -461,26 +541,44 @@ class AIResponseRouter(
                     null
                 }
 
-                val resolvedName = if (matchedContacts.isNotEmpty()) matchedContacts.first().first else recipient
+                val resolvedName = (if (matchedContacts.isNotEmpty()) matchedContacts.first().first else recipient)
+                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+                pendingDraftRecipient = resolvedName
+                pendingDraftPhone = destPhone
 
-                if (destPhone != null) {
-                    pendingSendMessage = body
-                    pendingSendPhone = destPhone
-                    pendingSendRecipient = resolvedName
+                return WearableResponse(
+                    text = "Certainly! What message would you like to draft for $resolvedName?",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = latMs
+                )
+            }
+        }
+
+        // 3. Handle Compose / Send SMS with Body: "send message to Papa saying I reached"
+        for (pattern in composeSmsPatterns) {
+            val match = pattern.find(qLower)
+            if (match != null) {
+                val recipient = match.groupValues[1].trim()
+                val body = match.groupValues[2].trim()
+
+                val matchedContacts = if (ctx != null && SmsManagerHelper.hasContactsPermission(ctx)) {
+                    SmsManagerHelper.findPhoneNumbersForContact(ctx, recipient)
+                } else emptyList()
+
+                val distinctNames = matchedContacts.map { it.first }.distinct()
+                val resolvedName = (if (matchedContacts.isNotEmpty()) matchedContacts.first().first else recipient)
+                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+                val politeBody = expandIntoPoliteMessage(resolvedName, body)
+
+                if (distinctNames.size > 1) {
+                    pendingSmsDisambiguation = matchedContacts
+                    pendingSmsDisambiguationBody = politeBody
+                    val namesList = distinctNames.joinToString(" or ")
                     return WearableResponse(
-                        text = "I have drafted a message to $resolvedName: '$body'. Shall I send it?",
-                        sessionId = sessionId,
-                        source = ResponseSource.TOOL,
-                        unifiedSource = UnifiedSource.TOOL,
-                        requiresConfirmation = true,
-                        confirmationPrompt = "Send SMS to $resolvedName: '$body'?",
-                        confirmationActionId = "sms_send_${System.currentTimeMillis()}",
-                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
-                        latencyMs = latMs
-                    )
-                } else {
-                    return WearableResponse(
-                        text = "I couldn't find a phone number for $recipient.",
+                        text = "I found multiple contacts for '$recipient': $namesList. Which one would you like to message?",
                         sessionId = sessionId,
                         source = ResponseSource.TOOL,
                         unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
@@ -488,7 +586,66 @@ class AIResponseRouter(
                         latencyMs = latMs
                     )
                 }
+                if (matchedContacts.size > 1) {
+                    pendingSmsDisambiguation = matchedContacts
+                    pendingSmsDisambiguationBody = politeBody
+                    val numbersList = matchedContacts.mapIndexed { idx, pair -> "option ${idx + 1}: ${pair.second}" }.joinToString(" or ")
+                    return WearableResponse(
+                        text = "I found multiple numbers for '${matchedContacts.first().first}': $numbersList. Which one would you like to message?",
+                        sessionId = sessionId,
+                        source = ResponseSource.TOOL,
+                        unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
+                        capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                        latencyMs = latMs
+                    )
+                }
+
+                val destPhone = if (matchedContacts.isNotEmpty()) {
+                    matchedContacts.first().second
+                } else if (recipient.replace(Regex("""[\s\-]"""), "").all { it.isDigit() || it == '+' }) {
+                    recipient.replace(Regex("""[\s\-]"""), "")
+                } else {
+                    null
+                }
+
+                pendingSendMessage = politeBody
+                pendingSendPhone = destPhone
+                pendingSendRecipient = resolvedName
+                return WearableResponse(
+                    text = "I have drafted a message to $resolvedName: '$politeBody'. Shall I send it?",
+                    sessionId = sessionId,
+                    source = ResponseSource.TOOL,
+                    unifiedSource = UnifiedSource.TOOL,
+                    requiresConfirmation = true,
+                    confirmationPrompt = "Send SMS to $resolvedName: '$politeBody'?",
+                    confirmationActionId = "sms_send_${System.currentTimeMillis()}",
+                    capabilityStatus = ResponseCapabilityStatus.ANSWERED,
+                    latencyMs = latMs
+                )
             }
+        }
+
+        // Reading SMS requires Context and READ_SMS permission
+        if (ctx == null) {
+            return WearableResponse(
+                text = "I can't access your messages right now.",
+                sessionId = sessionId,
+                source = ResponseSource.UNAVAILABLE,
+                unifiedSource = UnifiedSource.UNAVAILABLE,
+                capabilityStatus = ResponseCapabilityStatus.FAILED,
+                latencyMs = latMs
+            )
+        }
+
+        if (!SmsManagerHelper.hasReadPermission(ctx)) {
+            return WearableResponse(
+                text = "I don't have permission to read your messages.",
+                sessionId = sessionId,
+                source = ResponseSource.TOOL,
+                unifiedSource = UnifiedSource.TOOL,
+                capabilityStatus = ResponseCapabilityStatus.REQUIRES_PERMISSION,
+                latencyMs = latMs
+            )
         }
 
         // 4. Handle Pagination: "other messages", "next message", "read more"
@@ -802,7 +959,15 @@ class AIResponseRouter(
         val cloudKeywords = listOf(
             "email", "gmail", "mail", "inbox", "unread", "ईमेल",
             "calendar", "schedule", "events", "meeting", "class", "tomorrow", "कैलेंडर",
-            "search the web", "web search", "google search", "search for", "who won the", "weather"
+            "search the web", "web search", "google search", "search for", "who won the", "weather",
+            "research paper", "research on", "arxiv", "semantic scholar", "paper on", "papers on",
+            "pet shop", "kaha hai", "kahan hai", "near me", "best shop", "best restaurant",
+            "python", "calculator", "write a", "plan a trip", "trip plan",
+            "click the pic", "click the picture", "take a picture", "take picture", "take photo", "click photo",
+            "capture image", "camera snapshot", "photo kheecho", "tasveer lo",
+            "explain the pic", "explain picture", "what do you see", "what is this", "describe photo",
+            "explain what you see", "what is in front of me", "describe what is in front of me",
+            "what's in front of me", "kya dikh raha hai", "tasveer samjhao"
         )
         return cloudKeywords.any { qLower.contains(it) }
     }

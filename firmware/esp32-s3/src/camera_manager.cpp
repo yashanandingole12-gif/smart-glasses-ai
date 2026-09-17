@@ -109,4 +109,3 @@ void CameraManager::releaseBuffer() {
         _lastFb = nullptr;
     }
 }
-

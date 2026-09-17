@@ -39,6 +39,7 @@ from backend.app.services.storage_service import storage_service
 from backend.app.tools.calendar_tools import calendar_get_events
 from backend.app.tools.gmail_tools import gmail_search, gmail_read, gmail_send_message, gmail_reply_message
 from backend.app.tools.sms_tools import sms_read_recent
+from backend.app.tools.search_tools import web_search, academic_research_search, product_search
 from backend.app.services.conversation_context_engine import conversation_context_engine
 from backend.app.logging_service import LatencyMetrics, log_request_metrics
 from backend.app.api.auth import router as auth_router
@@ -95,11 +96,82 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+import asyncio
+from collections import deque
+from fastapi.responses import StreamingResponse
+
+# Real-time In-Memory Event Log & Live Subscriber Queues
+recent_events_log = deque(maxlen=100)
+_event_subscribers: List[asyncio.Queue] = []
+
+def broadcast_live_event(event_type: str, data: Dict[str, Any]):
+    """Broadcasts structured events to all active Web Console dashboards in real-time."""
+    event_entry = {
+        "id": str(uuid.uuid4()),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": event_type,
+        "data": data
+    }
+    recent_events_log.append(event_entry)
+    for q in list(_event_subscribers):
+        try:
+            q.put_nowait(event_entry)
+        except Exception:
+            pass
+
 @app.get("/", response_class=HTMLResponse)
 @app.get("/web", response_class=HTMLResponse)
+@app.get("/console", response_class=HTMLResponse)
 async def root_dashboard():
-    """LARA Operations Console & Developer System Dashboard."""
+    """LARA Real-time Operations Console & Developer System Dashboard."""
     return HTMLResponse(content=get_dashboard_html())
+
+@app.get("/api/v1/events/recent")
+async def get_recent_events():
+    """Returns the last 50 live events for initial console dashboard hydration."""
+    return {"success": True, "count": len(recent_events_log), "events": list(recent_events_log)}
+
+@app.post("/api/v1/events/push")
+async def push_custom_event(req: Request):
+    """Allows Android / ESP32 to push live telemetry or action logs directly to Web Console."""
+    data = await req.json()
+    evt_type = data.get("type", "DEVICE_EVENT")
+    payload = data.get("data", data)
+    broadcast_live_event(evt_type, payload)
+    return {"success": True, "broadcasted": True}
+
+@app.get("/api/v1/events/stream")
+async def event_stream(request: Request):
+    """Server-Sent Events (SSE) stream for real-time live web console updates."""
+    queue: asyncio.Queue = asyncio.Queue(maxsize=50)
+    _event_subscribers.append(queue)
+
+    async def event_generator():
+        try:
+            # Yield connection established event
+            init_event = {
+                "id": str(uuid.uuid4()),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "type": "SYSTEM_CONNECTED",
+                "data": {"message": "Live SSE Stream Active", "client": "WebConsole"}
+            }
+            yield f"data: {json.dumps(init_event)}\n\n"
+
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=20.0)
+                    yield f"data: {json.dumps(event)}\n\n"
+                except asyncio.TimeoutError:
+                    # Keep-alive heartbeat comment
+                    yield ": heartbeat\n\n"
+        finally:
+            if queue in _event_subscribers:
+                _event_subscribers.remove(queue)
+
+    import json
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
@@ -398,6 +470,27 @@ async def process_agent_message(req: AgentMessageRequest):
     recent_history = memory_repository.get_session_history(req.session_id, limit=4)
     parsed_req = structured_request_parser.parse(msg_raw, recent_history)
 
+    # Broadcast user query to live web console
+    broadcast_live_event("USER_QUERY", {
+        "session_id": req.session_id,
+        "request_id": req.request_id,
+        "message": msg_raw,
+        "intent": parsed_req.intent.value if (parsed_req and parsed_req.intent) else "GENERAL_CONVERSATION",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+    def _deliver_response(resp: AgentMessageResponse) -> AgentMessageResponse:
+        broadcast_live_event("ASSISTANT_RESPONSE", {
+            "session_id": resp.session_id,
+            "response": resp.response,
+            "sources": resp.sources,
+            "latency_ms": round(resp.metadata.get("latency_ms", 0.0), 2) if resp.metadata else 0.0,
+            "llm_provider": resp.metadata.get("llm_provider", "local") if resp.metadata else "local",
+            "actions": [a.model_dump() if hasattr(a, "model_dump") else a for a in resp.actions] if resp.actions else [],
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        return resp
+
     # Check for active pending confirmation token for this session
     pending_action = registry.get_pending_action_for_session(req.session_id)
 
@@ -410,7 +503,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.fast_path_ms = 1.0
         metrics.finish()
         log_request_metrics(metrics)
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response="Action cancelled.",
             actions=[],
@@ -426,7 +519,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # Handle Affirmative Confirmation (execute the pending high-risk action)
     if parsed_req.intent == ParsedIntent.CONFIRMATION and pending_action and not req.confirmed_action_id:
@@ -493,7 +586,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=call_reply,
             actions=actions,
@@ -510,7 +603,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 2. Deterministic Fast Path Check (Time, Battery, Location, Date)
     t_fp_start = time.time()
@@ -540,7 +633,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=fast_reply,
             actions=[],
@@ -556,11 +649,17 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 2.1 Hardware Camera Snapshot Fast-Path
     msg_low = msg_raw.lower()
-    if any(k in msg_low for k in ["capture picture", "take a picture", "take a photo", "click a photo", "camera snapshot", "capture frame", "click picture", "photo le lo", "camera picture"]):
+    if any(k in msg_low for k in [
+        "capture picture", "take a picture", "take a photo", "click a photo",
+        "click the pic", "click the picture", "take the pic", "take the picture",
+        "click pic", "take pic", "click a pic", "camera snapshot", "capture frame",
+        "click picture", "photo le lo", "camera picture", "photo click", "snap photo",
+        "photo kheecho", "tasveer lo"
+    ]):
         from backend.app.services.hardware_bridge import hardware_bridge
         cam_res = hardware_bridge.capture_camera_frame()
         b64_data = cam_res.get("base64_data", "")
@@ -572,7 +671,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=cam_reply,
             actions=[
@@ -585,7 +684,6 @@ async def process_agent_message(req: AgentMessageRequest):
                 )
             ],
             requires_confirmation=False,
-            confirmation_prompt=None,
             sources=["esp32_hardware_bridge"],
             metadata={
                 "latency_ms": metrics.total_ms,
@@ -597,7 +695,50 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
+
+    # 2.15 Multimodal Vision / Photo Explanation Fast-Path
+    if any(k in msg_low for k in [
+        "explain the pic", "explain picture", "what do you see", "what is this", "describe photo",
+        "describe what is in front of me", "what is in front of me", "explain what you see",
+        "kya dikh raha hai", "samjhao pic", "tasveer samjhao", "what's in front of me",
+        "describe the scene", "analyze view", "explain image", "what am i looking at"
+    ]):
+        from backend.app.services.hardware_bridge import hardware_bridge
+        mm_res = hardware_bridge.process_multimodal_request(override_text=msg_raw)
+        vision_reply = mm_res.get("speech_response") or mm_res.get("response") or "I see your surroundings clearly through the smart glasses camera."
+        b64_img = mm_res.get("frame_base64") or mm_res.get("image_base64", "")
+
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", vision_reply)
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return _deliver_response(AgentMessageResponse(
+            session_id=req.session_id,
+            response=vision_reply,
+            actions=[
+                AgentAction(
+                    tool_name="hardware_multimodal_vision",
+                    tool_input={"query": msg_raw},
+                    risk_level=RiskLevel.READ,
+                    status="executed",
+                    result={"image_base64": b64_img, "mode": mm_res.get("mode")}
+                )
+            ],
+            requires_confirmation=False,
+            sources=["esp32_multimodal_vision"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "image_base64": b64_img,
+                "llm_provider": "multimodal_vision",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        ))
 
     # 2.2 Hardware Microphone Audio Telemetry Fast-Path
     if any(k in msg_low for k in ["check microphone", "mic test", "check sound", "audio level", "test mic", "mic telemetry", "is microphone working"]):
@@ -613,7 +754,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=mic_reply,
             actions=[
@@ -637,7 +778,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 2.3 Staff Desk Dataset Fast-Path
     if any(k in msg_low for k in ["dataset uploaded by staff", "analyze dataset", "analyze the dataset", "staff dataset", "uploaded dataset", "desk analysis", "analyze spreadsheet", "staff upload", "data analysis", "csv analysis"]):
@@ -651,7 +792,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=desk_reply,
             actions=[
@@ -675,7 +816,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 2.4 External Tool Connectors / GitHub Status Fast-Path
     if any(k in msg_low for k in ["status of our github", "status of github", "github status", "github repository", "github repo status", "ci workflow", "pull requests"]):
@@ -689,7 +830,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=gh_reply,
             actions=[
@@ -713,7 +854,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 3. Deterministic Math Engine Fast-Path (<50ms, Zero-LLM Evaluation)
     math_eval = math_engine.evaluate(msg_raw)
@@ -738,7 +879,7 @@ async def process_agent_message(req: AgentMessageRequest):
         memory_repository.add_message(req.session_id, "user", msg_raw)
         memory_repository.add_message(req.session_id, "assistant", math_reply)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=math_reply,
             actions=[],
@@ -755,7 +896,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 4. Conversational Temporal Calendar Fast-Track (Direct Resolution without Agent loops)
     temporal_intent = temporal_resolver.resolve_intent(
@@ -788,7 +929,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=cal_reply,
             actions=[],
@@ -805,7 +946,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 5. Direct Gmail Retrieval & Reading Fast-Track (<500ms)
     if parsed_req.intent in [ParsedIntent.EMAIL_SEARCH, ParsedIntent.EMAIL_READ] and not is_mutation:
@@ -896,7 +1037,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=email_reply,
             actions=[],
@@ -912,7 +1053,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 6. Direct SMS Read & Search Fast-Track (<10ms)
     if parsed_req.intent in [ParsedIntent.SMS_SEARCH, ParsedIntent.SMS_READ] and not is_mutation:
@@ -936,7 +1077,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=sms_reply,
             actions=[],
@@ -952,7 +1093,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 7. Direct Academic Research / arXiv Search Fast-Track (<1.5s)
     if parsed_req.intent == ParsedIntent.RESEARCH_SEARCH and not is_mutation:
@@ -974,7 +1115,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=research_reply,
             actions=[],
@@ -990,7 +1131,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 8. Direct Web Search & Search Follow-ups Fast-Track
     if parsed_req.intent in [ParsedIntent.WEB_SEARCH, ParsedIntent.SEARCH_FOLLOW_UP] and not is_mutation:
@@ -1011,7 +1152,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=web_reply,
             actions=[],
@@ -1027,7 +1168,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 8.1 External Automation Tools (GitHub, LinkedIn) Fast-Track
     if any(k in msg_low for k in ["github status", "check github", "github updates", "github prs", "pull requests on github", "github repo"]):
@@ -1041,7 +1182,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=gh_reply,
             actions=[],
@@ -1057,7 +1198,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
     # 8.2 Staff Uploaded Dataset Analysis Fast-Track
     if any(k in msg_low for k in ["staff upload", "uploaded dataset", "what did staff upload", "analyze staff data", "analyze uploaded data", "uploaded by staff", "findings from uploaded data"]):
@@ -1070,7 +1211,7 @@ async def process_agent_message(req: AgentMessageRequest):
         metrics.finish()
         log_request_metrics(metrics)
 
-        return AgentMessageResponse(
+        return _deliver_response(AgentMessageResponse(
             session_id=req.session_id,
             response=desk_reply,
             actions=[],
@@ -1086,7 +1227,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
             }
-        )
+        ))
 
 
     # 9. Document & Storage Context Reasoner (For queries regarding uploaded resume, PDF, or documents)
@@ -1120,7 +1261,7 @@ async def process_agent_message(req: AgentMessageRequest):
             metrics.finish()
             log_request_metrics(metrics)
 
-            return AgentMessageResponse(
+            return _deliver_response(AgentMessageResponse(
                 session_id=req.session_id,
                 response=doc_reply,
                 actions=[],
@@ -1138,7 +1279,7 @@ async def process_agent_message(req: AgentMessageRequest):
                     "language": req.language or "auto",
                     "locale": req.locale or "en-IN"
                 }
-            )
+            ))
 
     # 10. Direct Single-Turn LLM Conversational Chat (For general Q&A, chat, explanations without LangGraph overhead)
     if not is_mutation and not req.confirmed_action_id:
@@ -1185,7 +1326,7 @@ async def process_agent_message(req: AgentMessageRequest):
             metrics.finish()
             log_request_metrics(metrics)
 
-            return AgentMessageResponse(
+            return _deliver_response(AgentMessageResponse(
                 session_id=req.session_id,
                 response=final_text,
                 actions=[],
@@ -1208,7 +1349,7 @@ async def process_agent_message(req: AgentMessageRequest):
                     "language": req.language or "auto",
                     "locale": req.locale or "en-IN"
                 }
-            )
+            ))
 
     # 8. LangGraph Agent Execution (For mutations, 2-step confirmations, or multi-step tool calls)
     t_ctx_start = time.time()
@@ -1255,7 +1396,7 @@ async def process_agent_message(req: AgentMessageRequest):
 
     log_request_metrics(metrics)
 
-    return AgentMessageResponse(
+    return _deliver_response(AgentMessageResponse(
         session_id=req.session_id,
         response=agent_output["response"],
         actions=agent_output.get("actions", []),
@@ -1275,7 +1416,7 @@ async def process_agent_message(req: AgentMessageRequest):
             "language": req.language or "auto",
             "locale": req.locale or "en-IN"
         }
-    )
+    ))
 
 @app.post("/api/v1/vision/analyze", response_model=VisionAnalyzeResponse)
 async def analyze_vision(req: VisionAnalyzeRequest):
@@ -1311,6 +1452,14 @@ async def analyze_vision(req: VisionAnalyzeRequest):
         capture_id=req.capture_id
     )
 
+    broadcast_live_event("VISION_ANALYZE", {
+        "prompt": req.prompt or "What do you see?",
+        "description": res.get("description", "Vision analysis completed."),
+        "objects": res.get("objects", []),
+        "latency_ms": res.get("latency_ms", 0.0),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
     return VisionAnalyzeResponse(
         capture_id=res.get("capture_id"),
         description=res.get("description", "Vision analysis completed."),
@@ -1341,6 +1490,13 @@ async def search_endpoint(query: str, search_type: str = "web"):
 async def research_search_endpoint(query: str, limit: int = 5, translate_back: bool = False):
     """Academic paper search endpoint using arXiv, Semantic Scholar, CrossRef, and PubMed."""
     from backend.app.tools.search_tools import academic_research_search
+    results = academic_research_search(query=query, limit=limit)
+    broadcast_live_event("RESEARCH_SEARCH", {
+        "query": query,
+        "results_count": len(results.get("papers", [])),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    return results
 @app.post("/api/v1/files/upload")
 async def upload_file(
     file: UploadFile = File(...),

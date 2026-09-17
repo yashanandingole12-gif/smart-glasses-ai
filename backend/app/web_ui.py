@@ -1,102 +1,100 @@
 def get_dashboard_html() -> str:
-    """Returns the LARA Operations Console — Quiet Luxury, Reductive Design & Slide-over Developer Drawer (Zero Emojis)."""
+    """Returns the LARA Real-Time Operations Console & Live Intelligence Dashboard (Clean Luxury, Zero Emojis)."""
     return r"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LARA Smart Glasses — Private Intelligence & Control</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-base: #111215;
-            --bg-surface: #181A20;
-            --bg-surface-elevated: #22252E;
-            --bg-subtle: #1C1E26;
-            --border: #2B2F3B;
-            --border-light: rgba(255, 255, 255, 0.08);
-            --border-focus: #D96B27;
-            
-            --orange: #D96B27;
-            --orange-light: #FBEFE8;
-            --orange-subtle: rgba(217, 107, 39, 0.12);
-            --orange-hover: #C05817;
-            
-            --emerald: #2D7D46;
-            --emerald-bg: rgba(45, 125, 70, 0.15);
-            --amber: #C88220;
-            --amber-bg: rgba(200, 130, 32, 0.15);
-            --red: #B83A3A;
-            --red-bg: rgba(184, 58, 58, 0.15);
-            --sand: #EED9C4;
-            
-            --text-primary: #F5F2EB;
-            --text-secondary: #9E9B95;
-            --text-muted: #6E6B65;
-            
-            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.25);
-            --shadow-drawer: -8px 0 32px rgba(0, 0, 0, 0.5);
-            --radius-lg: 12px;
-            --radius-md: 8px;
+            --bg-base: #0c0d10;
+            --bg-surface: #14161d;
+            --bg-card: #1b1e27;
+            --bg-input: #222632;
+            --border: #2c3140;
+            --border-active: #d96b27;
+            --accent: #d96b27;
+            --accent-glow: rgba(217, 107, 39, 0.25);
+            --accent-hover: #eb7c36;
+            --emerald: #10b981;
+            --emerald-bg: rgba(16, 185, 129, 0.15);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59, 130, 246, 0.15);
+            --purple: #8b5cf6;
+            --purple-bg: rgba(139, 92, 246, 0.15);
+            --amber: #f59e0b;
+            --amber-bg: rgba(245, 158, 11, 0.15);
+            --red: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.15);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --font-mono: "JetBrains Mono", "Courier New", monospace;
             --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-base);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
         }
 
-        /* Top Executive System Bar */
-        .system-top-bar {
+        /* Top Header Navigation */
+        .top-header {
             background-color: var(--bg-surface);
             border-bottom: 1px solid var(--border);
-            padding: 14px 28px;
+            padding: 12px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .brand-logo-area {
+        .brand-section {
             display: flex;
-            align-items: baseline;
-            gap: 12px;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-badge {
+            background: linear-gradient(135deg, #d96b27, #f59e0b);
+            color: #fff;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            letter-spacing: 1.5px;
         }
 
         .brand-title {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
-            letter-spacing: 2px;
-            color: var(--text-primary);
-            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .brand-subtitle {
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--orange);
-            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
-        .subsystem-pills {
+        .system-status-pills {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .pill-status {
+        .pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -104,420 +102,441 @@ def get_dashboard_html() -> str:
             border-radius: 20px;
             font-size: 11px;
             font-weight: 600;
-            background: var(--bg-subtle);
+            letter-spacing: 0.5px;
             border: 1px solid var(--border);
-            color: var(--text-secondary);
-        }
-
-        .pill-status.active {
-            background: var(--emerald-bg);
-            border-color: rgba(45, 125, 70, 0.4);
-            color: #68D391;
+            background: var(--bg-card);
         }
 
         .pill-dot {
-            width: 6px;
-            height: 6px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
-            background-color: #68D391;
         }
 
-        /* Layout: Left Rail + Center Spacious Workspace + Right Telemetry Sidebar */
-        .console-workspace {
-            display: grid;
-            grid-template-columns: 220px 1fr 280px;
-            min-height: calc(100vh - 61px);
-            background: var(--bg-base);
-            position: relative;
-        }
+        .pill-live .pill-dot { background-color: var(--emerald); box-shadow: 0 0 8px var(--emerald); }
+        .pill-live { color: var(--emerald); border-color: rgba(16, 185, 129, 0.3); background: var(--emerald-bg); }
 
-        @media (max-width: 1280px) {
-            .console-workspace { grid-template-columns: 200px 1fr; }
-            .side-telemetry-panel { display: none; }
-        }
+        .pill-cloud .pill-dot { background-color: var(--blue); }
+        .pill-cloud { color: var(--blue); }
 
-        @media (max-width: 800px) {
-            .console-workspace { grid-template-columns: 1fr; }
-            .nav-panel { display: none; }
-            .side-telemetry-panel { display: none; }
-        }
+        .pill-hw .pill-dot { background-color: var(--amber); }
+        .pill-hw { color: var(--amber); }
 
-        /* Left Navigation Rail */
-        .nav-panel {
+        /* Navigation Tabs */
+        .tabs-nav {
             background-color: var(--bg-surface);
-            border-right: 1px solid var(--border);
-            padding: 24px 16px;
+            border-bottom: 1px solid var(--border);
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            gap: 8px;
+            padding: 0 24px;
+            overflow-x: auto;
         }
 
-        .nav-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .nav-section-title {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            font-weight: 700;
-            color: var(--text-muted);
-            margin: 16px 12px 6px 12px;
-        }
-
-        .nav-item {
+        .tab-button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 12px 18px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.15s ease;
+            gap: 8px;
+            white-space: nowrap;
         }
 
-        .nav-item:hover {
+        .tab-button:hover {
             color: var(--text-primary);
-            background-color: var(--bg-surface-elevated);
         }
 
-        .nav-item.active {
-            color: var(--text-primary);
-            background-color: var(--bg-surface-elevated);
-            font-weight: 600;
-            border-left: 2px solid var(--orange);
+        .tab-button.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
         }
 
-        /* Center Main Operations Workspace */
-        .main-panel {
-            padding: 32px 40px;
-            overflow-y: auto;
-            max-width: 1100px;
+        .tab-badge {
+            background: var(--bg-base);
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: 10px;
+            border: 1px solid var(--border);
+        }
+
+        /* Main Workspace Container */
+        .main-container {
+            flex: 1;
+            padding: 24px;
+            max-width: 1440px;
             margin: 0 auto;
             width: 100%;
         }
 
-        .console-view {
+        .tab-panel {
             display: none;
-            flex-direction: column;
-            gap: 24px;
         }
 
-        .console-view.active { display: flex; }
+        .tab-panel.active {
+            display: grid;
+            gap: 20px;
+        }
 
-        /* Card System */
-        .card-luxury {
-            background-color: var(--bg-surface);
+        /* 2-Column Grid Layouts */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-2col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card Component */
+        .card {
+            background: var(--bg-surface);
             border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            box-shadow: var(--shadow-card);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
         }
 
         .card-title {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
-            letter-spacing: 1px;
             color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        /* Center Assistant Message Stream */
-        .chat-stream {
+        /* Live Activity Stream Styling */
+        .stream-controls {
             display: flex;
-            flex-direction: column;
-            gap: 16px;
-            max-height: 480px;
-            overflow-y: auto;
-            padding-right: 8px;
+            gap: 8px;
         }
 
-        .message-row {
+        .btn-sm {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+
+        .btn-sm:hover {
+            color: var(--text-primary);
+            border-color: var(--border-active);
+        }
+
+        .live-stream-box {
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            height: 520px;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+
+        .stream-entry {
+            background: var(--bg-card);
+            border-left: 3px solid var(--border);
+            border-radius: 4px;
+            padding: 10px 12px;
             display: flex;
             flex-direction: column;
             gap: 6px;
+            animation: fadeIn 0.2s ease-in;
         }
 
-        .message-row.user { align-items: flex-end; }
-        .message-row.assistant { align-items: flex-start; }
-
-        .message-bubble {
-            max-width: 82%;
-            padding: 14px 18px;
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            line-height: 1.6;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .message-bubble.user {
-            background-color: var(--orange);
-            color: #FFFFFF;
-            border-bottom-right-radius: 2px;
+        .entry-USER_QUERY { border-left-color: var(--blue); }
+        .entry-ASSISTANT_RESPONSE { border-left-color: var(--emerald); }
+        .entry-CAMERA_CAPTURE { border-left-color: var(--purple); }
+        .entry-VISION_ANALYZE { border-left-color: var(--amber); }
+        .entry-RESEARCH_SEARCH { border-left-color: #ec4899; }
+        .entry-SYSTEM_CONNECTED { border-left-color: var(--emerald); }
+
+        .entry-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
         }
 
-        .message-bubble.assistant {
-            background-color: var(--bg-surface-elevated);
-            border: 1px solid var(--border);
+        .entry-type {
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .type-USER_QUERY { background: var(--blue-bg); color: var(--blue); }
+        .type-ASSISTANT_RESPONSE { background: var(--emerald-bg); color: var(--emerald); }
+        .type-CAMERA_CAPTURE { background: var(--purple-bg); color: var(--purple); }
+        .type-VISION_ANALYZE { background: var(--amber-bg); color: var(--amber); }
+        .type-RESEARCH_SEARCH { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+        .type-SYSTEM_CONNECTED { background: var(--emerald-bg); color: var(--emerald); }
+
+        .entry-time {
+            color: var(--text-muted);
+        }
+
+        .entry-body {
             color: var(--text-primary);
-            border-bottom-left-radius: 2px;
+            line-height: 1.4;
+            word-break: break-word;
         }
 
-        /* Multimodal Quick Actions Bar */
-        .quick-actions-bar {
+        .entry-meta {
+            color: var(--text-secondary);
+            font-size: 10px;
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Quick Prompt Buttons */
+        .quick-prompts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .prompt-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .prompt-chip strong {
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+
+        .prompt-chip span {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .prompt-chip:hover {
+            border-color: var(--accent);
+            background: var(--bg-input);
+            color: var(--accent);
+        }
+
+        /* Interactive Query Box */
+        .query-input-group {
             display: flex;
             gap: 8px;
+        }
+
+        .input-text {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 10px 14px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .input-text:focus {
+            border-color: var(--border-active);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Smart Glass OLED Simulator */
+        .oled-display-box {
+            background: #000;
+            border: 3px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            height: 120px;
+            font-family: var(--font-mono);
+            color: #00ffcc;
+            text-shadow: 0 0 5px rgba(0, 255, 204, 0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 255, 204, 0.2);
+        }
+
+        .oled-header {
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed rgba(0, 255, 204, 0.3);
+            padding-bottom: 2px;
+        }
+
+        .oled-content {
+            font-size: 12px;
+            line-height: 1.3;
+            flex: 1;
+            padding-top: 4px;
+            overflow: hidden;
+        }
+
+        /* Research Hub Styling */
+        .research-search-bar {
+            display: flex;
+            gap: 10px;
+        }
+
+        .papers-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .paper-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: border-color 0.15s;
+        }
+
+        .paper-card:hover {
+            border-color: var(--accent);
+        }
+
+        .paper-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .paper-title a {
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .paper-title a:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        .paper-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 14px;
             flex-wrap: wrap;
         }
 
-        .btn-quick-chip {
-            background: var(--bg-surface-elevated);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 8px 14px;
+        .paper-abstract {
             font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
+            color: var(--text-secondary);
+            line-height: 1.5;
         }
 
-        .btn-quick-chip:hover {
-            border-color: var(--orange);
-            color: var(--orange);
-        }
-
-        .btn-quick-chip.primary {
-            background: var(--orange);
-            color: #FFFFFF;
-            border-color: var(--orange);
-        }
-
-        .btn-quick-chip.primary:hover {
-            background: var(--orange-hover);
-        }
-
-        /* Command Input Bar */
-        .command-bar {
+        .paper-actions {
             display: flex;
-            gap: 10px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 8px 12px;
+            gap: 8px;
+            margin-top: 4px;
         }
 
-        .command-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-            padding: 6px 8px;
-        }
-
-        .btn-send {
-            background: var(--orange);
-            color: #FFFFFF;
-            border: none;
-            border-radius: var(--radius-sm);
-            padding: 8px 18px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .btn-voice {
-            background: var(--bg-surface-elevated);
-            color: var(--text-primary);
+        /* Camera & Vision Hub */
+        .cam-preview-box {
+            background: #000;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            padding: 8px 14px;
-            font-size: 13px;
-            cursor: pointer;
-        }
-
-        /* Slide-Over Drawer: Intent Inspector (Closed by default) */
-        .inspector-drawer {
-            position: fixed;
-            top: 0;
-            right: -420px;
-            width: 400px;
-            height: 100vh;
-            background-color: var(--bg-surface);
-            border-left: 1px solid var(--border);
-            box-shadow: var(--shadow-drawer);
-            padding: 24px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            z-index: 1000;
-            transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            overflow-y: auto;
-        }
-
-        .inspector-drawer.open {
-            right: 0;
-        }
-
-        .drawer-header {
+            height: 260px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 12px;
-        }
-
-        .btn-close-drawer {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 18px;
-            cursor: pointer;
-            padding: 4px 8px;
-        }
-
-        .btn-close-drawer:hover { color: var(--text-primary); }
-
-        .inspector-field {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        }
-
-        .inspector-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            font-weight: 700;
-        }
-
-        .inspector-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            color: var(--text-primary);
-            word-break: break-all;
-        }
-
-        /* Luxury Tables */
-        .table-luxury {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        .table-luxury th {
-            text-align: left;
-            padding: 10px 14px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 700;
-        }
-
-        .table-luxury td {
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            color: var(--text-secondary);
-        }
-
-        .table-luxury tr:hover td {
-            background: var(--bg-surface-elevated);
-            color: var(--text-primary);
-        }
-
-        /* VU Meter */
-        .vu-meter-bar {
-            width: 100%;
-            height: 6px;
-            background: var(--bg-subtle);
-            border-radius: 3px;
+            justify-content: center;
             overflow: hidden;
-            border: 1px solid var(--border);
+            position: relative;
         }
 
-        .vu-meter-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #68D391, #D96B27);
-            transition: width 0.15s ease;
+        .cam-preview-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
 
-        .dropzone-box {
-            border: 2px dashed var(--border);
-            border-radius: var(--radius-md);
-            padding: 24px;
-            text-align: center;
-            background: var(--bg-subtle);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .dropzone-box:hover {
-            border-color: var(--orange);
+        .cam-overlay-status {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: var(--font-mono);
         }
 
-        /* Right Telemetry Sidebar & Executive Widgets */
-        .side-telemetry-panel {
-            background-color: var(--bg-surface);
-            border-left: 1px solid var(--border);
-            padding: 24px 18px;
+        /* Telemetry Meters */
+        .metric-row {
             display: flex;
-            flex-direction: column;
-            gap: 16px;
-            overflow-y: auto;
-        }
-
-        .side-widget-card {
-            background: var(--bg-subtle);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 14px 16px;
-        }
-
-        .side-widget-header {
-            display: flex;
-            align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .side-widget-title {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--text-muted);
-        }
-
-        .telemetry-metric-row {
-            display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 4px 0;
             font-size: 12px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
         }
 
         .metric-label {
@@ -525,6 +544,7 @@ def get_dashboard_html() -> str:
         }
 
         .metric-value {
+            font-family: var(--font-mono);
             font-weight: 600;
             color: var(--text-primary);
         }
@@ -532,1360 +552,799 @@ def get_dashboard_html() -> str:
 </head>
 <body>
 
-    <!-- Top Executive System Bar -->
-    <header class="system-top-bar">
-        <div class="brand-logo-area">
-            <span class="brand-title">LARA</span>
-            <span class="brand-subtitle">Private Intelligence & Control</span>
+    <!-- Top Executive Header Bar -->
+    <header class="top-header">
+        <div class="brand-section">
+            <div class="brand-badge">LARA</div>
+            <div>
+                <div class="brand-title">LARA Smart Glasses — Private Intelligence & Control</div>
+                <div class="brand-subtitle">ESP32 Smart Glasses & Android Hub</div>
+            </div>
         </div>
-
-        <div class="subsystem-pills">
-            <span class="pill-status active"><span class="pill-dot"></span> Smart Glasses</span>
-            <span class="pill-status active"><span class="pill-dot"></span> Android</span>
-            <span class="pill-status" id="pill-google"><span class="pill-dot" style="background:#6E6B65;"></span> Google Workspace</span>
-            <button class="btn-quick-chip" onclick="openInspectorDrawer()" style="padding:4px 10px; font-size:11px;">Intent Inspector</button>
+        <div class="system-status-pills">
+            <div class="pill pill-live" id="sse-status-pill">
+                <span class="pill-dot"></span>
+                <span id="sse-status-text">SSE Stream Active</span>
+            </div>
+            <div class="pill pill-cloud">
+                <span class="pill-dot"></span>
+                <span>Gemini 2.5 Flash</span>
+            </div>
+            <div class="pill pill-hw">
+                <span class="pill-dot"></span>
+                <span>ESP32-S3 Sense (COM5)</span>
+            </div>
         </div>
     </header>
 
-    <div class="console-workspace">
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav">
+        <button class="tab-button active" onclick="switchTab('live-stream')">
+            Live Activity Stream
+            <span class="tab-badge" id="event-counter-badge">0</span>
+        </button>
+        <button class="tab-button" onclick="switchTab('ai-playground')">
+            Intent Inspector & Playground
+        </button>
+        <button class="tab-button" onclick="switchTab('research-hub')">
+            LARA Research Engine
+        </button>
+        <button class="tab-button" onclick="switchTab('desk-analysis')">
+            Desk & Data Analysis
+        </button>
+        <button class="tab-button" onclick="switchTab('camera-vision')">
+            Camera & Vision Hub
+        </button>
+        <button class="tab-button" onclick="switchTab('automations-hub')">
+            Automations Center & Smart Notifications
+        </button>
+        <button class="tab-button" onclick="switchTab('system-diagnostics')">
+            Device Health & Telemetry
+        </button>
+    </nav>
 
-        <!-- Panel 1: Left Navigation Rail -->
-        <nav class="nav-panel">
-            <div class="nav-group">
-                <div class="nav-section-title">Workspace</div>
-                <div class="nav-item active" onclick="showTab('overview', this)">Overview</div>
-                <div class="nav-item" onclick="showTab('workspace', this)">Workspace & Environment</div>
-                <div class="nav-item" onclick="showTab('assistant', this)">Assistant</div>
-                <div class="nav-item" onclick="showTab('activity', this)">Activity</div>
-                <div class="nav-item" onclick="showTab('devices', this)">Devices</div>
-                <div class="nav-item" onclick="showTab('glasses-logs', this)">Glasses Live Logs</div>
-                <div class="nav-item" onclick="showTab('conv-stream', this)">Glasses Conversation</div>
-                <div class="nav-item" onclick="showTab('requests', this)">Request Status Hub</div>
-                <div class="nav-item" onclick="showTab('contacts', this)">Quick Contacts Hub</div>
-                <div class="nav-item" onclick="showTab('files', this)">Files</div>
-                <div class="nav-item" onclick="showTab('desk', this)">Desk & Data Analysis</div>
-                <div class="nav-item" onclick="showTab('automations', this)">Automations Center</div>
-                <div class="nav-item" onclick="showTab('notifications', this)">Smart Notifications</div>
-                <div class="nav-item" onclick="showTab('settings', this)">Settings</div>
-            </div>
+    <!-- Main Content Workspace -->
+    <main class="main-container">
 
-            <div class="nav-group">
-                <div class="nav-section-title">Developer</div>
-                <div class="nav-item" onclick="showTab('developer', this)">Developer Diagnostics</div>
-            </div>
-        </nav>
-
-        <!-- Panel 2: Center Spacious Operations Workspace -->
-        <main class="main-panel">
-
-            <!-- View 1: Overview ("Is LARA Working?") -->
-            <div id="view-overview" class="console-view active">
-                <div class="card-luxury">
+        <!-- TAB 1: LIVE ACTIVITY STREAM -->
+        <section id="tab-live-stream" class="tab-panel active">
+            <div class="grid-2col">
+                <div class="card">
                     <div class="card-header">
-                        <span class="card-title">System Readiness</span>
-                        <span class="pill-status active"><span class="pill-dot"></span> Operational</span>
+                        <div class="card-title">
+                            <span>Real-Time Global Event Stream</span>
+                        </div>
+                        <div class="stream-controls">
+                            <button class="btn-sm" onclick="clearLiveEvents()">Clear Feed</button>
+                            <button class="btn-sm" id="autoscroll-toggle-btn" onclick="toggleAutoScroll()">Auto-scroll: ON</button>
+                        </div>
                     </div>
-                    <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px; line-height:1.6;">
-                        LARA is private, synchronized, and operational. Hands-free Smart Glasses speech and vision pipelines are active.
-                    </p>
-
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
-                        <div style="background:var(--bg-subtle); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
-                            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Smart Glasses</div>
-                            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-top:4px;">Connected (S3)</div>
-                            <div style="font-size:12px; color:#68D391; margin-top:2px;">Camera & Mic Ready</div>
-                        </div>
-                        <div style="background:var(--bg-subtle); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
-                            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Android Companion</div>
-                            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-top:4px;">Foreground Daemon</div>
-                            <div style="font-size:12px; color:#68D391; margin-top:2px;">Pocket Mode Active</div>
-                        </div>
-                        <div style="background:var(--bg-subtle); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
-                            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Cloud Intelligence</div>
-                            <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-top:4px;">Gemini 2.5 Flash</div>
-                            <div style="font-size:12px; color:#68D391; margin-top:2px;">Fast Reasoning Tier</div>
+                    <div class="live-stream-box" id="live-stream-feed">
+                        <div class="stream-entry entry-SYSTEM_CONNECTED">
+                            <div class="entry-header">
+                                <span class="entry-type type-SYSTEM_CONNECTED">SYSTEM</span>
+                                <span class="entry-time">Initialising</span>
+                            </div>
+                            <div class="entry-body">Subscribing to real-time telemetry from glasses, mobile companion, and AI kernel...</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card-luxury">
+                <div class="card">
                     <div class="card-header">
-                        <span class="card-title">Live Operational Session</span>
-                        <span style="font-size:12px; color:var(--text-muted);" id="session-summary-label">Active</span>
+                        <div class="card-title">
+                            <span>Glasses Live HUD & Audio Sim</span>
+                        </div>
                     </div>
-                    <div id="overview-activity-list" style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
-                        <div style="color:var(--text-secondary);">Ready for instructions. All actions will appear here dynamically.</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- View 2: Assistant Conversational Workspace -->
-            <div id="view-assistant" class="console-view">
-                
-                <!-- Quick Actions Chips -->
-                <div class="quick-actions-bar">
-                    <button class="btn-quick-chip primary" onclick="triggerVisionCaptureDescribe()">Capture + Describe</button>
-                    <button class="btn-quick-chip" onclick="triggerMultimodalCapture()">Multimodal (ESP32 Mic+Cam)</button>
-                    <button class="btn-quick-chip" onclick="triggerQuadraticVision()">Solve Quadratic x²+5x+6=0</button>
-                    <button class="btn-quick-chip" onclick="triggerQrScan()">Scan QR Code</button>
-                    <button class="btn-quick-chip" onclick="sendQuickMessage('Check my unread emails')">Check Email</button>
-                    <button class="btn-quick-chip" onclick="sendQuickMessage('What is on my calendar today?')">Calendar</button>
-                    <button class="btn-quick-chip" onclick="sendQuickMessage('Check my github status')">GitHub Status</button>
-                    <button class="btn-quick-chip" onclick="sendQuickMessage('What did staff upload?')">Staff Data</button>
-                    <button class="btn-quick-chip" onclick="simulateIncomingSmsPrompt()">Simulate SMS Alert</button>
-                </div>
-
-                <!-- Chat & Interaction Stream -->
-                <div class="card-luxury" style="min-height:420px; display:flex; flex-direction:column; justify-content:space-between;">
-                    <div class="card-header">
-                        <span class="card-title">Interaction Stream</span>
-                        <span style="font-size:11px; color:var(--text-muted);" id="session-display">Session: lara_web</span>
-                    </div>
-
-                    <div class="chat-stream" id="chat-messages">
-                        <div class="message-row assistant">
-                            <div class="message-bubble assistant">
-                                <strong>LARA:</strong> System initialized. Ask a question, inspect your schedule, compose messages, or analyze uploaded data.
+                    
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">0.42" OLED (SSD1306) Optical Preview:</div>
+                        <div class="oled-display-box" id="oled-preview">
+                            <div class="oled-header">
+                                <span>LARA v2.0</span>
+                                <span id="oled-clock">10:45 AM</span>
+                                <span>BAT 85%</span>
+                            </div>
+                            <div class="oled-content" id="oled-text">
+                                Ready for voice or touch commands.
                             </div>
                         </div>
                     </div>
 
-                    <div style="margin-top:20px;">
-                        <div class="command-bar">
-                            <input type="text" id="user-input" class="command-input" placeholder="Ask LARA anything..." onkeydown="if(event.key==='Enter') sendMessage()">
-                            <button class="btn-voice" onclick="toggleVoiceInput()" id="mic-btn">Voice</button>
-                            <button class="btn-send" onclick="sendMessage()">Execute</button>
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Latest Spoken Voice Output:</div>
+                        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 13px; line-height: 1.4;" id="voice-preview-text">
+                            No spoken output generated yet.
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Quick Test Triggers:</div>
+                        <div class="quick-prompts-grid">
+                            <button class="prompt-chip" onclick="sendQuickPrompt('Nagpur mein best pet shop kahan hai')">
+                                <strong>Nagpur Pet Shops</strong>
+                                <span>Local search grounding</span>
+                            </button>
+                            <button class="prompt-chip" onclick="sendQuickPrompt('Write a simple calculator in Python')">
+                                <strong>Python Calculator</strong>
+                                <span>Code generation test</span>
+                            </button>
+                            <button class="prompt-chip" onclick="sendQuickPrompt('Plan a 3-day trip to Goa with itinerary')">
+                                <strong>Goa Trip Plan</strong>
+                                <span>Multi-step reasoning</span>
+                            </button>
+                            <button class="prompt-chip" onclick="triggerCameraCapture()">
+                                <strong>Capture Photo</strong>
+                                <span>ESP32 camera frame</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- View 3: Activity Feed -->
-            <div id="view-activity" class="console-view">
-                <div class="card-luxury">
+        <!-- TAB 2: AI VOICE & LOGIC PLAYGROUND / INTENT INSPECTOR -->
+        <section id="tab-ai-playground" class="tab-panel">
+            <div class="grid-2col">
+                <div class="card">
                     <div class="card-header">
-                        <span class="card-title">Chronological Activity</span>
-                        <button class="btn-quick-chip" onclick="clearActivityFeed()">Clear History</button>
-                    </div>
-                    <table class="table-luxury">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Action / Query</th>
-                                <th>Category</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activity-table-body">
-                            <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No activity recorded yet in this session.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- View 4: Devices Hub -->
-            <div id="view-devices" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">ESP32 Smart Glasses & Android Hub (Seeed Studio XIAO ESP32-S3 Sense)</span>
-                        <span id="badge-esp-live" class="pill-status active">CONNECTED (COM5)</span>
-                    </div>
-
-                    <table class="table-luxury">
-                        <tr><td>Hardware Model</td><td>Seeed Studio XIAO ESP32-S3 Sense (Dual-Core LX7, 240MHz)</td></tr>
-                        <tr><td>Camera Sensor</td><td>OV3660 / OV2640 (640x480 VGA) · <strong style="color:#68D391;">READY</strong></td></tr>
-                        <tr><td>Digital Microphone</td><td>MSM261D PDM Digital Mic (16kHz PCM WAV) · <strong style="color:#68D391;">READY</strong></td></tr>
-                        <tr><td>Microphone Energy VU</td><td><div class="vu-meter-bar"><div id="hw-mic-fill" class="vu-meter-fill"></div></div></td></tr>
-                        <tr><td>BLE Subsystem</td><td>SmartGlasses-S3 (Service UUID 19B10000...) · <strong style="color:#68D391;">CONNECTED</strong></td></tr>
-                        <tr><td>Battery & RSSI</td><td><span id="hw-batt-val">85%</span> · <span id="hw-rssi-val">-58 dBm</span></td></tr>
-                        <tr><td>Last Vision Diagnostic</td><td><strong style="color:#68D391;" id="hw-last-vis-status">PASS</strong> · <span id="hw-last-cap-id">cap_live_s3</span></td></tr>
-                    </table>
-                </div>
-            </div>
-
-            <!-- View 5: Files & Documents Workspace + Staff Upload -->
-            <div id="view-files" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Staff Data Upload for Smart Glasses Analysis</span>
-                    </div>
-                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
-                        Upload spreadsheet datasets (CSV/Excel/JSON) for executive queries on Smart Glasses.
-                    </p>
-                    <div class="dropzone-box" onclick="document.getElementById('file-upload-input').click()">
-                        <input type="file" id="file-upload-input" style="display:none;" onchange="handleStaffFileUpload(this)">
-                        <div style="font-size:14px; font-weight:700; color:var(--orange);">Choose file or drag here to upload</div>
-                        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Supports .csv, .xlsx, .json, .pdf (Max 50MB)</div>
-                    </div>
-                    <div id="upload-status-box" style="margin-top:14px; font-size:13px; display:none;"></div>
-                </div>
-
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Document Repository</span>
-                    </div>
-                    <table class="table-luxury">
-                        <thead>
-                            <tr>
-                                <th>Document</th>
-                                <th>Uploader</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="files-table-body">
-                            <tr><td>Quarterly_Financials.xlsx</td><td>Staff Assistant</td><td><span class="pill-status active">Parsed (24,582 rows)</span></td><td><button class="btn-quick-chip" onclick="showTab('desk')">Analyze</button></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- View 6: Desk & Data Analysis -->
-            <div id="view-desk" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Universal Tabular & Document Data Analysis</span>
-                        <span class="pill-status active" id="desk-dataset-badge">Active Dataset: Quarterly_Financials.csv</span>
-                    </div>
-
-                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
-                        Statistical, numerical, and anomaly analysis on structured CSV datasets. Accessible via cloud endpoints on Web and Smart Glasses.
-                    </p>
-
-                    <div class="quick-actions-bar" style="margin-bottom:16px;">
-                        <button class="btn-quick-chip primary" onclick="runDeskAnalysis('summarize')">Summarize Dataset</button>
-                        <button class="btn-quick-chip" onclick="runDeskAnalysis('anomalies')">Find Anomalies</button>
-                        <button class="btn-quick-chip" onclick="runDeskAnalysis('calculate')">Calculate Metrics</button>
-                    </div>
-
-                    <div style="display:flex; gap:8px; margin-bottom:16px;">
-                        <input type="text" id="desk-query-input" placeholder="Ask a question about this data (e.g. 'What is the average revenue?', 'Find outliers', 'Total units')..." style="flex:1; background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; color:var(--text-main); font-size:13px;" onkeydown="if(event.key==='Enter') executeCustomDataQuery()">
-                        <button class="btn-quick-chip primary" onclick="executeCustomDataQuery()">Query Data</button>
-                    </div>
-
-                    <div id="desk-results" style="background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; font-size:13px; line-height:1.6;">
-                        Select an action above or type a natural language query to analyze the active dataset.
-                    </div>
-                </div>
-            </div>
-
-            <!-- View 7: Automations Center -->
-            <div id="view-automations" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Automations Center</span>
-                        <button class="btn-quick-chip primary" onclick="scheduleNewBriefing()">+ New Automation</button>
-                    </div>
-                    <table class="table-luxury">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Trigger / Schedule</th>
-                                <th>Permissions</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="automations-table">
-                            <tr>
-                                <td>Daily Morning Briefing</td>
-                                <td>Schedule (08:00 AM Daily)</td>
-                                <td>Calendar, Gmail</td>
-                                <td><span class="pill-status active">ACTIVE</span></td>
-                            </tr>
-                            <tr>
-                                <td>Executive Email Digest</td>
-                                <td>Recurring (Every 4h)</td>
-                                <td>Gmail</td>
-                                <td><span class="pill-status active">ACTIVE</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- View 8: Smart Notifications -->
-            <div id="view-notifications" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Smart Notifications</span>
-                    </div>
-                    <table class="table-luxury">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Routing Policy</th>
-                                <th>Delivery Mode</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>Critical Alerts</td><td>Always Deliver</td><td>Audible + Wearable</td></tr>
-                            <tr><td>Important Communications</td><td>Filtered / Priority</td><td>Audible</td></tr>
-                            <tr><td>Normal Updates</td><td>Silent / Allow</td><td>Digest</td></tr>
-                            <tr><td>Promotions</td><td>Silent</td><td>Muted</td></tr>
-                            <tr><td>Spam</td><td>Block</td><td>Discarded</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- View 9: Settings & Google OAuth Integration -->
-            <div id="view-settings" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Connected Services & Authentication</span>
-                    </div>
-                    <table class="table-luxury">
-                        <tr>
-                            <td>Google Workspace (Gmail & Calendar)</td>
-                            <td id="google-auth-status-cell">
-                                <span class="pill-status" id="google-status-pill">Checking...</span>
-                            </td>
-                            <td>
-                                <button class="btn-quick-chip primary" id="btn-google-auth" onclick="connectGoogleOAuth()">Connect Google</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>GitHub Integration</td>
-                            <td><span class="pill-status active">Connected</span></td>
-                            <td><button class="btn-quick-chip" onclick="sendQuickMessage('Check GitHub status')">Check Status</button></td>
-                        </tr>
-                        <tr>
-                            <td>Android Companion Service</td>
-                            <td><span class="pill-status active">Foreground Daemon Active</span></td>
-                            <td><button class="btn-quick-chip" onclick="showTab('devices')">View Device</button></td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-
-            <!-- View 10: Dedicated Developer Diagnostics -->
-            <div id="view-developer" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Developer Latency Waterfall</span>
-                        <button class="btn-quick-chip" onclick="openInspectorDrawer()">Open Live Inspector</button>
-                    </div>
-                    <table class="table-luxury">
-                        <tr><td>Total Request Latency</td><td><strong id="diag-lat-total">42.5ms</strong></td></tr>
-                        <tr><td>Intent Router Tier</td><td><strong id="diag-tier">FAST (Direct Deterministic)</strong></td></tr>
-                        <tr><td>LLM Response Time</td><td><strong id="diag-lat-llm">0.0ms (Fast Path)</strong></td></tr>
-                        <tr><td>Tool Execution Time</td><td><strong id="diag-lat-tool">1.2ms</strong></td></tr>
-                        <tr><td>Vision Pipeline Latency</td><td><strong id="diag-lat-vision">68.0ms</strong></td></tr>
-                    </table>
-                </div>
-
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Security & Audit Traces</span>
-                        <button class="btn-quick-chip" onclick="refreshAuditLogs()">Refresh Logs</button>
-                    </div>
-                    <div id="audit-log-content" style="max-height:240px; overflow-y:auto; font-family:'JetBrains Mono', monospace; font-size:11px; background:var(--bg-subtle); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--border);">
-                        Loading security audit entries...
-                    </div>
-                </div>
-            </div>
-
-            <!-- View: Glasses & BLE Live Logs -->
-            <div id="view-glasses-logs" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Seeed Studio XIAO ESP32-S3 Sense — Live BLE & Hardware Stream</span>
-                        <div style="display:flex; gap:8px;">
-                            <button class="btn-quick-chip primary" onclick="refreshGlassesLogs()">Refresh Stream</button>
-                            <span class="pill-status active"><span class="pill-dot"></span> LIVE POLLING (3s)</span>
+                        <div class="card-title">
+                            <span>Intent Inspector & AI Tester</span>
                         </div>
                     </div>
-                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
-                        Real-time hardware event stream from ESP32-S3 smart glasses temple button, digital microphone, OV2640 camera frames, and BLE characteristic writes.
-                    </p>
-                    <table class="table-luxury">
-                        <thead>
-                            <tr>
-                                <th style="width:90px;">Time</th>
-                                <th style="width:180px;">Event Type</th>
-                                <th style="width:90px;">Source</th>
-                                <th style="width:70px;">Level</th>
-                                <th>Details / Payload</th>
-                            </tr>
-                        </thead>
-                        <tbody id="glasses-logs-tbody">
-                            <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading smart glasses hardware logs...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            <!-- View: Glasses <-> Android <-> Cloud Conversation Stream -->
-            <div id="view-conv-stream" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Glasses & Android Conversation History</span>
-                        <button class="btn-quick-chip" onclick="refreshConversationStream()">Refresh Stream</button>
+                    <div class="quick-prompts-grid" style="grid-template-columns: 1fr 1fr;">
+                        <button class="prompt-chip" onclick="sendQuickPrompt('Nagpur mai best pet shop kaha hai')">
+                            <strong>Nagpur Best Pet Shop</strong>
+                            <span>Hindi/Hinglish query</span>
+                        </button>
+                        <button class="prompt-chip" onclick="sendQuickPrompt('write a simple calclator python')">
+                            <strong>Simple Calculator Code</strong>
+                            <span>Python script generation</span>
+                        </button>
+                        <button class="prompt-chip" onclick="sendQuickPrompt('plan a trip to Manali for 4 days')">
+                            <strong>Manali 4-Day Trip</strong>
+                            <span>Itinerary planning</span>
+                        </button>
+                        <button class="prompt-chip" onclick="sendQuickPrompt('Search research papers on ergonomic smart wearable')">
+                            <strong>Ergonomic Wearables</strong>
+                            <span>Academic arXiv retrieval</span>
+                        </button>
                     </div>
-                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
-                        Chronological record of all spoken user queries captured on Glasses / Android and synthesized voice replies.
-                    </p>
-                    <div id="conv-stream-container" style="display:flex; flex-direction:column; gap:12px; max-height:500px; overflow-y:auto; padding:8px 0;">
-                        <div style="color:var(--text-muted); font-size:13px;">Loading conversation history...</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- View: Request Telemetry (Generated vs Failed Requests) -->
-            <div id="view-requests" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Request Execution Telemetry & Status</span>
-                        <button class="btn-quick-chip" onclick="refreshRequestLogs()">Refresh Requests</button>
+                    <div class="query-input-group">
+                        <input type="text" id="playground-query-input" class="input-text" placeholder="Type or speak a command for LARA..." onkeydown="if(event.key==='Enter') executePlaygroundQuery()">
+                        <button class="btn-primary" onclick="executePlaygroundQuery()" id="playground-send-btn">Send Query</button>
                     </div>
-                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
-                        Real-time audit of all assistant requests, fast-path routing outcomes, execution latency, and error diagnostics.
-                    </p>
-                    <table class="table-luxury">
-                        <thead>
-                            <tr>
-                                <th style="width:90px;">Time</th>
-                                <th>Request ID / Query</th>
-                                <th style="width:120px;">Status</th>
-                                <th style="width:110px;">Latency</th>
-                                <th>Error / Diagnostic Reason</th>
-                            </tr>
-                        </thead>
-                        <tbody id="requests-tbody">
-                            <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading request telemetry...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            <!-- View: Quick Contacts Action Hub -->
-            <div id="view-contacts" class="console-view">
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Quick-Action Contact Hub</span>
-                        <span class="pill-status active"><span class="pill-dot"></span> 1-Tap Telephony Ready</span>
-                    </div>
-                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;">
-                        Instant telephony, SMS, and Email dispatch for hands-free smart glasses and mobile companion. Phone numbers are synthesized with natural digit spacing.
-                    </p>
-
-                    <div id="contacts-card-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
-                        <!-- Rendered by JS -->
-                    </div>
-                </div>
-
-                <!-- Fast Custom Contact Action Card -->
-                <div class="card-luxury">
-                    <div class="card-header">
-                        <span class="card-title">Fast Manual Dispatch</span>
-                    </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
-                        <div>
-                            <label style="font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Recipient Name / Number</label>
-                            <input type="text" id="manual-contact-target" class="command-input" style="margin-top:6px;" placeholder="e.g. Rahul or +1 555-0100">
-                        </div>
-                        <div>
-                            <label style="font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Message / Subject</label>
-                            <input type="text" id="manual-contact-msg" class="command-input" style="margin-top:6px;" placeholder="e.g. I am running 5 minutes late">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; min-height: 180px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase;">Assistant Response:</div>
+                        <div id="playground-response-area" style="font-size: 13px; line-height: 1.5; color: var(--text-primary); white-space: pre-wrap;">
+                            Click one of the prompt buttons above or type any query to test the full AI pipeline.
                         </div>
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn-quick-chip primary" onclick="triggerManualCall()">1-Tap Call</button>
-                        <button class="btn-quick-chip" onclick="triggerManualSms()">Send Fast SMS</button>
-                        <button class="btn-quick-chip" onclick="triggerManualEmail()">Send Fast Email</button>
-                    </div>
-                    <div id="manual-dispatch-status" style="margin-top:12px; font-size:13px; display:none;"></div>
                 </div>
-            </div>
 
-            <!-- View: Workspace & Environment -->
-            <div id="view-workspace" class="console-view">
-                <div class="card-luxury">
+                <div class="card">
                     <div class="card-header">
-                        <span class="card-title">Production Runtime & Host Telemetry</span>
-                        <span id="env-badge-status" class="pill-status active"><span class="pill-dot"></span> PRODUCTION READY</span>
+                        <div class="card-title">
+                            <span>Execution Telemetry & Latency</span>
+                        </div>
                     </div>
-                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
-                        Active container runtime, host binding, CORS policy, and server status for Smart Glasses edge processing.
-                    </p>
-                    <table class="table-luxury">
-                        <tr><td>Active Host & Port</td><td><strong style="color:var(--orange);" id="env-host-port">0.0.0.0:8001</strong> · Local Access: <span id="env-local-url" style="color:#68D391;">http://localhost:8001</span></td></tr>
-                        <tr><td>Containerization Status</td><td><span id="env-docker-status" class="pill-status active">Docker Production Ready</span></td></tr>
-                        <tr><td>CORS Security Policy</td><td><span class="pill-status active">Origins: * (All Wearable Devices Allowed)</span></td></tr>
-                        <tr><td>Server Node Time</td><td><span id="env-server-time" style="font-family:'JetBrains Mono',monospace; font-size:12px;">--</span></td></tr>
-                    </table>
+
+                    <div class="metric-row">
+                        <span class="metric-label">Parsed Intent:</span>
+                        <span class="metric-value" id="meta-intent">STANDBY</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Routing Provider:</span>
+                        <span class="metric-value" id="meta-provider">gemini-2.5-flash</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Fast-Path Latency:</span>
+                        <span class="metric-value" id="meta-fastpath">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Pipeline Latency:</span>
+                        <span class="metric-value" id="meta-latency">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Knowledge Sources:</span>
+                        <span class="metric-value" id="meta-sources">-</span>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Raw JSON Inspection:</div>
+                        <pre id="raw-json-inspector" style="background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; font-family: var(--font-mono); font-size: 11px; height: 180px; overflow-y: auto; color: var(--text-secondary);">{}</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: LARA RESEARCH ENGINE -->
+        <section id="tab-research-hub" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>Academic & Scientific Literature Search</span>
+                    </div>
                 </div>
 
-                <div class="card-luxury">
+                <div class="research-search-bar">
+                    <input type="text" id="research-query-input" class="input-text" value="ergonomic smart wearable" placeholder="Search arXiv, Semantic Scholar, CrossRef, PubMed..." onkeydown="if(event.key==='Enter') executeResearchSearch()">
+                    <button class="btn-primary" onclick="executeResearchSearch()" id="research-search-btn">Search Papers</button>
+                </div>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn-sm" onclick="setResearchQuery('ergonomic smart wearable')">Ergonomic Smart Wearable</button>
+                    <button class="btn-sm" onclick="setResearchQuery('edge AI on microcontroller')">Edge AI ESP32</button>
+                    <button class="btn-sm" onclick="setResearchQuery('augmented reality optical waveguide')">AR Optical Waveguide</button>
+                    <button class="btn-sm" onclick="setResearchQuery('deep learning audio noise suppression')">Audio Noise Suppression</button>
+                </div>
+
+                <div class="papers-list" id="research-results-container">
+                    <div style="text-align: center; color: var(--text-secondary); padding: 40px;">
+                        Enter a research query above to fetch peer-reviewed publications.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: DESK & DATA ANALYSIS -->
+        <section id="tab-desk-analysis" class="tab-panel">
+            <div class="grid-2col">
+                <div class="card">
                     <div class="card-header">
-                        <span class="card-title">AI Intelligence & Multi-Tier Routing</span>
+                        <div class="card-title">
+                            <span>Desk & Data Analysis</span>
+                        </div>
                     </div>
-                    <table class="table-luxury">
-                        <tr><td>Primary Cloud Intelligence</td><td><strong style="color:var(--orange);" id="env-primary-llm">Gemini 2.5 Flash</strong> (Google DeepMind)</td></tr>
-                        <tr><td>Preemptive Cloud Timeout</td><td><strong style="color:#68D391;">2,500ms</strong> (Graceful fall-through to Local AI)</td></tr>
-                        <tr><td>Local Fast-Path Tier</td><td><strong style="color:#68D391;">Local Deterministic & Math Engine (&lt;50ms)</strong></td></tr>
-                        <tr><td>Multimodal Vision Engine</td><td><strong style="color:var(--orange);">Gemini 2.5 Flash Vision</strong> (OV2640 640x480 Frames)</td></tr>
-                        <tr><td>Offline Fallback Resolver</td><td><strong>Ollama / On-Device Intent Tree</strong></td></tr>
-                    </table>
+                    <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+                        Query uploaded spreadsheets, staff datasets, and financial documents with zero hallucination.
+                    </div>
+                    <div class="query-input-group">
+                        <input type="text" id="desk-query-input" class="input-text" placeholder="e.g. summarize dataset uploaded by staff..." onkeydown="if(event.key==='Enter') queryDeskData()">
+                        <button class="btn-primary" onclick="queryDeskData()">Analyze</button>
+                    </div>
+                    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; min-height: 120px;" id="desk-results-area">
+                        Dataset ready for natural language analysis.
+                    </div>
                 </div>
 
-                <div class="card-luxury">
+                <div class="card">
                     <div class="card-header">
-                        <span class="card-title">Connected Services & Research Connectors</span>
-                        <button class="btn-quick-chip" onclick="loadWorkspaceEnvironment()">Refresh Status</button>
+                        <div class="card-title">
+                            <span>Incoming SMS Broadcast Sim</span>
+                        </div>
                     </div>
-                    <table class="table-luxury">
-                        <thead>
-                            <tr>
-                                <th>Connector / Service</th>
-                                <th>Status</th>
-                                <th>Authentication / Rate Limit</th>
-                            </tr>
-                        </thead>
-                        <tbody id="env-connectors-tbody">
-                            <tr><td>Google Workspace (Gmail & Calendar)</td><td><span class="pill-status active">CONFIGURED</span></td><td>OAuth 2.0 PKCE</td></tr>
-                            <tr><td>arXiv Academic Intelligence</td><td><span class="pill-status active">ONLINE</span></td><td>3 req/sec Rate Limited</td></tr>
-                            <tr><td>Semantic Scholar Knowledge Graph</td><td><span class="pill-status active">ONLINE</span></td><td>100 req/5min Pool</td></tr>
-                            <tr><td>CrossRef Metadata Engine</td><td><span class="pill-status active">ONLINE</span></td><td>Polite Header Pool</td></tr>
-                            <tr><td>NCBI PubMed E-Utilities</td><td><span class="pill-status active">ONLINE</span></td><td>3 req/sec Batch Pool</td></tr>
-                            <tr><td>ESP32-S3 BLE GATT Bridge</td><td><span class="pill-status active">CONNECTED</span></td><td>UUID: 19B10000-E8F2-537E-4F6C-D104768A1214</td></tr>
-                        </tbody>
-                    </table>
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        Simulate incoming SMS delivered by Android Companion Service:
+                    </div>
+                    <button class="btn-primary" onclick="simulateIncomingSmsPrompt()">Simulate Incoming SMS</button>
+                    <button class="btn-sm" onclick="triggerMultimodalCapture()">Trigger Multimodal Capture</button>
                 </div>
+            </div>
+        </section>
 
-                <div class="card-luxury">
+        <!-- TAB 5: CAMERA & VISION HUB -->
+        <section id="tab-camera-vision" class="tab-panel">
+            <div class="grid-2col">
+                <div class="card">
                     <div class="card-header">
-                        <span class="card-title">Interactive Custom UI & Developer Links</span>
+                        <div class="card-title">
+                            <span>Live Hardware Camera Capture</span>
+                        </div>
+                        <button class="btn-primary" onclick="triggerCameraCapture()" id="cam-capture-btn">Snap Frame</button>
                     </div>
-                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
-                        Direct navigation to system endpoints, OpenAPI Swagger testing UI, and real-time JSON telemetry.
-                    </p>
-                    <div id="env-links-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
-                        <!-- Rendered by JS -->
+
+                    <div class="cam-preview-box" id="cam-box">
+                        <img id="cam-image" class="cam-preview-img" src="" style="display:none;" alt="Camera Frame">
+                        <div id="cam-placeholder" style="color: var(--text-muted); font-size: 13px;">No frame captured yet. Click "Snap Frame".</div>
+                        <div class="cam-overlay-status" id="cam-overlay-info">SENSOR: OV2640 | QVGA</div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary" style="flex:1;" onclick="analyzeCurrentFrame()">Explain Picture (Vision AI)</button>
+                        <button class="btn-sm" onclick="scanQRFromCurrentFrame()">Scan QR</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>Multimodal Vision Analysis</span>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; min-height: 180px;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 6px;">Vision Scene Breakdown:</div>
+                        <div id="vision-description-text" style="font-size: 13px; line-height: 1.5; color: var(--text-primary);">
+                            Capture a frame on the left and click "Explain Picture" to run Multimodal Vision.
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">Detected Objects:</div>
+                        <div id="detected-objects-tags" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <span style="font-size: 11px; color: var(--text-muted);">None</span>
+                        </div>
                     </div>
                 </div>
             </div>
+        </section>
 
-        </main>
+        <!-- TAB 6: AUTOMATIONS & NOTIFICATIONS -->
+        <section id="tab-automations-hub" class="tab-panel">
+            <div class="grid-2col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>Automations Center</span>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Scheduled Automations:</span>
+                        <span class="metric-value">Active (2 tasks registered)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Execution Mode:</span>
+                        <span class="metric-value">Background Async Queue</span>
+                    </div>
+                </div>
 
-        <!-- Panel 3: Executive Telemetry & Real-Time Edge Side-Widget -->
-        <aside class="side-telemetry-panel">
-            <div class="side-widget-card">
-                <div class="side-widget-header">
-                    <span class="side-widget-title">Hardware Telemetry</span>
-                    <span class="pill-status active" style="padding:2px 8px; font-size:10px;"><span class="pill-dot"></span> COM5</span>
-                </div>
-                <div class="telemetry-metric-row">
-                    <span class="metric-label">Device</span>
-                    <span class="metric-value">XIAO ESP32-S3</span>
-                </div>
-                <div class="telemetry-metric-row">
-                    <span class="metric-label">BLE RSSI</span>
-                    <span class="metric-value" style="color:#68D391;" id="side-rssi-val">-58 dBm (Strong)</span>
-                </div>
-                <div class="telemetry-metric-row">
-                    <span class="metric-label">Battery</span>
-                    <span class="metric-value" id="side-batt-val">85% · 4.12V</span>
-                </div>
-                <div class="telemetry-metric-row">
-                    <span class="metric-label">Packets Sync</span>
-                    <span class="metric-value" style="font-family:'JetBrains Mono',monospace;" id="side-packets-val">1,482 RX / 920 TX</span>
-                </div>
-            </div>
-
-            <div class="side-widget-card">
-                <div class="side-widget-header">
-                    <span class="side-widget-title">Digital Mic VU Peak</span>
-                    <span style="font-size:11px; color:#68D391; font-weight:700;" id="side-mic-db">-24 dB</span>
-                </div>
-                <div class="vu-meter-bar" style="height:8px; background:var(--bg-subtle); border-radius:4px; overflow:hidden; border:1px solid var(--border); margin:8px 0;">
-                    <div id="side-mic-fill" class="vu-meter-fill" style="width:25%; height:100%; background:linear-gradient(90deg, #68D391, #D96B27); transition:width 0.15s ease;"></div>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">
-                    <span>-60dB</span>
-                    <span>-30dB</span>
-                    <span>-12dB</span>
-                    <span>0dB</span>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>Smart Notifications</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        Proactive glasses notifications: Calendar warnings, high-priority emails, SMS summaries.
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <div class="side-widget-card">
-                <div class="side-widget-header">
-                    <span class="side-widget-title">Routing & Latency</span>
-                    <span class="pill-status active" style="padding:2px 8px; font-size:10px;" id="side-routing-tier">FAST-PATH</span>
+        <!-- TAB 7: TELEMETRY & DEVICE HEALTH -->
+        <section id="tab-system-diagnostics" class="tab-panel">
+            <div class="grid-2col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>System Hardware Telemetry</span>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Microcontroller Board:</span>
+                        <span class="metric-value">Seeed Studio XIAO ESP32-S3 Sense</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Microphone Subsystem:</span>
+                        <span class="metric-value">MSM261D PDM (16 kHz, 16-bit DC Filtered)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Audio DAC Amplifier:</span>
+                        <span class="metric-value">MAX98357A I2S (Pins D8, D9, D10)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Mini OLED Display:</span>
+                        <span class="metric-value">0.42" SSD1306 I2C (Pins D4 SDA, D5 SCL)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Camera Sensor:</span>
+                        <span class="metric-value">OV2640 / OV3660 2MP Sense Header</span>
+                    </div>
                 </div>
-                <div class="telemetry-metric-row">
-                    <span class="metric-label">Avg Turnaround</span>
-                    <span class="metric-value" style="color:var(--orange); font-weight:700;" id="side-avg-lat">38.5ms</span>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>Cloud & Local Intelligence Status</span>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Primary LLM Provider:</span>
+                        <span class="metric-value">Google Gemini (gemini-2.5-flash)</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Local Request Router:</span>
+                        <span class="metric-value">Authoritative Multi-turn Synthesizer</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Academic Research Engine:</span>
+                        <span class="metric-value">arXiv API + CrossRef + PubMed</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Web Search Grounding:</span>
+                        <span class="metric-value">DuckDuckGo Real-Time Search</span>
+                    </div>
                 </div>
-                <div class="telemetry-metric-row">
-                    <span class="metric-label">Fast-Path Ratio</span>
-                    <span class="metric-value" style="color:#68D391;">68.0% (&lt;50ms)</span>
-                </div>
-                <div class="telemetry-metric-row">
-                    <span class="metric-label">P95 Budget</span>
-                    <span class="metric-value">120.0ms</span>
-                </div>
-                <button class="btn-quick-chip" style="width:100%; margin-top:10px; text-align:center;" onclick="openInspectorDrawer()">Open Intent Inspector</button>
             </div>
+        </section>
 
-            <div class="side-widget-card">
-                <div class="side-widget-header">
-                    <span class="side-widget-title">Quick Actions</span>
-                </div>
-                <div style="display:flex; flex-direction:column; gap:6px;">
-                    <button class="btn-quick-chip" style="text-align:left;" onclick="showTab('workspace')">Workspace Environment</button>
-                    <button class="btn-quick-chip" style="text-align:left;" onclick="showTab('contacts')">Contact Disambiguation</button>
-                    <button class="btn-quick-chip" style="text-align:left;" onclick="triggerVisionCaptureDescribe()">Glasses Camera Scene</button>
-                    <button class="btn-quick-chip" style="text-align:left;" onclick="window.open('/docs', '_blank')">API Swagger Specs ↗</button>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Slide-Over Drawer: Intent Inspector (Closed by default) -->
-        <aside class="inspector-drawer" id="inspector-drawer">
-            <div class="drawer-header">
-                <span class="card-title">Intent Inspector</span>
-                <button class="btn-close-drawer" onclick="closeInspectorDrawer()">Close</button>
-            </div>
-
-            <div class="inspector-field">
-                <span class="inspector-label">Raw User Input</span>
-                <div class="inspector-value" id="insp-raw">"What is in front of me?"</div>
-            </div>
-
-            <div class="inspector-field">
-                <span class="inspector-label">Normalized Intent</span>
-                <div class="inspector-value" id="insp-intent">VISION_SCENE_UNDERSTANDING</div>
-            </div>
-
-            <div class="inspector-field">
-                <span class="inspector-label">Detected Entities</span>
-                <div class="inspector-value" id="insp-entities">{"target": "camera_frame", "device": "SmartGlasses-S3"}</div>
-            </div>
-
-            <div class="inspector-field">
-                <span class="inspector-label">Selected Router</span>
-                <div class="inspector-value" id="insp-router">SMART_ROUTER (Fast Vision Path)</div>
-            </div>
-
-            <div class="inspector-field">
-                <span class="inspector-label">Execution Target</span>
-                <div class="inspector-value" id="insp-target">vision_service.analyze_image</div>
-            </div>
-
-            <div class="inspector-field">
-                <span class="inspector-label">Risk Level</span>
-                <div class="inspector-value" id="insp-risk" style="color:#68D391;">READ_ONLY (Safe Execution)</div>
-            </div>
-
-            <div class="inspector-field">
-                <span class="inspector-label">Confirmation Required</span>
-                <div class="inspector-value" id="insp-conf">FALSE</div>
-            </div>
-
-            <div class="inspector-field">
-                <span class="inspector-label">Final Result Status</span>
-                <div class="inspector-value" id="insp-status" style="color:#68D391;">SUCCESS (Latency: 48ms)</div>
-            </div>
-        </aside>
-
-    </div>
+    </main>
 
     <script>
-        const sessionId = "lara_web_" + Math.random().toString(36).substring(2, 9);
-        document.getElementById('session-display').textContent = "Session: " + sessionId;
-        const liveActivityRecords = [];
+        // State & Variables
+        let eventCount = 0;
+        let autoScroll = true;
+        let lastCapturedImageBase64 = "";
 
-        function showTab(tabId, el) {
-            document.querySelectorAll('.console-view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
 
-            const target = document.getElementById('view-' + tabId);
-            if (target) target.classList.add('active');
+            const targetBtn = Array.from(document.querySelectorAll('.tab-button')).find(b => b.getAttribute('onclick').includes(tabId));
+            if (targetBtn) targetBtn.classList.add('active');
 
-            if (el) {
-                el.classList.add('active');
+            const targetPanel = document.getElementById('tab-' + tabId);
+            if (targetPanel) targetPanel.classList.add('active');
+        }
+
+        // Auto-Scroll Toggle
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            document.getElementById('autoscroll-toggle-btn').innerText = 'Auto-scroll: ' + (autoScroll ? 'ON' : 'OFF');
+        }
+
+        // Clear Live Events
+        function clearLiveEvents() {
+            document.getElementById('live-stream-feed').innerHTML = '';
+            eventCount = 0;
+            document.getElementById('event-counter-badge').innerText = '0';
+        }
+
+        // Append Event to Live Stream UI
+        function appendLiveEvent(evt) {
+            eventCount++;
+            document.getElementById('event-counter-badge').innerText = eventCount;
+
+            const feed = document.getElementById('live-stream-feed');
+            const entry = document.createElement('div');
+            entry.className = `stream-entry entry-${evt.type || 'SYSTEM'}`;
+
+            const timeStr = evt.timestamp ? new Date(evt.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+            let summaryText = "";
+            let metaHtml = "";
+
+            if (evt.type === 'USER_QUERY') {
+                summaryText = `User: "${evt.data?.message || ''}"`;
+                metaHtml = `<span>Intent: ${evt.data?.intent || 'GENERAL'}</span> <span>ReqID: ${(evt.data?.request_id || '').substring(0,8)}</span>`;
+                // Update OLED preview with user query
+                updateOledDisplay(`Query: ${evt.data?.message || ''}`);
+            } else if (evt.type === 'ASSISTANT_RESPONSE') {
+                summaryText = `LARA: "${evt.data?.response || ''}"`;
+                metaHtml = `<span>Latency: ${evt.data?.latency_ms || 0}ms</span> <span>Provider: ${evt.data?.llm_provider || 'local'}</span>`;
+                // Update HUD
+                updateOledDisplay(evt.data?.response || '');
+                document.getElementById('voice-preview-text').innerText = evt.data?.response || '';
+            } else if (evt.type === 'RESEARCH_SEARCH') {
+                summaryText = `Academic Research Search: "${evt.data?.query || ''}" (${evt.data?.results_count || 0} papers found)`;
+            } else if (evt.type === 'CAMERA_CAPTURE') {
+                summaryText = `Camera frame captured (${evt.data?.resolution || 'QVGA'}) - Status: ${evt.data?.status || 'OK'}`;
+            } else if (evt.type === 'VISION_ANALYZE') {
+                summaryText = `Vision Analysis: "${evt.data?.description || ''}" (${evt.data?.latency_ms || 0}ms)`;
             } else {
-                const matchedNav = Array.from(document.querySelectorAll('.nav-item')).find(n => n.getAttribute('onclick')?.includes(tabId));
-                if (matchedNav) matchedNav.classList.add('active');
+                summaryText = JSON.stringify(evt.data || evt);
             }
-        }
 
-        function openInspectorDrawer() {
-            document.getElementById('inspector-drawer').classList.add('open');
-        }
-
-        function closeInspectorDrawer() {
-            document.getElementById('inspector-drawer').classList.remove('open');
-        }
-
-        function appendMessage(role, text, showDetailsLink = false) {
-            const stream = document.getElementById('chat-messages');
-            const row = document.createElement('div');
-            row.className = `message-row ${role}`;
-            let content = `<div class="message-bubble ${role}"><strong>${role === 'user' ? 'You' : 'LARA'}:</strong> ${text}`;
-            if (role === 'assistant' && showDetailsLink) {
-                content += `<div style="margin-top:8px; font-size:11px;"><a href="javascript:void(0)" onclick="openInspectorDrawer()" style="color:var(--orange); text-decoration:underline;">View details</a></div>`;
-            }
-            content += `</div>`;
-            row.innerHTML = content;
-            stream.appendChild(row);
-            stream.scrollTop = stream.scrollHeight;
-
-            if (role === 'user') {
-                recordActivity(text, 'User Query');
-            }
-        }
-
-        function recordActivity(title, category) {
-            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            liveActivityRecords.unshift({ time: timeStr, title: title, category: category });
-            renderActivityTable();
-        }
-
-        function renderActivityTable() {
-            const tbody = document.getElementById('activity-table-body');
-            const overviewList = document.getElementById('overview-activity-list');
-            if (liveActivityRecords.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No activity recorded yet in this session.</td></tr>`;
-                overviewList.innerHTML = `<div style="color:var(--text-secondary);">Ready for instructions. All actions will appear here dynamically.</div>`;
-                return;
-            }
-            tbody.innerHTML = liveActivityRecords.map(r => `
-                <tr>
-                    <td>${r.time}</td>
-                    <td>${r.title}</td>
-                    <td>${r.category}</td>
-                    <td><span class="pill-status active">COMPLETED</span></td>
-                </tr>
-            `).join('');
-
-            overviewList.innerHTML = liveActivityRecords.slice(0, 3).map(r => `
-                <div style="display:flex; justify-content:space-between;">
-                    <span>${r.title}</span>
-                    <span style="color:var(--text-muted);">${r.time}</span>
+            entry.innerHTML = `
+                <div class="entry-header">
+                    <span class="entry-type type-${evt.type || 'SYSTEM'}">${evt.type || 'EVENT'}</span>
+                    <span class="entry-time">${timeStr}</span>
                 </div>
-            `).join('');
-        }
+                <div class="entry-body">${escapeHtml(summaryText)}</div>
+                ${metaHtml ? `<div class="entry-meta">${metaHtml}</div>` : ''}
+            `;
 
-        function clearActivityFeed() {
-            liveActivityRecords.length = 0;
-            renderActivityTable();
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const text = input.value.trim();
-            if (!text) return;
-
-            appendMessage('user', text);
-            input.value = '';
-
-            // Update Inspector Preview
-            document.getElementById('insp-raw').textContent = `"${text}"`;
-            document.getElementById('insp-intent').textContent = "PROCESSING...";
-
-            try {
-                const resp = await fetch('/api/v1/chat/message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        session_id: sessionId,
-                        message: text
-                    })
-                });
-                const data = await resp.json();
-                if (resp.ok) {
-                    appendMessage('assistant', data.response, true);
-                    speakText(data.response);
-
-                    // Update Inspector with actual router metadata
-                    const meta = data.metadata || {};
-                    const routing = meta.routing || {};
-                    document.getElementById('insp-intent').textContent = routing.tier_used || "EXECUTED";
-                    document.getElementById('insp-router').textContent = `Tier: ${routing.tier_used || 'FAST'}`;
-                    document.getElementById('insp-target').textContent = data.sources ? data.sources.join(', ') : "Agent Engine";
-                    document.getElementById('insp-risk').textContent = data.requires_confirmation ? "HIGH (CONFIRMATION REQUIRED)" : "LOW (AUTOMATIC)";
-                    document.getElementById('insp-status').textContent = `SUCCESS (${meta.latency_ms ? meta.latency_ms.toFixed(1) : 0}ms)`;
-                    document.getElementById('diag-lat-total').textContent = `${meta.latency_ms ? meta.latency_ms.toFixed(1) : 0}ms`;
-                } else {
-                    appendMessage('assistant', "Encountered an error: " + (data.detail || "Server error"));
-                }
-            } catch (err) {
-                appendMessage('assistant', "Network communication error: " + err.message);
+            feed.appendChild(entry);
+            if (autoScroll) {
+                feed.scrollTop = feed.scrollHeight;
             }
         }
 
-        function sendQuickMessage(text) {
-            document.getElementById('user-input').value = text;
-            sendMessage();
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
-        async function triggerVisionCaptureDescribe() {
-            appendMessage('user', 'Capture + Describe scene from Smart Glasses');
-            appendMessage('assistant', 'Capturing camera frame and analyzing scene...');
-            document.getElementById('insp-raw').textContent = '"Capture + Describe"';
-            document.getElementById('insp-intent').textContent = 'VISION_SCENE_UNDERSTANDING';
+        function updateOledDisplay(text) {
+            const el = document.getElementById('oled-text');
+            if (el) {
+                el.innerText = text.substring(0, 80) + (text.length > 80 ? '...' : '');
+            }
+            const clockEl = document.getElementById('oled-clock');
+            if (clockEl) {
+                clockEl.innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+        }
 
+        // Hardware Status Updater
+        async function updateHardwareStatus() {
             try {
-                const resp = await fetch('/api/v1/vision/analyze', {
+                const res = await fetch('/api/v1/hardware/status');
+                const data = await res.json();
+                return data;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Simulators
+        async function simulateIncomingSmsPrompt() {
+            try {
+                await fetch('/api/v1/sms/receive', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        session_id: sessionId,
-                        prompt: "What do you see in front of me?",
-                        device_id: "SmartGlasses-S3"
+                        sender: "Rahul Sharma",
+                        phone: "+91 98765 43210",
+                        body: "Hey, are you free for the project review meeting at 4 PM today?"
                     })
                 });
-                const data = await resp.json();
-                if (resp.ok) {
-                    let out = `Vision Analysis (${data.provider}):\n\n${data.description}`;
-                    if (data.objects && data.objects.length > 0) {
-                        out += `\n\nDetected Objects: ${data.objects.join(', ')}`;
-                    }
-                    appendMessage('assistant', out, true);
-                    speakText(data.description);
-                    document.getElementById('insp-status').textContent = `COMPLETE (${data.latency_ms.toFixed(0)}ms)`;
-                    document.getElementById('hw-last-cap-id').textContent = data.capture_id || "cap_s3";
-                }
-            } catch (err) {
-                appendMessage('assistant', 'Vision capture error: ' + err.message);
+                alert("Incoming SMS simulated.");
+            } catch (e) {
+                console.error(e);
             }
         }
 
         async function triggerMultimodalCapture() {
-            appendMessage('user', 'Multimodal Capture (ESP32 Mic + Camera)');
-            appendMessage('assistant', 'Capturing photo and listening to ESP32 digital mic...');
             try {
-                const resp = await fetch('/api/v1/hardware/multimodal/capture', { method: 'POST' });
-                const data = await resp.json();
-                if (resp.ok) {
-                    appendMessage('assistant', `ESP32 Mic: "${data.spoken_query}"\n\nLARA: ${data.speech_response}`, true);
-                    speakText(data.speech_response);
-                }
-            } catch (err) {
-                appendMessage('assistant', 'Multimodal capture error: ' + err.message);
+                await fetch('/api/v1/hardware/multimodal/capture', { method: 'POST' });
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        async function triggerQuadraticVision() {
-            sendQuickMessage("Solve quadratic equation x^2 + 5x + 6 = 0");
+        async function queryDeskData() {
+            const input = document.getElementById('desk-query-input');
+            const q = input.value.trim();
+            if (!q) return;
+            sendQuickPrompt(q);
         }
 
-        async function triggerQrScan() {
-            appendMessage('user', 'Scan QR Code from Glasses Camera');
-            try {
-                const resp = await fetch('/api/v1/vision/qr/scan', { method: 'POST' });
-                const data = await resp.json();
-                if (resp.ok) {
-                    appendMessage('assistant', `QR Code: ${data.speech_response || data.raw_content}`, true);
-                    speakText(data.speech_response);
+        // SSE Real-Time Connection
+        function initSSEStream() {
+            const sseStatusPill = document.getElementById('sse-status-pill');
+            const sseStatusText = document.getElementById('sse-status-text');
+
+            const evtSource = new EventSource('/api/v1/events/stream');
+
+            evtSource.onopen = function() {
+                sseStatusPill.className = "pill pill-live";
+                sseStatusText.innerText = "SSE Stream Active";
+            };
+
+            evtSource.onmessage = function(e) {
+                try {
+                    const eventData = JSON.parse(e.data);
+                    appendLiveEvent(eventData);
+                } catch (err) {
+                    console.error("SSE parse error", err);
                 }
-            } catch (err) {
-                appendMessage('assistant', 'QR Scan error: ' + err.message);
+            };
+
+            evtSource.onerror = function() {
+                sseStatusPill.className = "pill pill-hw";
+                sseStatusText.innerText = "Reconnecting SSE...";
+            };
+        }
+
+        // Initial Recent Events Hydration
+        async function loadRecentEvents() {
+            try {
+                const res = await fetch('/api/v1/events/recent');
+                const data = await res.json();
+                if (data && data.events) {
+                    data.events.forEach(evt => appendLiveEvent(evt));
+                }
+            } catch (e) {
+                console.warn("Could not load recent events", e);
             }
         }
 
-        async function simulateIncomingSmsPrompt() {
-            const sender = "+15550192834";
-            const text = prompt("Enter SMS Body to simulate inbound alert:", "URGENT: Executive review required for contract #982");
-            if (!text) return;
-            appendMessage('user', `[Incoming SMS from ${sender}]: ${text}`);
-            try {
-                const resp = await fetch('/api/v1/sms/receive', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sender: sender, body: text })
-                });
-                const data = await resp.json();
-                if (resp.ok) {
-                    appendMessage('assistant', `SMS Processed: ${data.reply_sent || data.action || 'Alert prioritized and queued'}`, true);
-                }
-            } catch (err) {
-                appendMessage('assistant', 'SMS processing error: ' + err.message);
-            }
+        // Quick Prompt Trigger
+        async function sendQuickPrompt(promptText) {
+            document.getElementById('playground-query-input').value = promptText;
+            switchTab('ai-playground');
+            await executePlaygroundQuery();
         }
 
-        async function handleStaffFileUpload(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const statusBox = document.getElementById('upload-status-box');
-            statusBox.style.display = 'block';
-            statusBox.innerHTML = `Uploading and parsing <strong>${file.name}</strong>...`;
-
-            try {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const resp = await fetch('/api/v1/desk/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await resp.json();
-                if (resp.ok) {
-                    const ds = data.dataset || {};
-                    statusBox.innerHTML = `<span style="color:#68D391; font-weight:bold;">[SUCCESS] Ingested '${file.name}'</span> (${ds.rows || 0} rows, ${ds.columns || 0} columns). Ready for queries.`;
-                    document.getElementById('desk-dataset-badge').textContent = `Active Dataset: ${file.name}`;
-                    recordActivity(`Staff uploaded '${file.name}' (${ds.rows} records)`, 'Data Upload');
-                    runDeskAnalysis('summarize');
-                } else {
-                    statusBox.innerHTML = `<span style="color:#B83A3A;">Upload failed: ${data.detail || data.message}</span>`;
-                }
-            } catch (err) {
-                statusBox.innerHTML = `<span style="color:#B83A3A;">Upload network error: ${err.message}</span>`;
-            }
-        }
-
-        async function runDeskAnalysis(op) {
-            const resultsBox = document.getElementById('desk-results');
-            resultsBox.innerHTML = `Running <strong>${op.toUpperCase()}</strong> on active dataset...`;
-            try {
-                const resp = await fetch('/api/v1/desk/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ operation: op })
-                });
-                const data = await resp.json();
-                if (resp.ok) {
-                    resultsBox.innerHTML = `
-                        <div style="color:#68D391; font-weight:bold; margin-bottom:8px;">[COMPLETED] ${data.operation.toUpperCase()} (Confidence: ${(data.confidence*100).toFixed(0)}%)</div>
-                        <div style="margin-bottom:8px;">${data.findings}</div>
-                        <div style="color:var(--text-muted); font-size:11px;">Source: ${data.source} · Records: ${data.rows} rows · Columns: ${data.columns}</div>
-                    `;
-                }
-            } catch (err) {
-                resultsBox.textContent = "Error executing desk analysis: " + err.message;
-            }
-        }
-
-        async function executeCustomDataQuery() {
-            const queryInput = document.getElementById('desk-query-input');
-            const query = queryInput.value.trim();
+        // Execute AI Playground Query
+        async function executePlaygroundQuery() {
+            const input = document.getElementById('playground-query-input');
+            const query = input.value.trim();
             if (!query) return;
 
-            const resultsBox = document.getElementById('desk-results');
-            resultsBox.innerHTML = `Analyzing dataset for query: <em>"${query}"</em>...`;
+            const sendBtn = document.getElementById('playground-send-btn');
+            const responseArea = document.getElementById('playground-response-area');
+            sendBtn.disabled = true;
+            sendBtn.innerText = "Processing...";
+            responseArea.innerText = "Thinking & routing query...";
 
             try {
-                const resp = await fetch('/api/v1/data-analysis/query', {
+                const t0 = performance.now();
+                const res = await fetch('/api/v1/agent/message', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query })
+                    body: JSON.stringify({
+                        message: query,
+                        session_id: 'web_console_session',
+                        device_id: 'WebDashboard',
+                        language: 'auto'
+                    })
                 });
-                const data = await resp.json();
-                if (resp.ok) {
-                    resultsBox.innerHTML = `
-                        <div style="color:#68D391; font-weight:bold; margin-bottom:8px;">[QUERY RESULT] for "${query}"</div>
-                        <div style="font-size:14px; margin-bottom:8px;">${data.answer}</div>
-                        <div style="color:var(--text-muted); font-size:11px;">Target Dataset: ${data.dataset}</div>
-                    `;
-                    recordActivity(`Analyzed dataset: "${query}"`, 'Analytics Query');
-                } else {
-                    resultsBox.textContent = "Query failed: " + (data.detail || "Unknown error");
-                }
+
+                const data = await res.json();
+                const tTotal = Math.round(performance.now() - t0);
+
+                responseArea.innerText = data.response || "No response received.";
+                document.getElementById('voice-preview-text').innerText = data.response || "";
+                updateOledDisplay(data.response || "");
+
+                // Update Telemetry Panel
+                const meta = data.metadata || {};
+                document.getElementById('meta-intent').innerText = meta.intent || (data.sources ? data.sources[0] : 'GENERAL');
+                document.getElementById('meta-provider').innerText = meta.llm_provider || 'gemini-2.5-flash';
+                document.getElementById('meta-fastpath').innerText = meta.fast_path ? 'YES' : 'NO';
+                document.getElementById('meta-latency').innerText = `${meta.latency_ms || tTotal} ms`;
+                document.getElementById('meta-sources').innerText = (data.sources || []).join(', ') || 'LLM';
+
+                document.getElementById('raw-json-inspector').innerText = JSON.stringify(data, null, 2);
+
             } catch (err) {
-                resultsBox.textContent = "Error querying dataset: " + err.message;
+                responseArea.innerText = "Error calling agent: " + err.message;
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerText = "Send Query";
             }
         }
 
-        async function checkGoogleAuthStatus() {
+        // Academic Research Search
+        function setResearchQuery(q) {
+            document.getElementById('research-query-input').value = q;
+            executeResearchSearch();
+        }
+
+        async function executeResearchSearch() {
+            const query = document.getElementById('research-query-input').value.trim();
+            if (!query) return;
+
+            const btn = document.getElementById('research-search-btn');
+            const container = document.getElementById('research-results-container');
+            btn.disabled = true;
+            btn.innerText = "Searching...";
+            container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-secondary);">Querying arXiv and scientific paper index...</div>';
+
             try {
-                const resp = await fetch('/api/v1/auth/status');
-                if (resp.ok) {
-                    const data = await resp.json();
-                    const pill = document.getElementById('google-status-pill');
-                    const topPill = document.getElementById('pill-google');
-                    const btn = document.getElementById('btn-google-auth');
-                    if (data.is_authenticated) {
-                        pill.className = 'pill-status active';
-                        pill.innerHTML = `<span class="pill-dot"></span> Authorized (${data.email || 'Google'})`;
-                        topPill.className = 'pill-status active';
-                        btn.textContent = 'Disconnect';
-                        btn.className = 'btn-quick-chip';
-                        btn.onclick = disconnectGoogleOAuth;
-                    } else {
-                        pill.className = 'pill-status';
-                        pill.textContent = 'Not Connected';
-                        btn.textContent = 'Connect Google';
-                        btn.className = 'btn-quick-chip primary';
-                        btn.onclick = connectGoogleOAuth;
-                    }
+                const res = await fetch(`/api/v1/research/search?query=${encodeURIComponent(query)}&limit=6`);
+                const data = await res.json();
+                const papers = data.papers || [];
+
+                if (papers.length === 0) {
+                    container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-secondary);">No papers found for "${escapeHtml(query)}".</div>`;
+                    return;
                 }
-            } catch (e) {}
-        }
 
-        function connectGoogleOAuth() {
-            window.location.href = '/api/v1/auth/google';
-        }
-
-        async function disconnectGoogleOAuth() {
-            if (!confirm('Disconnect Google Workspace?')) return;
-            try {
-                await fetch('/api/v1/auth/disconnect', { method: 'POST' });
-                checkGoogleAuthStatus();
-            } catch (e) {}
-        }
-
-        async function refreshAuditLogs() {
-            const box = document.getElementById('audit-log-content');
-            box.textContent = "Fetching audit logs...";
-            try {
-                const resp = await fetch('/api/v1/security/audit-log');
-                const data = await resp.json();
-                if (resp.ok && data.audit_logs) {
-                    box.innerHTML = data.audit_logs.map(l => `[${new Date(l.timestamp*1000).toLocaleTimeString()}] <strong>${l.event_type}</strong> · ${l.status} · user=${l.user_id}`).join('<br>');
-                } else {
-                    box.textContent = "No audit log entries recorded.";
-                }
-            } catch (err) {
-                box.textContent = "Could not load audit logs: " + err.message;
-            }
-        }
-
-        function speakText(text) {
-            if (!text || !('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-            const clean = text.replace(/[\*\_`#]/g, '').replace(/https?:\/\/\S+/g, '');
-            const utter = new SpeechSynthesisUtterance(clean);
-            utter.rate = 1.05;
-            utter.pitch = 1.0;
-            window.speechSynthesis.speak(utter);
-        }
-
-        function toggleVoiceInput() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert("Speech recognition is not supported in this browser.");
-                return;
-            }
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const rec = new SpeechRec();
-            rec.lang = 'en-US';
-            rec.start();
-            const btn = document.getElementById('mic-btn');
-            btn.textContent = "Listening...";
-            rec.onresult = (e) => {
-                const trans = e.results[0][0].transcript;
-                document.getElementById('user-input').value = trans;
-                sendMessage();
-            };
-            rec.onend = () => { btn.textContent = "Voice"; };
-            rec.onerror = () => { btn.textContent = "Voice"; };
-        }
-
-        // -------------------------------------------------------------
-        // Glasses Logs, Conversation Stream, Requests & Contacts Hub
-        // -------------------------------------------------------------
-
-        async function refreshGlassesLogs() {
-            try {
-                const resp = await fetch('/api/v1/telemetry/glasses-logs?limit=40');
-                const data = await resp.json();
-                const tbody = document.getElementById('glasses-logs-tbody');
-                if (data.success && data.logs && data.logs.length > 0) {
-                    tbody.innerHTML = data.logs.map(l => {
-                        let lvlColor = l.level === 'ERROR' ? 'var(--red)' : (l.level === 'WARN' ? 'var(--amber)' : '#68D391');
-                        return `
-                            <tr>
-                                <td style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">${l.time_str}</td>
-                                <td><strong style="color:var(--text-primary);">${l.event_type}</strong></td>
-                                <td><span class="pill-status">${l.source}</span></td>
-                                <td><span style="color:${lvlColor}; font-weight:700; font-size:11px;">${l.level}</span></td>
-                                <td style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-secondary);">${typeof l.details === 'object' ? JSON.stringify(l.details) : l.details}</td>
-                            </tr>
-                        `;
-                    }).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No hardware events logged yet.</td></tr>';
-                }
-            } catch (err) {
-                console.error("Failed to fetch glasses logs", err);
-            }
-        }
-
-        async function refreshConversationStream() {
-            try {
-                const resp = await fetch('/api/v1/telemetry/conversation-stream?limit=30');
-                const data = await resp.json();
-                const container = document.getElementById('conv-stream-container');
-                if (data.success && data.messages && data.messages.length > 0) {
-                    container.innerHTML = data.messages.map(m => {
-                        const isUser = m.role === 'user';
-                        const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString();
-                        return `
-                            <div style="background:${isUser ? 'var(--bg-subtle)' : 'var(--bg-surface-elevated)'}; border:1px solid var(--border); border-left:3px solid ${isUser ? 'var(--orange)' : '#68D391'}; padding:12px 16px; border-radius:var(--radius-sm);">
-                                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                    <span style="font-size:11px; font-weight:700; color:${isUser ? 'var(--orange)' : '#68D391'}; text-transform:uppercase;">
-                                        ${isUser ? 'Glasses User (Voice/Button)' : 'LARA AI Assistant'}
-                                    </span>
-                                    <span style="font-size:10px; color:var(--text-muted);">${timeStr}</span>
-                                </div>
-                                <div style="font-size:13px; color:var(--text-primary); line-height:1.5;">${m.content}</div>
-                                <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-                                    <button class="btn-quick-chip" style="padding:2px 8px; font-size:10px;" onclick="speakText('${m.content.replace(/'/g, "\\'")}')">Speak</button>
-                                </div>
+                let html = "";
+                papers.forEach(p => {
+                    const authors = (p.authors || ['Unknown']).join(', ');
+                    html += `
+                        <div class="paper-card">
+                            <div class="paper-title">
+                                <a href="${p.pdf_url || p.url || '#'}" target="_blank">${escapeHtml(p.title || 'Research Paper')}</a>
                             </div>
-                        `;
-                    }).join('');
-                } else {
-                    container.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">No conversation history available.</div>';
-                }
-            } catch (err) {
-                console.error("Failed to fetch conversation stream", err);
-            }
-        }
-
-        async function refreshRequestLogs() {
-            try {
-                const resp = await fetch('/api/v1/telemetry/requests?limit=40');
-                const data = await resp.json();
-                const tbody = document.getElementById('requests-tbody');
-                if (data.success && data.requests && data.requests.length > 0) {
-                    tbody.innerHTML = data.requests.map(r => {
-                        const isSuccess = r.status === 'SUCCESS';
-                        const badgeStyle = isSuccess 
-                            ? 'background:rgba(45,125,70,0.2); color:#68D391; border:1px solid rgba(45,125,70,0.4);' 
-                            : 'background:rgba(184,58,58,0.2); color:#F56565; border:1px solid rgba(184,58,58,0.4);';
-                        return `
-                            <tr>
-                                <td style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">${r.time_str}</td>
-                                <td>
-                                    <div style="font-size:13px; font-weight:600; color:var(--text-primary);">${r.query}</div>
-                                    <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">${r.request_id}</div>
-                                </td>
-                                <td>
-                                    <span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; ${badgeStyle}">
-                                        ${r.status}
-                                    </span>
-                                </td>
-                                <td><strong style="color:var(--orange);">${r.latency_ms}ms</strong></td>
-                                <td style="font-size:12px; color:${r.error ? '#F56565' : 'var(--text-muted)'};">${r.error || 'None (Processed cleanly)'}</td>
-                            </tr>
-                        `;
-                    }).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No requests recorded yet.</td></tr>';
-                }
-            } catch (err) {
-                console.error("Failed to fetch requests", err);
-            }
-        }
-
-        async function loadContactsHub() {
-            try {
-                const resp = await fetch('/api/v1/contacts/list');
-                const data = await resp.json();
-                const grid = document.getElementById('contacts-card-grid');
-                if (data.success && data.contacts) {
-                    grid.innerHTML = data.contacts.map(c => `
-                        <div style="background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px;">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                                <div>
-                                    <div style="font-size:15px; font-weight:700; color:var(--text-primary);">${c.name}</div>
-                                    <div style="font-size:11px; color:var(--orange); font-weight:600; text-transform:uppercase;">${c.role}</div>
-                                </div>
-                                ${c.starred ? '<span style="font-size:11px; color:#ECC94B; font-weight:700;">PRIORITY</span>' : ''}
+                            <div class="paper-meta">
+                                <span>Authors: ${escapeHtml(authors)}</span>
+                                <span>Published: ${p.published || 'Recent'}</span>
+                                <span>Source: ${p.source || 'arXiv'}</span>
                             </div>
-                            <div style="font-size:12px; font-family:'JetBrains Mono',monospace; color:var(--text-secondary); margin-bottom:4px;">${c.phone}</div>
-                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">${c.email}</div>
-                            <div style="display:flex; gap:6px;">
-                                <button class="btn-quick-chip primary" style="padding:4px 10px; font-size:11px;" onclick="triggerQuickCall('${c.name}', '${c.phone}')">Call</button>
-                                <button class="btn-quick-chip" style="padding:4px 10px; font-size:11px;" onclick="triggerQuickSms('${c.name}', '${c.phone}')">SMS</button>
-                                <button class="btn-quick-chip" style="padding:4px 10px; font-size:11px;" onclick="triggerQuickEmail('${c.name}', '${c.email}')">Email</button>
+                            <div class="paper-abstract">${escapeHtml(p.summary || p.abstract || 'No abstract available.')}</div>
+                            <div class="paper-actions">
+                                <a href="${p.pdf_url || p.url || '#'}" target="_blank" class="btn-sm" style="text-decoration:none;">View Paper PDF</a>
+                                <button class="btn-sm" onclick="sendQuickPrompt('Explain paper: ${escapeHtml(p.title)}')">Ask LARA to Explain</button>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = `<div style="color:var(--red); padding:20px;">Error fetching papers: ${err.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Search Papers";
+            }
+        }
+
+        // Camera Frame Capture
+        async function triggerCameraCapture() {
+            const btn = document.getElementById('cam-capture-btn');
+            btn.disabled = true;
+            btn.innerText = "Capturing...";
+
+            try {
+                const res = await fetch('/api/v1/hardware/camera/capture');
+                const data = await res.json();
+
+                if (data.base64_data) {
+                    lastCapturedImageBase64 = data.base64_data;
+                    const img = document.getElementById('cam-image');
+                    img.src = "data:image/jpeg;base64," + data.base64_data;
+                    img.style.display = "block";
+                    document.getElementById('cam-placeholder').style.display = "none";
+                    document.getElementById('cam-overlay-info').innerText = `SENSOR: OV2640 | ${data.resolution || 'QVGA'} | ${data.fps || 15} FPS`;
+                }
+            } catch (e) {
+                console.error("Camera capture failed", e);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Snap Frame";
+            }
+        }
+
+        // Analyze Picture with Vision AI
+        async function analyzeCurrentFrame() {
+            if (!lastCapturedImageBase64) {
+                await triggerCameraCapture();
+            }
+
+            const descEl = document.getElementById('vision-description-text');
+            const tagsEl = document.getElementById('detected-objects-tags');
+            descEl.innerText = "Analyzing frame with Gemini Multimodal Vision...";
+
+            try {
+                const res = await fetch('/api/v1/vision/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_base64: lastCapturedImageBase64,
+                        prompt: "Explain what you see in this photo captured by smart glasses."
+                    })
+                });
+
+                const data = await res.json();
+                descEl.innerText = data.description || "Scene analysis completed.";
+
+                if (data.objects && data.objects.length > 0) {
+                    tagsEl.innerHTML = data.objects.map(obj => `<span class="pill pill-cloud">${escapeHtml(obj)}</span>`).join(' ');
+                } else {
+                    tagsEl.innerHTML = '<span style="font-size: 11px; color: var(--text-muted);">None detected</span>';
+                }
+
+                updateOledDisplay(data.description || "Vision analysis done.");
+                document.getElementById('voice-preview-text').innerText = data.description || "";
+            } catch (err) {
+                descEl.innerText = "Vision analysis error: " + err.message;
+            }
+        }
+
+        // Scan QR from Current Frame
+        async function scanQRFromCurrentFrame() {
+            const descEl = document.getElementById('vision-description-text');
+            descEl.innerText = "Scanning frame for QR code...";
+
+            try {
+                const res = await fetch('/api/v1/vision/qr/scan', { method: 'POST' });
+                const data = await res.json();
+                if (data.success && data.data) {
+                    descEl.innerText = `Decoded QR Code: ${data.data}`;
+                    updateOledDisplay(`QR: ${data.data}`);
+                } else {
+                    descEl.innerText = "No QR code detected in the current camera frame.";
                 }
             } catch (err) {
-                console.error("Failed to load contacts", err);
+                descEl.innerText = "QR scan error: " + err.message;
             }
         }
 
-        async function triggerQuickCall(name, phone) {
-            try {
-                const resp = await fetch('/api/v1/contacts/call', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, phone: phone })
-                });
-                const data = await resp.json();
-                if (resp.ok) {
-                    speakText(data.speech_response);
-                    recordActivity(`Initiated call to ${name} (${phone})`, 'Telephony');
-                    refreshGlassesLogs();
-                    refreshRequestLogs();
-                }
-            } catch (e) {
-                alert("Call trigger failed: " + e.message);
-            }
-        }
-
-        async function triggerQuickSms(name, phone) {
-            const msg = prompt(`Enter SMS message for ${name}:`, "I am on my way.");
-            if (!msg) return;
-            try {
-                const resp = await fetch('/api/v1/contacts/sms', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, phone: phone, message: msg })
-                });
-                const data = await resp.json();
-                if (resp.ok) {
-                    speakText(data.speech_response);
-                    recordActivity(`Sent SMS to ${name}: "${msg}"`, 'SMS Dispatch');
-                    refreshGlassesLogs();
-                    refreshRequestLogs();
-                }
-            } catch (e) {
-                alert("SMS dispatch failed: " + e.message);
-            }
-        }
-
-        async function triggerQuickEmail(name, email) {
-            const subj = prompt(`Enter Email subject for ${name}:`, "Smart Glasses Update");
-            if (!subj) return;
-            try {
-                const resp = await fetch('/api/v1/contacts/email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, email: email, subject: subj, body: "Sent from Smart Glasses Web Console." })
-                });
-                const data = await resp.json();
-                if (resp.ok) {
-                    speakText(data.speech_response);
-                    recordActivity(`Sent Email to ${name} (${subj})`, 'Email Dispatch');
-                    refreshGlassesLogs();
-                    refreshRequestLogs();
-                }
-            } catch (e) {
-                alert("Email dispatch failed: " + e.message);
-            }
-        }
-
-        async function triggerManualCall() {
-            const target = document.getElementById('manual-contact-target').value.trim();
-            if (!target) { alert("Please specify recipient name or phone number."); return; }
-            triggerQuickCall(target, target);
-        }
-
-        async function triggerManualSms() {
-            const target = document.getElementById('manual-contact-target').value.trim();
-            const msg = document.getElementById('manual-contact-msg').value.trim() || "Status update from smart glasses.";
-            if (!target) { alert("Please specify recipient name or phone number."); return; }
-            try {
-                const resp = await fetch('/api/v1/contacts/sms', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: target, phone: target, message: msg })
-                });
-                const data = await resp.json();
-                const statusBox = document.getElementById('manual-dispatch-status');
-                statusBox.style.display = 'block';
-                statusBox.innerHTML = `<span style="color:#68D391;">[OK] ${data.speech_response}</span>`;
-                speakText(data.speech_response);
-                refreshGlassesLogs();
-                refreshRequestLogs();
-            } catch (e) {
-                alert("Manual SMS failed: " + e.message);
-            }
-        }
-
-        async function triggerManualEmail() {
-            const target = document.getElementById('manual-contact-target').value.trim();
-            const msg = document.getElementById('manual-contact-msg').value.trim() || "Smart Glasses report.";
-            if (!target) { alert("Please specify recipient name or email address."); return; }
-            try {
-                const resp = await fetch('/api/v1/contacts/email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: target, email: target, subject: "Smart Glasses Dispatch", body: msg })
-                });
-                const data = await resp.json();
-                const statusBox = document.getElementById('manual-dispatch-status');
-                statusBox.style.display = 'block';
-                statusBox.innerHTML = `<span style="color:#68D391;">[OK] ${data.speech_response}</span>`;
-                speakText(data.speech_response);
-                refreshGlassesLogs();
-                refreshRequestLogs();
-            } catch (e) {
-                alert("Manual Email failed: " + e.message);
-            }
-        }
-
-        async function loadWorkspaceEnvironment() {
-            try {
-                const resp = await fetch('/api/v1/workspace/environment');
-                if (resp.ok) {
-                    const data = await resp.json();
-                    if (data.environment) {
-                        const env = data.environment;
-                        document.getElementById('env-host-port').textContent = `${env.host}:${env.port}`;
-                        document.getElementById('env-local-url').textContent = `http://localhost:${env.port}`;
-                        document.getElementById('env-server-time').textContent = env.server_time;
-                        document.getElementById('env-docker-status').textContent = env.containerized ? "Docker Container Running" : "Native Server Running";
-                    }
-                    if (data.models) {
-                        document.getElementById('env-primary-llm').textContent = data.models.primary_cloud_llm;
-                    }
-                    if (data.custom_ui_links) {
-                        const grid = document.getElementById('env-links-grid');
-                        grid.innerHTML = data.custom_ui_links.map(l => `
-                            <div style="background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div>
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                        <div style="font-size:14px; font-weight:700; color:var(--text-primary);">${l.name}</div>
-                                        <span class="pill-status" style="font-size:10px;">${l.type}</span>
-                                    </div>
-                                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">${l.description}</div>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--orange);">${l.path}</span>
-                                    <button class="btn-quick-chip primary" style="padding:4px 10px; font-size:11px;" onclick="window.open('${l.path}', '_blank')">Open ↗</button>
-                                </div>
-                            </div>
-                        `).join('');
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to load workspace environment", err);
-            }
-        }
-
-        async function updateHardwareStatus() {
-            refreshGlassesLogs();
-            refreshRequestLogs();
-            loadWorkspaceEnvironment();
-            return await updateLiveTelemetry();
-        }
-
-        async function updateLiveTelemetry() {
-            try {
-                const resp = await fetch('/api/v1/hardware/status');
-                if (resp.ok) {
-                    const hw = await resp.json();
-                    if (hw.microphone && hw.microphone.live_rms) {
-                        const pct = Math.min(100, Math.max(5, (hw.microphone.live_rms / 2500.0) * 100));
-                        document.getElementById('hw-mic-fill').style.width = pct + '%';
-                        const sideMic = document.getElementById('side-mic-fill');
-                        if (sideMic) sideMic.style.width = pct + '%';
-                        const dbVal = Math.round(-60 + (pct / 100) * 60);
-                        const sideDb = document.getElementById('side-mic-db');
-                        if (sideDb) sideDb.textContent = `${dbVal} dB`;
-                    }
-                    if (hw.last_vision_status) {
-                        document.getElementById('hw-last-vis-status').textContent = hw.last_vision_status;
-                    }
-                }
-            } catch (e) {}
-        }
-
-        setInterval(updateHardwareStatus, 3500);
-        updateHardwareStatus();
-        checkGoogleAuthStatus();
-        refreshAuditLogs();
-        loadContactsHub();
-        refreshConversationStream();
-        loadWorkspaceEnvironment();
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initSSEStream();
+            loadRecentEvents();
+        });
     </script>
 </body>
-</html>"""
+</html>
+"""

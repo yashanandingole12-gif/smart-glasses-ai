@@ -36,6 +36,10 @@ fun DevicesHubScreen(
     val isScanning by bleManager.isScanningFlow.collectAsState()
     val discoveredList by bleManager.discoveredDevices.collectAsState()
     var showAdvancedDiagnostics by remember { mutableStateOf(false) }
+    var wifiSsid by remember { mutableStateOf("") }
+    var wifiPassword by remember { mutableStateOf("") }
+    var wifiProvisionStatus by remember { mutableStateOf<String?>(null) }
+    var transportMode by remember { mutableStateOf("BLE") }
 
     val isConnected = glassesState.connectionState == DeviceConnectionState.CONNECTED_ESP32 ||
             glassesState.connectionState == DeviceConnectionState.CONNECTED_SIMULATED
@@ -168,6 +172,130 @@ fun DevicesHubScreen(
                                 label = "Battery",
                                 value = if (isConnected) "${glassesState.battery}%" else "Good",
                                 isPositive = true
+                            )
+                        }
+
+                        Divider(color = LaraBorderLight, thickness = 0.5.dp)
+
+                        // Transport Mode Selection
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "Active Transport Mode",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = LaraTextPrimaryLight
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                FilterChip(
+                                    selected = transportMode == "BLE",
+                                    onClick = { transportMode = "BLE" },
+                                    label = { Text("BLE (Low Power)", fontSize = 12.sp) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Bluetooth, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = LaraMutedOrange.copy(alpha = 0.15f),
+                                        selectedLabelColor = LaraMutedOrange
+                                    )
+                                )
+                                FilterChip(
+                                    selected = transportMode == "WIFI",
+                                    onClick = { transportMode = "WIFI" },
+                                    label = { Text("WiFi (High Speed)", fontSize = 12.sp) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Wifi, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = LaraEmerald.copy(alpha = 0.15f),
+                                        selectedLabelColor = LaraEmerald
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // WiFi Configuration & High-Speed Stream Section
+            item {
+                Text(
+                    text = "WIFI & HIGH-SPEED STREAMING",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.2.sp,
+                    color = LaraMutedOrange
+                )
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = "WiFi Network Provisioning",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = LaraTextPrimaryLight
+                        )
+                        Text(
+                            text = "Connect glasses to your local WiFi LAN for high-speed audio streaming and low-latency camera frame transfer.",
+                            fontSize = 13.sp,
+                            color = LaraTextSecondaryLight,
+                            lineHeight = 18.sp
+                        )
+
+                        OutlinedTextField(
+                            value = wifiSsid,
+                            onValueChange = { wifiSsid = it },
+                            label = { Text("WiFi Network Name (SSID)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = wifiPassword,
+                            onValueChange = { wifiPassword = it },
+                            label = { Text("WiFi Password") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        Button(
+                            onClick = {
+                                if (wifiSsid.isNotBlank()) {
+                                    val sent = bleManager.sendWifiCredentials(wifiSsid.trim(), wifiPassword.trim())
+                                    wifiProvisionStatus = if (sent) "Sent credentials to glasses over BLE!" else "Please connect to glasses via BLE first."
+                                } else {
+                                    wifiProvisionStatus = "Please enter a valid WiFi SSID."
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = LaraMutedOrange)
+                        ) {
+                            Icon(Icons.Default.Wifi, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Provision WiFi to Glasses", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        if (wifiProvisionStatus != null) {
+                            Text(
+                                text = wifiProvisionStatus ?: "",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (wifiProvisionStatus?.contains("Sent") == true) LaraEmerald else LaraMutedOrange
                             )
                         }
                     }

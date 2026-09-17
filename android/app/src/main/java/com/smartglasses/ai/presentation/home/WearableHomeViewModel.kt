@@ -491,6 +491,21 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                     handleConnectionSuccess(durationMs)
                 }
 
+                var savedImageUri: String? = null
+                if (!resp.imageBase64.isNullOrBlank()) {
+                    try {
+                        val decodedBytes = android.util.Base64.decode(resp.imageBase64, android.util.Base64.DEFAULT)
+                        val uri = com.smartglasses.ai.core.media.GalleryMediaHelper.saveJpegBytes(
+                            getApplication(),
+                            decodedBytes,
+                            "LARA_Capture"
+                        )
+                        savedImageUri = uri?.toString()
+                    } catch (e: Exception) {
+                        android.util.Log.e("WearableHomeVM", "Error decoding/saving photo: ${e.message}")
+                    }
+                }
+
                 val assistantChat = ChatMessage(
                     sender = "ASSISTANT",
                     text = resp.text,
@@ -500,13 +515,17 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                     failureCategory = resp.failureCategory,
                     source = resp.source,
                     unifiedSource = resp.unifiedSource,
-                    capabilityStatus = resp.capabilityStatus
+                    capabilityStatus = resp.capabilityStatus,
+                    imageBase64 = resp.imageBase64,
+                    imageUri = savedImageUri
                 )
 
                 _uiState.update {
                     it.copy(
                         assistantState = AssistantState.RESPONDING,
                         latestSpeech = resp.text,
+                        latestImageBase64 = resp.imageBase64,
+                        latestImageUri = savedImageUri,
                         messages = it.messages + assistantChat,
                         pendingConfirmation = if (resp.requiresConfirmation) resp else null,
                         lastResponseLatencyMs = resp.latencyMs.takeIf { lat -> lat > 0.0 } ?: durationMs,
@@ -514,7 +533,11 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                     )
                 }
 
-                // Section 10 & 13: Voice playback transition & TTFA tracking
+                // Section 10 & 13: Voice playback transition, Glasses OLED delivery & speaker chime
+                val cleanOled = formatTextForOled(resp.text)
+                bleManager.sendCommand("TEXT_OLED:$cleanOled")
+                bleManager.sendCommand("PLAY_AI_RESPONSE")
+
                 val ttsStart = SystemClock.elapsedRealtime()
                 val ttfa = SystemClock.elapsedRealtime() - tStart
                 _uiState.update { it.copy(timeToFirstAudioMs = ttfa) }
@@ -628,6 +651,13 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             in 17..21 -> "evening"
             else -> "night"
         }
+    }
+
+    private fun formatTextForOled(raw: String): String {
+        val clean = raw.replace(Regex("""[*#_`>\[\]\(\)]"""), "")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+        return if (clean.length > 80) clean.take(77) + "..." else clean
     }
 
     override fun onCleared() {

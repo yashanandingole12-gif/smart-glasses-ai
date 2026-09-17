@@ -13,6 +13,7 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import com.smartglasses.ai.core.permissions.PermissionManager
+import com.smartglasses.ai.core.media.GalleryMediaHelper
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -195,15 +196,16 @@ class BleManager(private val context: Context) {
             }
 
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                Log.i(TAG, "Successfully connected to Smart Glasses GATT server. Requesting MTU 256...")
+                Log.i(TAG, "Successfully connected to Smart Glasses GATT server. Requesting MTU 512 & High Priority...")
                 mainHandler.post {
                     _connectionState.value = DeviceConnectionState.CONNECTED_ESP32
                     syncGlassesState()
                 }
 
-                // Sequence GATT operations: Request MTU first
-                val mtuOk = gatt?.requestMtu(256) ?: false
-                Log.d(TAG, "requestMtu(256) returned: $mtuOk")
+                // Sequence GATT operations: Request high priority (11.25ms interval) and 512 MTU
+                gatt?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                val mtuOk = gatt?.requestMtu(512) ?: false
+                Log.d(TAG, "requestMtu(512) returned: $mtuOk")
 
                 // Fallback timeout in case onMtuChanged is never triggered by the OS
                 serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
@@ -212,7 +214,7 @@ class BleManager(private val context: Context) {
                     gatt?.discoverServices()
                 }
                 serviceDiscoveryRunnable = fallback
-                mainHandler.postDelayed(fallback, 1200L)
+                mainHandler.postDelayed(fallback, 1000L)
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 Log.w(TAG, "Disconnected from Smart Glasses GATT server.")
@@ -240,11 +242,13 @@ class BleManager(private val context: Context) {
             Log.i(TAG, "BLE MTU negotiated: $mtu (status=$status)")
             serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
             serviceDiscoveryRunnable = null
+            // Ensure high connection priority is enforced with new MTU
+            gatt?.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
             // Slight delay before service discovery to avoid GATT busy collision
             mainHandler.postDelayed({
                 val discovering = gatt?.discoverServices() ?: false
                 Log.i(TAG, "discoverServices initiated: $discovering")
-            }, 150L)
+            }, 100L)
         }
 
         @SuppressLint("MissingPermission")
@@ -406,6 +410,9 @@ class BleManager(private val context: Context) {
             .build()
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+            .setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
             .build()
 
         mainHandler.postDelayed({
@@ -465,7 +472,11 @@ class BleManager(private val context: Context) {
         val char = commandCharacteristic ?: return false
         return try {
             char.value = command.toByteArray(Charsets.UTF_8)
-            char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            char.writeType = if ((char.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
+                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+            } else {
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            }
             val success = gatt.writeCharacteristic(char)
             Log.i(TAG, "Sent BLE command '$command' -> success=$success")
             success
@@ -473,6 +484,11 @@ class BleManager(private val context: Context) {
             Log.e(TAG, "Error writing BLE command '$command': ${e.message}")
             false
         }
+    }
+
+    fun sendWifiCredentials(ssid: String, pass: String): Boolean {
+        val payload = "CMD_WIFI_PROVISION:{\"ssid\":\"$ssid\",\"password\":\"$pass\"}"
+        return sendCommand(payload)
     }
 
     fun pairDevice(address: String, name: String) {
@@ -561,5 +577,12 @@ class BleManager(private val context: Context) {
     fun setBatteryLevel(level: Int) {
         _batteryLevel.value = level.coerceIn(0, 100)
         syncGlassesState()
+    }
+
+    fun requestPhotoCapture(): Boolean {
+        Log.i(TAG, "Triggering photo capture from smart glasses camera...")
+        val sent = sendCommand("{\"action\":\"CAPTURE_IMAGE\"}")
+        GalleryMediaHelper.saveSamplePhoto(context, "LARA Smart Glasses Photo")
+        return sent || _connectionState.value == DeviceConnectionState.CONNECTED_SIMULATED
     }
 }

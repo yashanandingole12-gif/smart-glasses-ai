@@ -49,5 +49,7 @@ data class WearableHomeState(
     val errorMessage: String? = null,
     val networkDiagnostics: NetworkDiagnostics = NetworkDiagnostics(),
     val showDiagnostics: Boolean = false,
-    val activeRequestId: String? = null
+    val activeRequestId: String? = null,
+    val latestImageBase64: String? = null,
+    val latestImageUri: String? = null
 )

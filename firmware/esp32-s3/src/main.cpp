@@ -1,13 +1,14 @@
 #include <Arduino.h>
 #include "device_manager.h"
 #include "diagnostic_manager.h"
+#include "oled_manager.h"
 #include <esp_system.h>
 #include <esp_chip_info.h>
 #include <mbedtls/base64.h>
 
 void streamBase64Data(const uint8_t* data, size_t len) {
     if (!data || len == 0) return;
-    const size_t chunkSize = 1536; // multiple of 3
+    const size_t chunkSize = 1536; // multiple of 3 (1536 raw = 2048 base64 bytes)
     unsigned char b64Chunk[2048 + 4];
     size_t offset = 0;
     while (offset < len) {
@@ -45,6 +46,10 @@ void decodeAndPlayBase64Audio(const String& b64Str) {
 }
 
 void setup() {
+    // Turn OFF yellow user LED on GPIO 21 immediately at boot (Active LOW -> HIGH is OFF)
+    pinMode(PIN_LED_STATUS, OUTPUT);
+    digitalWrite(PIN_LED_STATUS, HIGH);
+
     Serial.begin(115200);
     delay(500);
     
@@ -64,6 +69,9 @@ void setup() {
     Serial.printf("[SYSTEM] Reset Reason: %d | CPU Freq: %d MHz\n", esp_reset_reason(), getCpuFrequencyMhz());
 
     DeviceManager::getInstance().init();
+
+    // Ensure yellow LED remains OFF after subsystem initialization
+    digitalWrite(PIN_LED_STATUS, HIGH);
 
     Serial.println("[SYSTEM] Device Initialization Complete. Ready.");
     Serial.println("==================================================");
@@ -115,6 +123,14 @@ void loop() {
         } else if (input == "DISABLE_VAD") {
             AudioManager::getInstance().setVadEnabled(false);
             Serial.println("[VAD] Automatic Hands-Free Voice Detection DISABLED");
+        } else if (input == "LED_OFF" || input == "FIX_LED") {
+            pinMode(PIN_LED_STATUS, OUTPUT);
+            digitalWrite(PIN_LED_STATUS, HIGH);
+            Serial.println("[LED] Status Yellow LED forced OFF (GPIO 21 set HIGH)");
+        } else if (input == "LED_ON") {
+            pinMode(PIN_LED_STATUS, OUTPUT);
+            digitalWrite(PIN_LED_STATUS, LOW);
+            Serial.println("[LED] Status Yellow LED turned ON (GPIO 21 set LOW)");
         } else if (input == "PLAY_MESSAGE_ALERT" || input == "MESSAGE_ALERT" || input == "PLAY_ALERT") {
             Serial.println("[SPEAKER] Playing Incoming Message Notification Chime");
             AudioManager::getInstance().playSound(SoundEffect::SOUND_MESSAGE_ALERT);
@@ -243,6 +259,23 @@ void loop() {
             }
 
             Serial.println("[MULTIMODAL_END]");
+        } else if (input == "OLED_TEST" || input == "TEST_OLED" || input == "DIAGNOSE_OLED") {
+            Serial.println("[OLED] Running OLED Diagnostics Test...");
+            OledManager::getInstance().runDiagnostics();
+        } else if (input == "OLED_ON" || input == "OLED_WELCOME") {
+            Serial.println("[OLED] Displaying Welcome Screen");
+            OledManager::getInstance().showWelcomeScreen(85);
+        } else if (input == "OLED_CLEAR") {
+            Serial.println("[OLED] Clearing OLED Display");
+            OledManager::getInstance().clear();
+        } else if (input.startsWith("OLED_TEXT ") || input.startsWith("TEXT_OLED ")) {
+            String msg = input.substring(10);
+            Serial.printf("[OLED] Displaying text: %s\n", msg.c_str());
+            OledManager::getInstance().showAiResponse("LARA", msg);
+        } else if (input.startsWith("OLED_STATUS ")) {
+            String msg = input.substring(12);
+            Serial.printf("[OLED] Displaying status: %s\n", msg.c_str());
+            OledManager::getInstance().showStatus("LARA SMART GLASS", msg, "");
         } else if (input == "REPORT" || input == "DIAG" || input == "SELF_TEST") {
             Serial.println("[SELF_TEST_START]");
             String report = diagnosticManager.getJsonReport();

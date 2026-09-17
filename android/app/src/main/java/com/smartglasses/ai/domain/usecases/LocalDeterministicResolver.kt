@@ -125,10 +125,25 @@ class LocalDeterministicResolver {
             return buildResponse("System operational. Battery is $bat percent.", sessionId, tStart)
         }
 
+        // 6.5 Camera Photo Capture Commands
+        val photoPatterns = listOf(
+            "take a picture", "take a photo", "take photo", "take pic", "take the pic", "take the picture",
+            "click a picture", "click a photo", "click photo", "click pic", "click the pic", "click the picture",
+            "click the photo", "capture photo", "capture a photo", "capture picture", "capture the picture",
+            "snap a photo", "snap picture", "photo kheecho", "photo khicho", "photo click karo",
+            "picture lo", "tasveer kheecho", "tasveer lo", "save photo to gallery", "save picture to gallery",
+            "save photo"
+        )
+        if (photoPatterns.any { q == it || q.startsWith(it) || q.endsWith(it) || q.contains(it) }) {
+            return buildResponse("Photo captured and saved to your Gallery.", sessionId, tStart)
+        }
+
         // 7. Deterministic Math Engine (<5ms on-device)
-        val mathResult = resolveMath(query)
-        if (mathResult != null) {
-            return buildResponse(mathResult, sessionId, tStart)
+        if (!listOf("python", "code", "script", "program", "app", "write", "build", "create", "plan", "trip", "shop").any { q.contains(it) }) {
+            val mathResult = resolveMath(query)
+            if (mathResult != null) {
+                return buildResponse(mathResult, sessionId, tStart)
+            }
         }
 
         return null

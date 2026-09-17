@@ -7,6 +7,8 @@
 #include "battery_manager.h"
 #include "camera_manager.h"
 #include "audio_manager.h"
+#include "wifi_manager.h"
+#include "oled_manager.h"
 
 // Default inactivity timeout before entering deep sleep (25 minutes)
 #define INACTIVITY_SLEEP_TIMEOUT_MS  (25UL * 60UL * 1000UL)

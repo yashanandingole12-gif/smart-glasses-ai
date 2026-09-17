@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -172,8 +173,47 @@ fun WearableHomeScreen(
                             ) {
                                 Column(
                                     modifier = Modifier.padding(18.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
+                                    val imageBitmap = remember(state.latestImageBase64) {
+                                        state.latestImageBase64?.let { b64 ->
+                                            try {
+                                                val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                                                val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                bmp?.asImageBitmap()
+                                            } catch (_: Exception) { null }
+                                        }
+                                    }
+
+                                    imageBitmap?.let { bmp ->
+                                        androidx.compose.foundation.Image(
+                                            bitmap = bmp,
+                                            contentDescription = "Smart Glasses Camera Capture",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 200.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(LaraEmerald)
+                                            )
+                                            Text(
+                                                text = "Smart Glasses Photo • Saved to Gallery",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = LaraEmerald
+                                            )
+                                        }
+                                    }
+
                                     Text(
                                         text = state.latestSpeech,
                                         fontSize = 14.sp,

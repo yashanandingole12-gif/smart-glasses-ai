@@ -74,6 +74,8 @@ class AssistantRepositoryImpl : AssistantRepository {
                 com.smartglasses.ai.domain.models.FailureCategory.NONE
             }
             val tier = (response.metadata["routing"] as? Map<*, *>)?.get("tier_used") as? String
+            val imageB64 = (response.metadata["image_base64"] as? String)
+                ?: ((response.actions.firstOrNull { it.toolName.contains("camera") || it.toolName.contains("vision") }?.result as? Map<*, *>)?.get("image_base64") as? String)
 
             Result.success(
                 WearableResponse(
@@ -85,7 +87,8 @@ class AssistantRepositoryImpl : AssistantRepository {
                     sources = response.sources,
                     latencyMs = latency,
                     failureCategory = failCat,
-                    tierUsed = tier
+                    tierUsed = tier,
+                    imageBase64 = imageB64
                 )
             )
         } catch (e: Exception) {

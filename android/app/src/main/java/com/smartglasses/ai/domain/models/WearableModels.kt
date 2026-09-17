@@ -86,7 +86,9 @@ data class ChatMessage(
     val failureCategory: FailureCategory = FailureCategory.NONE,
     val source: ResponseSource = ResponseSource.LOCAL_DETERMINISTIC,
     val unifiedSource: UnifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
-    val capabilityStatus: ResponseCapabilityStatus = ResponseCapabilityStatus.ANSWERED
+    val capabilityStatus: ResponseCapabilityStatus = ResponseCapabilityStatus.ANSWERED,
+    val imageBase64: String? = null,
+    val imageUri: String? = null
 )
 
 data class WearableTelemetry(
@@ -115,5 +117,7 @@ data class WearableResponse(
     val tierUsed: String? = null,
     val source: ResponseSource = ResponseSource.LOCAL_DETERMINISTIC,
     val unifiedSource: UnifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
-    val capabilityStatus: ResponseCapabilityStatus = ResponseCapabilityStatus.ANSWERED
+    val capabilityStatus: ResponseCapabilityStatus = ResponseCapabilityStatus.ANSWERED,
+    val imageBase64: String? = null,
+    val imageUri: String? = null
 )

@@ -200,6 +200,10 @@ class StructuredRequestParser:
         return None
 
     def _parse_math_intent(self, q_raw: str, q: str) -> Optional[StructuredRequest]:
+        # Exclude coding, programming, Python, building, and script queries
+        if any(w in q for w in ["python", "code", "script", "program", "app", "write a", "build", "create a", "how to"]):
+            return None
+
         # Quick math regex check
         math_symbols = ["+", "-", "*", "/", "x", "^", "%", "times", "plus", "minus", "divided by", "multiplied by", "calculate", "what is", "solve"]
         has_symbol = any(s in q for s in ["+", "*", "/", "divided by", "times", "multiplied by", "plus", "minus"])
@@ -207,7 +211,7 @@ class StructuredRequestParser:
 
         if has_digit and (has_symbol or "calculate" in q or "evaluate" in q or ("what is" in q and any(c.isdigit() for c in q))):
             # Check if it doesn't contain heavy semantic non-math words
-            if not any(w in q for w in ["email", "calendar", "event", "sms", "call", "search", "recipe", "cook", "tie", "shoe", "weather", "car"]):
+            if not any(w in q for w in ["email", "calendar", "event", "sms", "call", "search", "recipe", "cook", "tie", "shoe", "weather", "car", "shop", "trip"]):
                 return StructuredRequest(
                     intent=ParsedIntent.DETERMINISTIC_MATH,
                     raw_query=q_raw
@@ -502,10 +506,23 @@ class StructuredRequestParser:
         return "today"
 
     def _parse_research_intent(self, q_raw: str, q: str) -> Optional[StructuredRequest]:
-        research_triggers = ["search arxiv", "arxiv", "find research papers", "scientific papers", "academic papers", "research papers on", "paper on"]
+        research_triggers = [
+            "search arxiv", "arxiv", "find research papers", "scientific papers", "academic papers",
+            "research papers on", "research papers about", "research paper", "search papers on", "search papers about",
+            "find papers on", "find papers about", "papers on", "papers about", "paper on", "paper about",
+            "research on", "literature on", "literature review on", "semantic scholar", "google scholar", "scholar search",
+            "research engine", "lara research"
+        ]
         if any(t in q for t in research_triggers):
             clean_topic = q_raw
-            for t in ["search arxiv for", "search arxiv on", "find research papers on", "find papers on", "academic papers on", "research papers on", "papers on", "arxiv"]:
+            for t in [
+                "search arxiv for", "search arxiv on", "find research papers on", "find research papers about",
+                "find papers on", "find papers about", "academic papers on", "academic papers about",
+                "research papers on", "research papers about", "research paper on", "research paper about",
+                "search papers on", "search papers about", "papers on", "papers about", "paper on", "paper about",
+                "research on", "literature on", "literature review on", "semantic scholar", "google scholar", "arxiv",
+                "research engine", "lara research"
+            ]:
                 if t in q:
                     idx = q.find(t)
                     clean_topic = q_raw[idx + len(t):].strip(" ?:.,")
@@ -521,14 +538,17 @@ class StructuredRequestParser:
         search_triggers = [
             "search web for", "search the web for", "search web", "search for", "look up", "google search for",
             "search", "find", "what is the latest", "what's the latest", "latest news on", "news about",
-            "best car", "which car is best", "laptop under", "smartwatch under", "internships in"
+            "best car", "which car is best", "laptop under", "smartwatch under", "internships in",
+            "pet shop", "pet store", "best pet", "kaha hai", "kahan hai", "kidhar hai", "kaha milega",
+            "best restaurant", "best shop", "best store", "best hospital", "near me", "in nagpur",
+            "places in", "hotels in", "top 5", "top 10", "recommend"
         ]
 
         # Follow-up search modifier: "Only Bangalore", "Only in Bangalore", "Which pays the most?", "Which one is cheapest?"
         if history:
             is_prev_search = False
             for h in reversed(history[-3:]):
-                if any(st in h.get("content", "").lower() for st in ["found", "options", "result", "search", "internship", "laptop", "car"]):
+                if any(st in h.get("content", "").lower() for st in ["found", "options", "result", "search", "internship", "laptop", "car", "shop", "place"]):
                     is_prev_search = True
                     break
             if is_prev_search:
@@ -540,7 +560,14 @@ class StructuredRequestParser:
                         follow_up_modifier=q_raw
                     )
 
-        if any(q.startswith(trig) or f" {trig} " in f" {q} " for trig in ["search web for", "search the web for", "look up", "google search for", "latest news on", "search for a laptop", "search for robotics", "find internships in", "which car is best"]):
+        # Match direct search or local discovery / recommendations queries
+        if any(trig in q for trig in [
+            "search web", "search the web", "look up", "google search", "latest news",
+            "pet shop", "pet store", "kaha hai", "kahan hai", "kaha milega", "kidhar hai",
+            "best shop", "best store", "best restaurant", "best hospital", "near me",
+            "internships in", "which car", "laptop under", "smartwatch under", "tourist spots",
+            "places to visit", "top 5", "top 10"
+        ]):
             clean_query = q_raw
             for trig in ["search web for", "search the web for", "look up on web", "google search for", "search for", "look up"]:
                 if trig in q:

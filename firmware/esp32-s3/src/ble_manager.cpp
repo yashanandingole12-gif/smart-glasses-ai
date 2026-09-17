@@ -1,17 +1,22 @@
 #include "ble_manager.h"
+#include <esp_bt.h>
+#include <esp_bt_main.h>
+#include <esp_gap_ble_api.h>
 
 class BleServerCallbacksHandler : public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) override {
         BleManager::getInstance()._connected = true;
         Serial.println("[BLE] Mobile phone connected to Smart Glasses GATT server!");
-        // Note: Do not send notifications immediately in onConnect.
-        // Wait for the mobile client to subscribe to the CCCD descriptor (0x2902).
+        
+        // Boost TX power on connection handle for robust coexistence with TWS
+        esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL0, ESP_PWR_LVL_P9);
+        esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL1, ESP_PWR_LVL_P9);
     }
 
     void onDisconnect(BLEServer* pServer) override {
         BleManager::getInstance()._connected = false;
-        Serial.println("[BLE] Mobile phone disconnected from Smart Glasses. Restarting advertising...");
-        delay(50);
+        Serial.println("[BLE] Mobile phone disconnected from Smart Glasses. Restarting fast advertising...");
+        delay(30);
         BLEDevice::startAdvertising();
     }
 };
@@ -73,6 +78,15 @@ BleManager::BleManager() {}
 
 void BleManager::init(const String& deviceName) {
     BLEDevice::init(deviceName.c_str());
+    
+    // 1. Maximize BLE RF Transmit Power (+9 dBm) for rock-solid TWS coexistence
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_P9);
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_P9);
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_SCAN, ESP_PWR_LVL_P9);
+
+    // 2. Set MTU to 512 for large telemetry and audio frames
+    BLEDevice::setMTU(512);
+
     _server = BLEDevice::createServer();
     _server->setCallbacks(new BleServerCallbacksHandler());
 
@@ -115,15 +129,21 @@ void BleManager::init(const String& deviceName) {
 
     pService->start();
 
+    // 3. Configure Fast Advertising for phone discovery during A2DP playback
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->setScanResponse(true);
-    pAdvertising->setMinPreferred(0x06); // iOS / Android connection interval recommendations
-    pAdvertising->setMaxPreferred(0x12);
-    pAdvertising->setMinInterval(0x20);  // 20ms advertising interval
-    pAdvertising->setMaxInterval(0x40);  // 40ms advertising interval
+    
+    // Aggressive connection interval recommendations (7.5ms to 22.5ms)
+    pAdvertising->setMinPreferred(0x06); // 7.5 ms
+    pAdvertising->setMaxPreferred(0x12); // 22.5 ms
+    
+    // Fast, dense advertising interval (20ms to 40ms)
+    pAdvertising->setMinInterval(0x20);  // 32 * 0.625ms = 20ms
+    pAdvertising->setMaxInterval(0x40);  // 64 * 0.625ms = 40ms
+    
     BLEDevice::startAdvertising();
-    Serial.printf("[BLE] BLE Advertising started successfully for '%s'\n", deviceName.c_str());
+    Serial.printf("[BLE] BLE Advertising started successfully for '%s' (TX: +9dBm, Interval: 20-40ms, MTU: 512)\n", deviceName.c_str());
 }
 
 void BleManager::sendEvent(const String& eventName, const String& payload) {
@@ -134,7 +154,7 @@ void BleManager::sendEvent(const String& eventName, const String& payload) {
         } else {
             json = "{\"event\":\"" + eventName + "\"}";
         }
-        _eventChar->setValue(json.c_str());
+        _eventChar->setValue((uint8_t*)json.c_str(), json.length());
         _eventChar->notify();
         Serial.printf("[BLE] Sent Event Notification: %s\n", json.c_str());
     }
@@ -151,7 +171,7 @@ void BleManager::updateBattery(uint8_t percentage) {
 
 void BleManager::updateStatus(const String& statusJson) {
     if (_statusChar) {
-        _statusChar->setValue(statusJson.c_str());
+        _statusChar->setValue((uint8_t*)statusJson.c_str(), statusJson.length());
         if (_connected) {
             _statusChar->notify();
         }

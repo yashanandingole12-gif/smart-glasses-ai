@@ -110,12 +110,33 @@ void AudioManager::stopMicrophone() {
     Serial.println("[AUDIO] Microphone Recording Stream Stopped");
 }
 
+static float dcFilterLastIn = 0.0f;
+static float dcFilterLastOut = 0.0f;
+
 size_t AudioManager::readMicrophone(int16_t* buffer, size_t maxSamples) {
     if (!_micInitialized || buffer == nullptr || maxSamples == 0) return 0;
     size_t bytesRead = 0;
     esp_err_t err = i2s_read(I2S_MIC_PORT, (void*)buffer, maxSamples * sizeof(int16_t), &bytesRead, pdMS_TO_TICKS(100));
-    if (err == ESP_OK) {
-        return bytesRead / sizeof(int16_t);
+    if (err == ESP_OK && bytesRead > 0) {
+        size_t samplesRead = bytesRead / sizeof(int16_t);
+        
+        // Apply single-pole DC-blocker high-pass filter and 4.0x digital gain
+        const float r = 0.992f;
+        const float gain = 4.0f;
+
+        for (size_t i = 0; i < samplesRead; i++) {
+            float inVal = (float)buffer[i];
+            float filtered = inVal - dcFilterLastIn + (r * dcFilterLastOut);
+            dcFilterLastIn = inVal;
+            dcFilterLastOut = filtered;
+
+            float boosted = filtered * gain;
+            if (boosted > 32000.0f) boosted = 32000.0f;
+            if (boosted < -32000.0f) boosted = -32000.0f;
+
+            buffer[i] = (int16_t)boosted;
+        }
+        return samplesRead;
     }
     return 0;
 }
@@ -440,18 +461,23 @@ void AudioManager::streamPcmChunk(const uint8_t* pcmChunk, size_t chunkSize) {
     const int16_t* inSamples = (const int16_t*)pcmChunk;
     const size_t BATCH_SIZE = 128;
     int16_t stereoBuf[BATCH_SIZE * 2];
-    float volScale = (float)_volume / 100.0f;
+    float volScale = ((float)_volume / 100.0f) * 0.85f; // Headroom to prevent digital clipping
 
     size_t processed = 0;
     while (processed < sampleCount) {
         size_t toProcess = (sampleCount - processed > BATCH_SIZE) ? BATCH_SIZE : (sampleCount - processed);
         for (size_t i = 0; i < toProcess; i++) {
-            int16_t s = (int16_t)((float)inSamples[processed + i] * volScale);
-            stereoBuf[i * 2] = s;
-            stereoBuf[i * 2 + 1] = s;
+            float rawFloat = (float)inSamples[processed + i] * volScale;
+            // Soft-knee limiter to prevent hard clipping distortion
+            if (rawFloat > 32000.0f) rawFloat = 32000.0f;
+            if (rawFloat < -32000.0f) rawFloat = -32000.0f;
+
+            int16_t s = (int16_t)rawFloat;
+            stereoBuf[i * 2] = s;     // Left
+            stereoBuf[i * 2 + 1] = s; // Right
         }
         size_t bytesWritten = 0;
-        i2s_write(I2S_SPK_PORT, (const void*)stereoBuf, toProcess * 2 * sizeof(int16_t), &bytesWritten, pdMS_TO_TICKS(50));
+        i2s_write(I2S_SPK_PORT, (const void*)stereoBuf, toProcess * 2 * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
         processed += toProcess;
     }
 }
@@ -604,7 +630,7 @@ bool AudioManager::recordWavAudio(uint32_t durationMs, uint8_t** outWavBuffer, s
     uint32_t startTime = millis();
     int16_t tempChunk[256];
 
-    Serial.printf("[AUDIO] 🎙️ Recording %u ms audio from ESP32 digital mic (16kHz 16-bit Mono WAV)...\n", (unsigned int)durationMs);
+    Serial.printf("[AUDIO] Recording %u ms audio from ESP32 digital mic (16kHz 16-bit Mono WAV)...\n", (unsigned int)durationMs);
 
     while (samplesRecorded < totalSamples && (millis() - startTime < durationMs + 500)) {
         size_t toRead = (totalSamples - samplesRecorded > 256) ? 256 : (totalSamples - samplesRecorded);

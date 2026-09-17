@@ -62,3 +62,11 @@
 #define CAM_PIN_HREF            47
 #define CAM_PIN_PCLK            13
 
+// Mini I2C OLED Display (0.96" / 0.42" / 0.91" SSD1306 / SH1106)
+#define OLED_PIN_SDA            5       // D4 / GPIO 5
+#define OLED_PIN_SCL            6       // D5 / GPIO 6
+#define OLED_I2C_ADDR           0x3C    // Standard I2C Address (0x3C or 0x3D)
+#define OLED_SCREEN_WIDTH       128
+#define OLED_SCREEN_HEIGHT      64
+#define OLED_RESET_PIN          -1      // Reset pin (-1 if sharing Arduino reset pin)
+
