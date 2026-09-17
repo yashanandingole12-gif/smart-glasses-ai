@@ -328,13 +328,13 @@ class BleManager(private val context: Context) {
         Log.i(TAG, "Received BLE Event Raw: $trimmed")
 
         // 1. Robust pattern / token matching (immune to 20-byte packet truncation)
-        if (trimmed.contains("TALK_START", ignoreCase = true)) {
+        if (trimmed.contains("TALK_START", ignoreCase = true) || trimmed.contains("START_TALK", ignoreCase = true) || trimmed.contains("WAKE", ignoreCase = true)) {
             Log.i(TAG, "-> Triggering TALK_START voice capture on phone!")
             _talkEvents.tryEmit(BleTalkEvent.TALK_START)
             _buttonPressEvents.tryEmit(Unit)
             return
         }
-        if (trimmed.contains("TALK_STOP", ignoreCase = true)) {
+        if (trimmed.contains("TALK_STOP", ignoreCase = true) || trimmed.contains("STOP_TALK", ignoreCase = true)) {
             Log.i(TAG, "-> Triggering TALK_STOP voice capture end on phone!")
             _talkEvents.tryEmit(BleTalkEvent.TALK_STOP)
             return

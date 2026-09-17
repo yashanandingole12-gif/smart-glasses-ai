@@ -161,7 +161,7 @@ class AIResponseRouter(
         }
 
         // 0.08 Conversational Lifecycle & Session Management
-        val lifecycleGreetings = listOf("hey lara", "hi lara", "hello lara", "lara", "wake up lara", "hey assistant")
+        val lifecycleGreetings = listOf("hey lara", "hi lara", "hello lara", "lara", "wake up lara", "hey assistant", "start talk", "start listening", "talk")
         if (lifecycleGreetings.any { qLower == it || qLower.startsWith("$it ") }) {
             val bat = telemetry.batteryPercentage
             val ctx = context
@@ -182,7 +182,7 @@ class AIResponseRouter(
             )
         }
 
-        val lifecycleDismiss = listOf("goodbye lara", "bye lara", "sleep lara", "shutdown lara", "turn off lara", "goodbye", "alvida")
+        val lifecycleDismiss = listOf("goodbye lara", "bye lara", "sleep lara", "shutdown lara", "turn off lara", "goodbye", "alvida", "stop talk", "stop listening", "stop")
         if (lifecycleDismiss.any { qLower == it || qLower.startsWith("$it ") }) {
             // Clean active session context
             lastReadSmsIndex = 0
