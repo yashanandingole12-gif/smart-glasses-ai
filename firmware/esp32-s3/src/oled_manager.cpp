@@ -31,14 +31,14 @@ void OledManager::showWelcomeScreen(uint8_t battery) {
     
     // Top Title Bar
     _display.setTextSize(1);
-    _display.setCursor(16, 2);
-    _display.print("LARA SMART GLASS");
+    _display.setCursor(18, 2);
+    _display.print("EVA SMART GLASS");
     _display.drawFastHLine(0, 12, 128, SSD1306_WHITE);
 
     // Centered Welcome
     _display.setTextSize(2);
-    _display.setCursor(38, 20);
-    _display.print("LARA");
+    _display.setCursor(44, 20);
+    _display.print("EVA");
 
     // Status Footer
     _display.setTextSize(1);

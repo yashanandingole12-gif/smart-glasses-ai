@@ -1,3 +1,9 @@
+# Set Working Directory and PYTHONPATH to Project Root automatically
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectRoot = Split-Path -Parent $ScriptDir
+Set-Location $ProjectRoot
+$env:PYTHONPATH = $ProjectRoot
+
 # Auto-clean existing stale processes on port 8001 to prevent WinError 10013
 $existingConnections = Get-NetTCPConnection -LocalPort 8001 -ErrorAction SilentlyContinue
 if ($existingConnections) {
@@ -30,5 +36,4 @@ Write-Host " (Note: Do NOT type 0.0.0.0 into web browsers; use localhost or your
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host ""
 
-$env:PYTHONPATH = (Get-Location).Path
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8001 --reload

@@ -555,9 +555,9 @@ def get_dashboard_html() -> str:
     <!-- Top Executive Header Bar -->
     <header class="top-header">
         <div class="brand-section">
-            <div class="brand-badge">LARA</div>
+            <div class="brand-badge">EVA</div>
             <div>
-                <div class="brand-title">LARA Smart Glasses — Private Intelligence & Control</div>
+                <div class="brand-title">EVA Smart Glasses — Private Intelligence & Control</div>
                 <div class="brand-subtitle">ESP32 Smart Glasses & Android Hub</div>
             </div>
         </div>
@@ -587,13 +587,16 @@ def get_dashboard_html() -> str:
             Intent Inspector & Playground
         </button>
         <button class="tab-button" onclick="switchTab('research-hub')">
-            LARA Research Engine
+            EVA Research Engine
         </button>
         <button class="tab-button" onclick="switchTab('desk-analysis')">
             Desk & Data Analysis
         </button>
         <button class="tab-button" onclick="switchTab('camera-vision')">
             Camera & Vision Hub
+        </button>
+        <button class="tab-button" onclick="switchTab('workspace')">
+            Workspace & Environment
         </button>
         <button class="tab-button" onclick="switchTab('automations-hub')">
             Automations Center & Smart Notifications
@@ -962,9 +965,43 @@ def get_dashboard_html() -> str:
             </div>
         </section>
 
+        <!-- TAB: WORKSPACE & ENVIRONMENT -->
+        <section id="tab-workspace" class="tab-panel">
+            <div id="view-workspace" class="grid-2col">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Workspace & Environment</div>
+                    </div>
+                    <div id="workspace-content" style="padding: 12px; font-size: 13px; color: var(--text-secondary);">
+                        <div>Active Workspace: <strong>EVA Intelligent Edge Hub</strong></div>
+                        <div style="margin-top: 8px;">Unified orchestration active across Gmail, Calendar, Contacts, and Local Device Storage.</div>
+                        <button class="btn-sm" style="margin-top: 12px;" onclick="loadWorkspaceEnvironment()">Refresh Workspace</button>
+                    </div>
+                </div>
+                <div class="card side-telemetry-panel">
+                    <div class="card-header">
+                        <div class="card-title">Environment Telemetry</div>
+                    </div>
+                    <div id="environment-telemetry" style="padding: 12px; font-size: 13px; color: var(--text-secondary);">
+                        <div>Real-Time Insights & Context Freshness Monitoring Active.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <script>
+        async function loadWorkspaceEnvironment() {
+            try {
+                const res = await fetch('/api/v1/workspace/environment');
+                const data = await res.json();
+                console.log('Workspace loaded:', data);
+            } catch (err) {
+                console.error('Workspace load error:', err);
+            }
+        }
+
         // State & Variables
         let eventCount = 0;
         let autoScroll = true;

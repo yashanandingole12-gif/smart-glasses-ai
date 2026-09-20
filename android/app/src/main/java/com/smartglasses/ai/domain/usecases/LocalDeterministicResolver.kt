@@ -10,6 +10,34 @@ import java.util.Locale
 
 class LocalDeterministicResolver {
 
+    companion object {
+        // Offline Definitional Dictionary (sub-10ms, zero LLM dependency)
+        private val DEFINITIONS = mapOf(
+            "array" to "An array is a linear data structure that stores elements of the same type in contiguous memory locations, accessible by numerical index.",
+            "data structure" to "A data structure is a specialized format for organizing, processing, retrieving, and storing data efficiently.",
+            "node" to "A node is a fundamental building block in data structures like linked lists, trees, and graphs that contains data and references or pointers to other nodes.",
+            "wifi" to "Wi-Fi is a wireless networking technology that uses radio frequencies to connect devices to local area networks and the internet.",
+            "wi-fi" to "Wi-Fi is a wireless networking technology that uses radio frequencies to connect devices to local area networks and the internet.",
+            "internet" to "The Internet is a global system of interconnected computer networks that communicate using the standard Internet Protocol Suite (TCP/IP).",
+            "google" to "Google is a multinational technology company specializing in online search, cloud computing, software, hardware, and artificial intelligence.",
+            "class" to "In object-oriented programming, a class is an extensible program-code template for creating objects, defining initial state and implementations of behavior.",
+            "sql" to "SQL (Structured Query Language) is a standardized programming language used to manage, query, and manipulate relational databases.",
+            "select" to "In SQL, the SELECT statement is used to fetch data from one or more tables in a database.",
+            "insert" to "In SQL, the INSERT statement is used to add new records or rows to a database table.",
+            "update" to "In SQL, the UPDATE statement modifies existing data within specified columns of a database table.",
+            "delete" to "In SQL, the DELETE statement removes existing records from a database table based on specified conditions.",
+            "where" to "In SQL, the WHERE clause filters records to extract only those that satisfy a specified condition.",
+            "join" to "In SQL, a JOIN clause combines rows from two or more tables based on a related column between them.",
+            "stack" to "A stack is a linear data structure following the LIFO (Last-In, First-Out) principle, supporting push and pop operations.",
+            "queue" to "A queue is a linear data structure following the FIFO (First-In, First-Out) principle, supporting enqueue and dequeue operations.",
+            "binary tree" to "A binary tree is a hierarchical tree data structure in which each node has at most two children, referred to as left and right child.",
+            "algorithm" to "An algorithm is a step-by-step procedure or set of rules designed to solve a specific problem or perform a computation.",
+            "api" to "An API (Application Programming Interface) is a set of defined rules and protocols that enables different software applications to communicate with each other.",
+            "http" to "HTTP (Hypertext Transfer Protocol) is the application layer protocol used for transmitting hypermedia documents, such as HTML, over the World Wide Web.",
+            "database" to "A database is an organized collection of structured data stored electronically and accessed via a database management system (DBMS)."
+        )
+    }
+
     fun resolve(
         query: String,
         telemetry: WearableTelemetry,
@@ -95,10 +123,10 @@ class LocalDeterministicResolver {
             return buildResponse(text, sessionId, tStart)
         }
 
-        // 5. Basic greetings
+        // 5. Basic greetings & Conversation Control
         val greetingPatterns = listOf(
             "good morning", "good afternoon", "good evening", "good night", "hello", "hi",
-            "hey assistant", "hey glasses", "सुप्रभात", "नमस्ते", "शुभ सकाळ", "नमस्कार"
+            "hey eva", "hey assistant", "hey glasses", "सुप्रभात", "नमस्ते", "शुभ सकाळ", "नमस्कार"
         )
         if (greetingPatterns.any { q == it || q == "hey" }) {
             val period = telemetry.period
@@ -111,21 +139,59 @@ class LocalDeterministicResolver {
             return buildResponse(text, sessionId, tStart)
         }
 
-        // 6. Acknowledgements and status
-        if (q in listOf("thank you", "thanks", "thank you assistant", "dhanyawad", "shukriya")) {
+        if (q in listOf("thank you", "thanks", "thank you eva", "dhanyawad", "shukriya")) {
             return buildResponse("You're welcome.", sessionId, tStart)
         }
 
-        if (q in listOf("stop", "cancel", "dismiss", "chup")) {
+        if (q in listOf("stop", "cancel", "dismiss", "chup", "shant", "pause", "resume", "clear")) {
             return buildResponse("Stopped.", sessionId, tStart)
         }
 
-        if (q in listOf("status", "device status", "system status")) {
+        if (q in listOf("status", "device status", "system status", "connectivity status", "wifi status")) {
             val bat = telemetry.batteryPercentage
-            return buildResponse("System operational. Battery is $bat percent.", sessionId, tStart)
+            val glassesStatus = if (telemetry.glassesConnected) "Glasses connected" else "Glasses standalone"
+            return buildResponse("System operational. Battery $bat%. $glassesStatus.", sessionId, tStart)
         }
 
-        // 6.5 Camera Photo Capture Commands
+        // 6. Definitional Questions (Offline Dictionary)
+        val defMatch = Regex("""^(?:what\s+is\s+(?:an?|the)?|define|explain\s+(?:an?|the)?|definition\s+of)\s+([a-z\s-]+)$""").find(q)
+        if (defMatch != null) {
+            val term = defMatch.groupValues[1].trim()
+            val definition = DEFINITIONS[term] ?: DEFINITIONS[term.replace("-", "")] ?: DEFINITIONS[term.replace(" ", "")]
+            if (definition != null) {
+                return buildResponse(definition, sessionId, tStart)
+            }
+        }
+        // Direct term definition check
+        if (DEFINITIONS.containsKey(q)) {
+            return buildResponse(DEFINITIONS[q]!!, sessionId, tStart)
+        }
+
+        // 7. Device Call & Telephony Commands
+        if (q in listOf("answer call", "answer the call", "pick up", "accept call", "pick call")) {
+            return buildResponse("Answering the incoming call.", sessionId, tStart)
+        }
+        if (q in listOf("decline call", "decline the call", "reject call", "hang up", "cut call", "end call")) {
+            return buildResponse("Call declined.", sessionId, tStart)
+        }
+
+        // 8. Device Messages & Notifications
+        if (q in listOf("check notifications", "read notifications", "notifications", "unread notifications")) {
+            return buildResponse("Checking your recent notifications.", sessionId, tStart)
+        }
+        if (q in listOf("check messages", "read messages", "unread messages", "inbox")) {
+            return buildResponse("Checking your recent SMS messages.", sessionId, tStart)
+        }
+
+        // 9. Local Document & File Search
+        val fileSearchMatch = Regex("""^(?:search\s+files?|find\s+files?|search\s+documents?|find\s+documents?)\s*(?:for\s+)?(.*)$""").find(q)
+        if (fileSearchMatch != null) {
+            val queryTerm = fileSearchMatch.groupValues[1].trim()
+            val text = if (queryTerm.isNotBlank()) "Searching local storage for '$queryTerm'." else "Searching device files."
+            return buildResponse(text, sessionId, tStart)
+        }
+
+        // 10. Camera Photo Capture Commands
         val photoPatterns = listOf(
             "take a picture", "take a photo", "take photo", "take pic", "take the pic", "take the picture",
             "click a picture", "click a photo", "click photo", "click pic", "click the pic", "click the picture",
@@ -138,7 +204,7 @@ class LocalDeterministicResolver {
             return buildResponse("Photo captured and saved to your Gallery.", sessionId, tStart)
         }
 
-        // 7. Deterministic Math Engine (<5ms on-device)
+        // 11. Deterministic Math Engine (<5ms on-device)
         if (!listOf("python", "code", "script", "program", "app", "write", "build", "create", "plan", "trip", "shop").any { q.contains(it) }) {
             val mathResult = resolveMath(query)
             if (mathResult != null) {
@@ -246,7 +312,7 @@ class LocalDeterministicResolver {
             return "${n1.toLong()}/${d1.toLong()} $op ${n2.toLong()}/${d2.toLong()} is $res."
         }
 
-        // General arithmetic: "27 × 38", "125 * 16", "144 / 12", "25 + 37", "100 - 43", "27 into 38 kitna hota hai"
+        // General arithmetic: "27 × 38", "125 * 16", "144 / 12", "25 + 37", "100 - 43"
         var clean = q.replace(Regex("""[?!.,;]"""), " ").trim()
         clean = clean
             .replace(Regex("""^(?:what\s+is|whats|calculate|compute|solve|bhai|batao|bataiye)\s+"""), "")

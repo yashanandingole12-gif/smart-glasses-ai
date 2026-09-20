@@ -391,9 +391,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun stopVoiceCapture() {
-        if (_uiState.value.assistantState == AssistantState.LISTENING) {
-            speechRecognizerManager?.stopListening()
-        }
+        speechRecognizerManager?.stopListening()
     }
 
     fun onTalkButtonClicked() {

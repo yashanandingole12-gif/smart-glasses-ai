@@ -161,7 +161,11 @@ class AIResponseRouter(
         }
 
         // 0.08 Conversational Lifecycle & Session Management
-        val lifecycleGreetings = listOf("hey lara", "hi lara", "hello lara", "lara", "wake up lara", "hey assistant", "start talk", "start listening", "talk")
+        val lifecycleGreetings = listOf(
+            "eva start talk", "eva talk", "hey eva", "hi eva", "hello eva", "eva", "wake up eva",
+            "hey lara", "hi lara", "hello lara", "lara", "wake up lara", "hey assistant",
+            "start talk", "start listening", "talk"
+        )
         if (lifecycleGreetings.any { qLower == it || qLower.startsWith("$it ") }) {
             val bat = telemetry.batteryPercentage
             val ctx = context
@@ -173,7 +177,7 @@ class AIResponseRouter(
             } ?: 0
             val unreadPart = if (unreadCount > 0) " You have $unreadCount personal message${if (unreadCount > 1) "s" else ""}." else ""
             return WearableResponse(
-                text = "Hello! LARA is active and ready. Battery is at $bat%.$unreadPart How can I help you today?",
+                text = "Hello! EVA is active and ready. Battery is at $bat%.$unreadPart How can I help you today?",
                 sessionId = sessionId,
                 source = ResponseSource.LOCAL_DETERMINISTIC,
                 unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,
@@ -182,7 +186,11 @@ class AIResponseRouter(
             )
         }
 
-        val lifecycleDismiss = listOf("goodbye lara", "bye lara", "sleep lara", "shutdown lara", "turn off lara", "goodbye", "alvida", "stop talk", "stop listening", "stop")
+        val lifecycleDismiss = listOf(
+            "goodbye eva", "bye eva", "sleep eva", "shutdown eva", "turn off eva",
+            "goodbye lara", "bye lara", "sleep lara", "shutdown lara", "turn off lara",
+            "goodbye", "alvida", "stop talk", "stop listening", "stop"
+        )
         if (lifecycleDismiss.any { qLower == it || qLower.startsWith("$it ") }) {
             // Clean active session context
             lastReadSmsIndex = 0
@@ -196,7 +204,7 @@ class AIResponseRouter(
             pendingSmsDisambiguation = null
             pendingSmsDisambiguationBody = null
             return WearableResponse(
-                text = "Goodbye! Putting LARA to sleep. Say 'Hey LARA' whenever you need me.",
+                text = "Goodbye! Putting EVA to sleep. Say 'Hey EVA' whenever you need me.",
                 sessionId = sessionId,
                 source = ResponseSource.LOCAL_DETERMINISTIC,
                 unifiedSource = UnifiedSource.LOCAL_DETERMINISTIC,

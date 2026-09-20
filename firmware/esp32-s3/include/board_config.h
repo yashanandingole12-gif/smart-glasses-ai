@@ -1,8 +1,8 @@
 #pragma once
 
 // =============================================================================
-// Smart Glasses Seeed Studio XIAO ESP32-S3 Sense Board Pin Configuration
-// Matches the official Sense expansion board (OV2640 camera + PDM microphone).
+// Smart Glasses Seeed Studio XIAO ESP32-S3 Pin Configuration
+// Uses external INMP441 I2S Digital Mic & MAX98357A I2S DAC Speaker
 // =============================================================================
 
 // Push-to-talk Physical Button
@@ -18,36 +18,40 @@
 #define BATTERY_ADC_R1          100000.0f
 #define BATTERY_ADC_R2          100000.0f
 
-// On-board PDM Digital Microphone (MSM261D3526H1CPM on XIAO Sense)
+// INMP441 I2S Digital Microphone Pinout:
+//   - INMP441 SCK / BCLK -> XIAO D8  (GPIO 7)
+//   - INMP441 WS / LRCL  -> XIAO D3  (GPIO 4)
+//   - INMP441 SD / DOUT  -> XIAO D10 (GPIO 9)
+//   - INMP441 VDD        -> 3.3V
+//   - INMP441 GND        -> GND
+//   - INMP441 L/R        -> GND (Left Channel)
 #define I2S_MIC_PORT            I2S_NUM_0
-#define PDM_MIC_CLK             42      // PDM Clock
-#define PDM_MIC_DATA            41      // PDM Data In
-#define I2S_MIC_BCLK            41
-#define I2S_MIC_LRCLK           42
-#define I2S_MIC_DATA            41
-#define I2S_MIC_SAMPLE_RATE     16000
+#define I2S_MIC_BCLK            7       // D8 / GPIO 7 (Bit Clock / SCK)
+#define I2S_MIC_LRCLK           4       // D3 / GPIO 4 (Word Select / WS / LRCL)
+#define I2S_MIC_DATA            9       // D10 / GPIO 9 (Serial Data / SD / DOUT)
+#define I2S_MIC_SAMPLE_RATE     16000   // 16kHz sample rate
 
 // External I2S Speaker / DAC Pinout (MAX98357A / Bone Conduction Transducer Amp)
 // Wiring to XIAO ESP32-S3:
-//   - MAX98357A BCLK  -> XIAO D8  (GPIO 7)
-//   - MAX98357A LRC   -> XIAO D9  (GPIO 8)
-//   - MAX98357A DIN   -> XIAO D10 (GPIO 9)
-//   - MAX98357A GND   -> GND
-//   - MAX98357A VIN   -> 3.3V or 5V (VBUS)
-//   - MAX98357A GAIN  -> GND (12dB gain) or open (9dB)
-//   - MAX98357A SD_MODE -> Open or 100k pull-up to VIN (Stereo / Left / Right)
+//   - MAX98357A DIN      -> XIAO D11 (GPIO 38)
+//   - MAX98357A BCLK     -> XIAO D12 (GPIO 39)
+//   - MAX98357A LRC / WS -> XIAO D13 (GPIO 40)
+//   - MAX98357A VIN      -> 3.3V
+//   - MAX98357A GND      -> GND
+//   - MAX98357A GAIN     -> GND (12dB gain) or open (9dB)
+//   - MAX98357A SD_MODE  -> Open or pull-up to VIN (Stereo / Left / Right)
 #define I2S_SPK_PORT            I2S_NUM_1
-#define I2S_SPK_BCLK            7       // D8 / GPIO 7 (Bit Clock)
-#define I2S_SPK_LRCLK           8       // D9 / GPIO 8 (Left/Right Clock / WS)
-#define I2S_SPK_DATA            9       // D10 / GPIO 9 (Data Out -> DAC DIN)
+#define I2S_SPK_DATA            38      // D11 / GPIO 38 (Data Out -> DAC DIN)
+#define I2S_SPK_BCLK            39      // D12 / GPIO 39 (Bit Clock)
+#define I2S_SPK_LRCLK           40      // D13 / GPIO 40 (Left/Right Clock / WS)
 #define I2S_SPK_SAMPLE_RATE     16000   // 16kHz default sample rate (supports 8kHz - 48kHz)
 
-// On-board OV2640 Camera Pinout (Seeed Studio XIAO ESP32-S3 Sense Expansion)
+// On-board Camera Pinout (Pins 38, 39, 40 reallocated for I2S DAC Audio Output)
 #define CAM_PIN_PWDN            -1
 #define CAM_PIN_RESET           -1
 #define CAM_PIN_XCLK            10
-#define CAM_PIN_SIOD            40      // SDA (SCCB)
-#define CAM_PIN_SIOC            39      // SCL (SCCB)
+#define CAM_PIN_SIOD            -1      // Reallocated
+#define CAM_PIN_SIOC            -1      // Reallocated
 
 #define CAM_PIN_D7              48      // Y9
 #define CAM_PIN_D6              11      // Y8
@@ -58,7 +62,7 @@
 #define CAM_PIN_D1              17      // Y3
 #define CAM_PIN_D0              15      // Y2
 
-#define CAM_PIN_VSYNC           38
+#define CAM_PIN_VSYNC           -1      // Reallocated
 #define CAM_PIN_HREF            47
 #define CAM_PIN_PCLK            13
 

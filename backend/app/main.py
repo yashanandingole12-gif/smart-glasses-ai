@@ -1485,18 +1485,69 @@ async def search_endpoint(query: str, search_type: str = "web"):
         return academic_research_search(query=query)
     return web_search(query)
 
-@app.get("/api/v1/research/search")
-@app.post("/api/v1/research/search")
-async def research_search_endpoint(query: str, limit: int = 5, translate_back: bool = False):
-    """Academic paper search endpoint using arXiv, Semantic Scholar, CrossRef, and PubMed."""
-    from backend.app.tools.search_tools import academic_research_search
-    results = academic_research_search(query=query, limit=limit)
+async def _execute_research_search(query: str, limit: int = 5, language: str = "auto") -> Dict[str, Any]:
+    clean_query = (query or "").strip()
+    if not clean_query:
+        raise HTTPException(status_code=400, detail="Query parameter is required.")
+
+    papers = []
+    try:
+        from lara_research import LaraResearch
+        lara = LaraResearch()
+        results = lara.search(query=clean_query, limit=limit, lang=language)
+        papers = [p.to_dict() for p in results]
+    except Exception:
+        from backend.app.tools.search_tools import academic_research_search
+        res = academic_research_search(query=clean_query, limit=limit)
+        papers = res.get("papers", [])
+
+    summary = f"Found {len(papers)} research papers matching '{clean_query}'." if papers else f"No papers found for '{clean_query}'."
+
     broadcast_live_event("RESEARCH_SEARCH", {
-        "query": query,
-        "results_count": len(results.get("papers", [])),
+        "query": clean_query,
+        "results_count": len(papers),
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
-    return results
+
+    return {
+        "success": True,
+        "query": clean_query,
+        "count": len(papers),
+        "papers": papers,
+        "summary": summary
+    }
+
+@app.get("/api/v1/research/search")
+async def research_search_get_endpoint(
+    query: str,
+    limit: int = 5,
+    language: str = "auto"
+):
+    """Academic paper search GET endpoint."""
+    return await _execute_research_search(query=query, limit=limit, language=language)
+
+@app.post("/api/v1/research/search")
+async def research_search_post_endpoint(
+    req: Request
+):
+    """Academic paper search POST endpoint supporting JSON payload."""
+    query = ""
+    limit = 5
+    language = "auto"
+    try:
+        body = await req.json()
+        if isinstance(body, dict):
+            query = body.get("query", "")
+            limit = int(body.get("limit", 5))
+            language = body.get("language", "auto")
+    except Exception:
+        pass
+    if not query:
+        query = req.query_params.get("query", "")
+        limit = int(req.query_params.get("limit", 5))
+        language = req.query_params.get("language", "auto")
+
+    return await _execute_research_search(query=query, limit=limit, language=language)
 @app.post("/api/v1/files/upload")
 async def upload_file(
     file: UploadFile = File(...),
@@ -1950,33 +2001,7 @@ async def chat_compat_endpoint(req: Request):
 # LARA Cloud Academic Research Endpoints (arXiv, Semantic Scholar, CrossRef, PubMed)
 # -------------------------------------------------------------------------
 
-@app.post("/api/v1/research/search")
-async def research_search_endpoint(req: Request):
-    """
-    Multilingual academic paper search across arXiv, Semantic Scholar, CrossRef, and PubMed.
-    """
-    from lara_research import LaraResearch
-    body = await req.json()
-    query = body.get("query", "").strip()
-    limit = int(body.get("limit", 5))
-    lang = body.get("language", "auto")
 
-    if not query:
-        raise HTTPException(status_code=400, detail="Query parameter is required.")
-
-    lara = LaraResearch()
-    results = lara.search(query=query, limit=limit, lang=lang)
-    papers = [p.to_dict() for p in results]
-
-    summary = f"Found {len(papers)} research papers matching '{query}'." if papers else f"No papers found for '{query}'."
-
-    return {
-        "success": True,
-        "query": query,
-        "count": len(papers),
-        "papers": papers,
-        "summary": summary
-    }
 
 @app.post("/api/v1/research/summarize")
 async def research_summarize_endpoint(req: Request):
@@ -2317,6 +2342,43 @@ async def files_upload_endpoint(
         "dataset": dataset_meta,
         "message": f"Document '{filename}' successfully ingested and profiled."
     }
+
+# =============================================================================
+# EVA Central Ecosystem Endpoints (Health, Research, Opportunities, Profile)
+# =============================================================================
+
+@app.get("/api/v1/integrations/health")
+async def get_all_integrations_health():
+    """Returns comprehensive integration health status across LLMs, Google, GitHub, LinkedIn, Research."""
+    from backend.app.services.integration_health_service import integration_health_service
+    return integration_health_service.check_all_integrations()
+
+@app.get("/api/v1/research/papers")
+async def search_research_papers_endpoint(query: str, max_results: int = 5):
+    """Academic research discovery endpoint (arXiv, OpenAlex, Semantic Scholar, Crossref)."""
+    from backend.app.services.agents.research_agent import research_agent
+    return await research_agent.search_papers(query=query, max_results=max_results)
+
+@app.get("/api/v1/opportunities/match")
+async def match_opportunities_endpoint(query: Optional[str] = None, location: Optional[str] = None):
+    """Opportunity and internship matching against structured UserProfile."""
+    from backend.app.services.agents.opportunity_agent import opportunity_agent
+    return await opportunity_agent.search_and_match(query=query, location=location)
+
+@app.get("/api/v1/profile")
+async def get_user_profile_endpoint():
+    """Retrieve structured UserProfile context."""
+    from backend.app.services.agents.resume_agent import resume_agent
+    return resume_agent.get_profile().model_dump()
+
+@app.post("/api/v1/profile")
+async def update_user_profile_endpoint(req: Request):
+    """Update structured UserProfile context."""
+    from backend.app.services.agents.resume_agent import resume_agent
+    data = await req.json()
+    updated = resume_agent.update_profile(data)
+    return {"success": True, "profile": updated.model_dump()}
+
 
 
 

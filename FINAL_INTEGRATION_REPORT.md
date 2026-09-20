@@ -49,7 +49,7 @@ The platform links three core runtime execution environments:
 | :--- | :--- | :--- | :--- |
 | **ESP32 BLE Binary Protocol** | Verified | < 15ms frame dispatch | Binary packet decoder & `AUDIO_ACK` telemetry validation |
 | **ESP32 OLED Telemetry Engine** | Verified | < 5ms rendering | Frame text wrapper with line clamping & diagnostic echo |
-| **Speaker Audio Output (MAX98357A)** | Verified | 16kHz Mono PCM | I2S driver pinout verification (GPIO 7, 8, 9) |
+| **Speaker Audio Output (MAX98357A)** | Verified | 16kHz Mono PCM | I2S driver pinout verification (D11/GPIO38 DIN, D12/GPIO39 BCLK, D13/GPIO40 LRC/WS) |
 | **Image Enhancement Pipeline** | Verified | < 25ms OpenCV pipeline | Laplacian blur check, CLAHE, unsharp mask, bilateral filter |
 | **arXiv Research Tooling** | Verified | Live arXiv API + Graph | Query extraction, summary synthesis & multi-turn memory |
 | **10-Digit Calling Safety Rule** | Verified | Strict confirmation | 100% block on auto-dialing <10 digit numbers (e.g. 9-digit) |

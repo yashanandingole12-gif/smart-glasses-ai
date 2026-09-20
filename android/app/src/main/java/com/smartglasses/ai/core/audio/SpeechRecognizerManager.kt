@@ -4,7 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -66,56 +68,72 @@ class SpeechRecognizerManager(
 
     init {
         mainHandler.post {
-            initRecognizer()
+            ensureRecognizerInitialized()
         }
     }
 
-    private fun initRecognizer() {
-        try {
-            speechRecognizer?.destroy()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error cleaning old SpeechRecognizer: ${e.message}")
-        }
-        speechRecognizer = null
+    private fun ensureRecognizerInitialized(): SpeechRecognizer? {
+        if (speechRecognizer != null) return speechRecognizer
 
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            Log.w(TAG, "STT_NOTICE: Standard SpeechRecognizer check returned false, attempting direct create...")
-        }
-
-        try {
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
-                setRecognitionListener(createRecognitionListener())
+        return try {
+            SpeechRecognizer.createSpeechRecognizer(context).also { recognizer ->
+                recognizer.setRecognitionListener(createRecognitionListener())
+                speechRecognizer = recognizer
+                Log.i(TAG, "STT_INIT: SpeechRecognizer initialized and ready.")
             }
-            Log.i(TAG, "STT_INIT: SpeechRecognizer created successfully on Main Thread.")
         } catch (e: Exception) {
             Log.e(TAG, "STT_ERROR: Failed to initialize SpeechRecognizer (${e.message})")
             _sttState.value = STTState.ERROR
+            null
         }
     }
 
-    private fun startBluetoothScoIfAvailable() {
+    private fun recreateRecognizer() {
         try {
-            if (audioManager?.isBluetoothScoAvailableOffCall == true && !isBluetoothScoActive) {
+            speechRecognizer?.destroy()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error cleaning previous SpeechRecognizer: ${e.message}")
+        }
+        speechRecognizer = null
+        ensureRecognizerInitialized()
+    }
+
+    private fun configureAudioRouting() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && audioManager != null) {
+                val availableDevices = audioManager.availableCommunicationDevices
+                val twsDevice = availableDevices.firstOrNull {
+                    it.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                    it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                }
+                if (twsDevice != null) {
+                    audioManager.setCommunicationDevice(twsDevice)
+                    isBluetoothScoActive = true
+                    Log.d(TAG, "STT_AUDIO: Routed to communication device: ${twsDevice.productName}")
+                }
+            } else if (audioManager?.isBluetoothScoAvailableOffCall == true && !isBluetoothScoActive) {
                 audioManager.startBluetoothSco()
                 audioManager.isBluetoothScoOn = true
                 isBluetoothScoActive = true
-                Log.i(TAG, "STT_AUDIO: Bluetooth SCO audio input activated for TWS/Headset.")
+                Log.d(TAG, "STT_AUDIO: Bluetooth SCO audio input enabled.")
             }
         } catch (e: Exception) {
-            Log.w(TAG, "STT_AUDIO: Bluetooth SCO activation notice: ${e.message}")
+            Log.w(TAG, "STT_AUDIO: Notice during audio routing configuration: ${e.message}")
         }
     }
 
-    private fun stopBluetoothScoIfActive() {
+    private fun releaseAudioRouting() {
         try {
-            if (isBluetoothScoActive) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && audioManager != null) {
+                audioManager.clearCommunicationDevice()
+            } else if (isBluetoothScoActive) {
                 audioManager?.stopBluetoothSco()
                 audioManager?.isBluetoothScoOn = false
-                isBluetoothScoActive = false
-                Log.d(TAG, "STT_AUDIO: Bluetooth SCO audio input released.")
             }
+            isBluetoothScoActive = false
         } catch (e: Exception) {
-            Log.w(TAG, "STT_AUDIO: Bluetooth SCO release error: ${e.message}")
+            Log.w(TAG, "STT_AUDIO: Notice during audio routing release: ${e.message}")
         }
     }
 
@@ -124,12 +142,12 @@ class SpeechRecognizerManager(
             override fun onReadyForSpeech(params: Bundle?) {
                 _sttState.value = STTState.LISTENING
                 val lang = languageManager.currentLanguage.value
-                Log.i(TAG, "STT_READY: Listening for voice... (Language=${lang.localeTag})")
+                Log.i(TAG, "STT_READY: Listening for speech input... (${lang.localeTag})")
             }
 
             override fun onBeginningOfSpeech() {
                 _sttState.value = STTState.LISTENING
-                Log.i(TAG, "STT_START: Speech detected by audio input")
+                Log.i(TAG, "STT_START: User started speaking")
             }
 
             override fun onRmsChanged(rmsdB: Float) {
@@ -140,31 +158,23 @@ class SpeechRecognizerManager(
 
             override fun onEndOfSpeech() {
                 _sttState.value = STTState.PROCESSING
-                stopBluetoothScoIfActive()
-                Log.i(TAG, "STT_STOP: End of speech detected, processing audio transcript...")
+                Log.i(TAG, "STT_STOP: User finished speaking, transcribing...")
             }
 
             override fun onError(error: Int) {
                 val durationMs = SystemClock.elapsedRealtime() - sessionStartTime
                 val lang = languageManager.currentLanguage.value
                 val errMsg = getErrorMessage(error)
-                
-                Log.w(TAG, "STT_ERROR: code=$error msg='$errMsg' lang=${lang.localeTag} duration=${durationMs}ms")
-                isSessionActive = false
-                stopBluetoothScoIfActive()
 
-                // Controlled Single-Retry for regional languages or speech timeouts
-                if (!hasRetried && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error == SpeechRecognizer.ERROR_CLIENT)) {
-                    hasRetried = true
-                    Log.i(TAG, "STT_RETRY: Attempting auto-retry for language=${lang.localeTag}")
-                    mainHandler.postDelayed({
-                        initRecognizer()
-                        startListeningInternal(isRetry = true)
-                    }, 250)
-                    return
+                Log.w(TAG, "STT_ERROR: code=$error msg='$errMsg' duration=${durationMs}ms")
+                isSessionActive = false
+
+                // Recreate recognizer if client/busy error corrupted binder
+                if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
+                    recreateRecognizer()
                 }
 
-                _sttState.value = STTState.ERROR
+                _sttState.value = STTState.IDLE
                 val meta = STTSessionMetadata(
                     requestedLanguage = lang,
                     actualLanguageTag = lang.localeTag,
@@ -174,25 +184,19 @@ class SpeechRecognizerManager(
                     retryAttempted = hasRetried
                 )
                 onError(errMsg, meta)
-                
-                // Re-init recognizer for next trigger
-                mainHandler.postDelayed({
-                    initRecognizer()
-                }, 300)
             }
 
             override fun onResults(results: Bundle?) {
                 val durationMs = SystemClock.elapsedRealtime() - sessionStartTime
                 _sttState.value = STTState.SUCCESS
                 isSessionActive = false
-                stopBluetoothScoIfActive()
 
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val text = matches?.firstOrNull()?.trim() ?: ""
                 val textLen = text.length
                 val lang = languageManager.currentLanguage.value
-                
-                Log.i(TAG, "STT_FINAL: Transcribed '${text}' (${textLen} chars, ${durationMs}ms, lang=${lang.localeTag})")
+
+                Log.i(TAG, "STT_FINAL: Transcribed '${text}' (${durationMs}ms)")
 
                 val meta = STTSessionMetadata(
                     requestedLanguage = lang,
@@ -215,7 +219,6 @@ class SpeechRecognizerManager(
                 val text = matches?.firstOrNull() ?: ""
                 if (text.isNotBlank()) {
                     _partialTranscript.value = text
-                    Log.d(TAG, "STT_PARTIAL: '${text}'")
                 }
             }
 
@@ -226,16 +229,16 @@ class SpeechRecognizerManager(
     fun startListening() {
         mainHandler.post {
             hasRetried = false
-            startListeningInternal(isRetry = false)
+            startListeningInternal()
         }
     }
 
-    private fun startListeningInternal(isRetry: Boolean) {
+    private fun startListeningInternal() {
         // 1. Permission check
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            Log.e(TAG, "STT_ERROR: RECORD_AUDIO permission not granted")
+            Log.e(TAG, "STT_ERROR: RECORD_AUDIO permission missing")
             _sttState.value = STTState.ERROR
-            onError("Microphone permission (RECORD_AUDIO) is required", STTSessionMetadata(
+            onError("Microphone permission required", STTSessionMetadata(
                 requestedLanguage = languageManager.currentLanguage.value,
                 actualLanguageTag = "unknown",
                 startTimeMs = SystemClock.elapsedRealtime(),
@@ -244,22 +247,24 @@ class SpeechRecognizerManager(
             return
         }
 
-        // 2. Prevent concurrent / overlapping sessions
+        val recognizer = ensureRecognizerInitialized()
+        if (recognizer == null) {
+            Log.e(TAG, "STT_ERROR: SpeechRecognizer instance unavailable.")
+            _sttState.value = STTState.ERROR
+            return
+        }
+
+        // Cancel previous active session if any
         if (isSessionActive) {
-            Log.w(TAG, "STT_WARN: Session already active, resetting recognizer before restart")
             try {
-                speechRecognizer?.cancel()
+                recognizer.cancel()
             } catch (e: Exception) {
-                Log.w(TAG, "Error cancelling previous session: ${e.message}")
+                Log.w(TAG, "Cancel previous session notice: ${e.message}")
             }
             isSessionActive = false
         }
 
-        if (speechRecognizer == null) {
-            initRecognizer()
-        }
-
-        startBluetoothScoIfAvailable()
+        configureAudioRouting()
 
         val targetLang = languageManager.currentLanguage.value
         val targetLocale = targetLang.toLocale()
@@ -278,23 +283,21 @@ class SpeechRecognizerManager(
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
         }
 
-        Log.i(TAG, "STT_START: SpeechRecognizer.startListening() initiated for ${targetLang.displayName} (${targetLocale.toLanguageTag()})")
+        Log.i(TAG, "STT_START: startListening() initiated for ${targetLocale.toLanguageTag()}")
 
         try {
-            speechRecognizer?.startListening(intent)
+            recognizer.startListening(intent)
         } catch (e: Exception) {
-            Log.e(TAG, "STT_ERROR: startListening threw exception: ${e.message}")
+            Log.e(TAG, "STT_ERROR: startListening failed: ${e.message}")
             isSessionActive = false
-            stopBluetoothScoIfActive()
-            _sttState.value = STTState.ERROR
+            _sttState.value = STTState.IDLE
+            recreateRecognizer()
             onError(e.message ?: "STT failed to start", STTSessionMetadata(
                 requestedLanguage = targetLang,
                 actualLanguageTag = targetLang.localeTag,
                 startTimeMs = sessionStartTime,
                 errorCode = SpeechRecognizer.ERROR_CLIENT
             ))
-            // Re-init for recovery
-            mainHandler.postDelayed({ initRecognizer() }, 200)
         }
     }
 
@@ -303,11 +306,9 @@ class SpeechRecognizerManager(
             try {
                 speechRecognizer?.stopListening()
                 _sttState.value = STTState.PROCESSING
-                Log.i(TAG, "STT_STOP: stopListening called.")
             } catch (e: Exception) {
-                Log.w(TAG, "STT_WARN: stopListening error: ${e.message}")
+                Log.w(TAG, "stopListening notice: ${e.message}")
             }
-            stopBluetoothScoIfActive()
         }
     }
 
@@ -315,13 +316,11 @@ class SpeechRecognizerManager(
         mainHandler.post {
             try {
                 speechRecognizer?.cancel()
-                isSessionActive = false
-                _sttState.value = STTState.IDLE
-                Log.i(TAG, "STT_CANCEL: Session cancelled.")
             } catch (e: Exception) {
-                Log.w(TAG, "STT_WARN: cancel error: ${e.message}")
+                Log.w(TAG, "cancel notice: ${e.message}")
             }
-            stopBluetoothScoIfActive()
+            isSessionActive = false
+            _sttState.value = STTState.IDLE
         }
     }
 
@@ -329,13 +328,12 @@ class SpeechRecognizerManager(
         mainHandler.post {
             try {
                 isSessionActive = false
-                stopBluetoothScoIfActive()
+                releaseAudioRouting()
                 speechRecognizer?.destroy()
                 speechRecognizer = null
                 _sttState.value = STTState.IDLE
-                Log.i(TAG, "STT_DESTROY: Recognizer destroyed.")
             } catch (e: Exception) {
-                Log.w(TAG, "STT_WARN: destroy error: ${e.message}")
+                Log.w(TAG, "destroy notice: ${e.message}")
             }
         }
     }

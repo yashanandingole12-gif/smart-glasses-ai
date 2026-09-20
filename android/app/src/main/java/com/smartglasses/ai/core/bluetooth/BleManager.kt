@@ -121,6 +121,7 @@ class BleManager(private val context: Context) {
     private var commandCharacteristic: BluetoothGattCharacteristic? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var serviceDiscoveryRunnable: Runnable? = null
+    private var isManualDisconnect = false
 
     private val scanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
@@ -191,6 +192,15 @@ class BleManager(private val context: Context) {
                     }
                     _connectionState.value = DeviceConnectionState.DISCONNECTED
                     syncGlassesState()
+
+                    if (!isManualDisconnect && isBleHardwareAvailable()) {
+                        mainHandler.postDelayed({
+                            if (!isManualDisconnect && _connectionState.value == DeviceConnectionState.DISCONNECTED && !_isScanning.value) {
+                                Log.i(TAG, "Auto-reconnecting after GATT error...")
+                                startScan()
+                            }
+                        }, 2000L)
+                    }
                 }
                 return
             }
@@ -233,6 +243,15 @@ class BleManager(private val context: Context) {
                     }
                     _connectionState.value = DeviceConnectionState.DISCONNECTED
                     syncGlassesState()
+
+                    if (!isManualDisconnect && isBleHardwareAvailable()) {
+                        mainHandler.postDelayed({
+                            if (!isManualDisconnect && _connectionState.value == DeviceConnectionState.DISCONNECTED && !_isScanning.value) {
+                                Log.i(TAG, "Auto-reconnecting after disconnect...")
+                                startScan()
+                            }
+                        }, 2000L)
+                    }
                 }
             }
         }
@@ -395,6 +414,7 @@ class BleManager(private val context: Context) {
 
     @SuppressLint("MissingPermission")
     fun startScan() {
+        isManualDisconnect = false
         if (!isBleHardwareAvailable()) {
             Log.w(TAG, "Bluetooth permission or adapter not ready.")
             return
@@ -439,6 +459,7 @@ class BleManager(private val context: Context) {
 
     @SuppressLint("MissingPermission")
     private fun connectToDevice(device: BluetoothDevice) {
+        isManualDisconnect = false
         // Clean up previous GATT instance first
         serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
         serviceDiscoveryRunnable = null
@@ -546,6 +567,7 @@ class BleManager(private val context: Context) {
 
     @SuppressLint("MissingPermission")
     fun disconnect() {
+        isManualDisconnect = true
         stopScan()
         serviceDiscoveryRunnable?.let { mainHandler.removeCallbacks(it) }
         serviceDiscoveryRunnable = null

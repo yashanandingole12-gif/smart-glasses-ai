@@ -117,6 +117,9 @@ class LLMService:
 
     @property
     def provider(self) -> str:
+        import os
+        if os.environ.get("USE_MOCK_LLM") == "1":
+            return "mock"
         return (self._custom_provider or settings.LLM_PROVIDER).lower()
 
     @property

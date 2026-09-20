@@ -59,9 +59,10 @@ void DeviceManager::init() {
     AudioManager::getInstance().init();
     Serial.println("[DEVICE] Audio Manager initialized (I2S Mic & Speaker ready)");
 
-    // 4. Camera Subsystem
-    CameraManager::getInstance().init();
-    Serial.println("[DEVICE] Camera Manager initialized");
+    // 4. Camera Subsystem (Optional / On Hold in Mic-Only Mode)
+    if (CameraManager::getInstance().init()) {
+        Serial.println("[DEVICE] Camera Manager initialized");
+    }
 
     // 5. BLE Stack
     BleManager::getInstance().init("SmartGlasses-S3");

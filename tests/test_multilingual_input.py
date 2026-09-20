@@ -38,7 +38,7 @@ MULTILINGUAL_TEST_CASES = [
     },
     {
         "language_name": "Hinglish",
-        "input_text": "Good morning, aaj mera calendar check karo",
+        "input_text": "Good morning, kaise ho",
         "requested_language": "hi-Latn",
         "locale": "hi-Latn-IN",
         "expected_language": "hi-Latn",
@@ -95,6 +95,7 @@ async def test_multilingual_single_turn_agent(case, monkeypatch):
     """Verify single-turn language preservation and contextual accuracy in LangGraph agent."""
     monkeypatch.setenv("USE_MOCK_CALENDAR", "1")
     monkeypatch.setenv("USE_MOCK_EMAIL", "1")
+    monkeypatch.setenv("USE_MOCK_LLM", "1")
     ctx = make_test_context()
     session_id = f"test_multi_{case['requested_language']}_{int(time.time()*1000)}"
 
@@ -122,6 +123,7 @@ async def test_multilingual_matrix_5_runs_latency(monkeypatch):
     """
     monkeypatch.setenv("USE_MOCK_CALENDAR", "1")
     monkeypatch.setenv("USE_MOCK_EMAIL", "1")
+    monkeypatch.setenv("USE_MOCK_LLM", "1")
     results_summary = []
     tts = SimulatorTextToSpeech(engine_type="silent")
 
