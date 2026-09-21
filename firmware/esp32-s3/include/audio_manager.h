@@ -33,13 +33,14 @@ public:
   size_t readMicrophone(int16_t *buffer, size_t maxSamples);
   float getAudioLevelRMS();
   void runMicrophoneDiagnostic(uint32_t durationMs = 3000);
+  void runVoiceLoopbackTest(uint32_t durationMs = 3500);
 
-  // Direct WAV Audio Recording from ESP32 Onboard Digital Mic (MSM261D)
+  // Direct WAV Audio Recording from ESP32 Digital Mic (INMP441)
   bool recordWavAudio(uint32_t durationMs, uint8_t **outWavBuffer,
                       size_t *outWavSize);
   void releaseWavBuffer(uint8_t *wavBuffer);
 
-  // Speaker Playback & Audio Stream Receiving
+  // Speaker Playback & Audio Stream Receiving (MAX98357A)
   void playTone(uint16_t freqHz, uint32_t durationMs);
   void playMelody(const uint16_t *freqs, const uint16_t *durationsMs,
                   size_t count);
@@ -60,8 +61,9 @@ public:
   bool isRecording() const { return _isRecording; }
   bool isInitialized() const { return _micInitialized; }
   bool isSpeakerInitialized() const { return _speakerInitialized; }
+  float getLastRms() const { return _lastRms; }
 
-  // Hands-free Voice Activity Detection (VAD) & Wake Trigger
+  // Push-To-Talk & Voice Wake Session Controls
   void setVadEnabled(bool enabled) { _vadEnabled = enabled; }
   bool isVadEnabled() const { return _vadEnabled; }
   void triggerVoiceWakeSession();
@@ -72,12 +74,16 @@ private:
   bool _micInitialized = false;
   bool _speakerInitialized = false;
   bool _isRecording = false;
-  uint8_t _volume = 80; // Default 80% volume
+  uint8_t _volume = 85; // Default 85% volume for clear loudness
   uint32_t _lastDiagnosticTime = 0;
+  uint32_t _audioFrameCount = 0;
+  uint32_t _lastLiveVuTime = 0;
+  float _lastRms = 0.0f;
 
-  // VAD State Machine
+  // Hands-free VAD (Enabled by default for hands-free voice operation)
   bool _vadEnabled = true;
   bool _speechActive = false;
+  float _noiseFloor = 80.0f;
   uint32_t _speechStartTime = 0;
   uint32_t _lastSpeechTime = 0;
   uint8_t _consecutiveVoiceFrames = 0;

@@ -59,6 +59,7 @@ public:
 
   void init(const String &deviceName = "EVA-Glasses");
   void sendEvent(const String &eventName, const String &payload = "");
+  void sendAudioChunk(const uint8_t *data, size_t len);
   void updateBattery(uint8_t percentage);
   void updateStatus(const String &statusJson);
   bool isClientConnected() const;

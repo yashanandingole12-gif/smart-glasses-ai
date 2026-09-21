@@ -314,6 +314,36 @@ class StorageService:
             for r in rows
         ]
 
+    def search_documents(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Search uploaded documents by filename and extracted text content."""
+        clean_q = query.strip()
+        if not clean_q:
+            return self.list_files(limit=limit)
+
+        pattern = f"%{clean_q}%"
+        with self._get_conn() as conn:
+            rows = conn.execute("""
+                SELECT file_id, filename, mime_type, size_bytes, source, extracted_text, created_at_iso
+                FROM uploaded_files
+                WHERE filename LIKE ? OR extracted_text LIKE ?
+                ORDER BY created_at DESC LIMIT ?
+            """, (pattern, pattern, limit)).fetchall()
+
+        results = []
+        for r in rows:
+            text = r["extracted_text"] or ""
+            preview = text[:250] + "..." if len(text) > 250 else text
+            results.append({
+                "file_id": r["file_id"],
+                "filename": r["filename"],
+                "mime_type": r["mime_type"],
+                "size_bytes": r["size_bytes"],
+                "source": r["source"],
+                "created_at": r["created_at_iso"],
+                "text_preview": preview if preview else None
+            })
+        return results
+
     def get_latest_document_context(self) -> Optional[Dict[str, Any]]:
         """Returns the most recently uploaded document and its extracted text for LARA reasoning."""
         with self._get_conn() as conn:

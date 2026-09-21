@@ -11,7 +11,7 @@ void DeviceManager::enterDeepSleep(const char* reason) {
     Serial.println("==================================================");
     Serial.printf("[POWER] Entering ESP32-S3 Deep Sleep Mode!\n");
     Serial.printf("[POWER] Reason: %s\n", reason);
-    Serial.println("[POWER] Wakeup Source: Physical Button (GPIO 0 / Active LOW)");
+    Serial.printf("[POWER] Wakeup Source: Physical Button (Pin D4 / GPIO %d, Active LOW)\n", PIN_BUTTON_PTT);
     Serial.println("==================================================");
     Serial.flush();
 
@@ -31,7 +31,7 @@ void DeviceManager::enterDeepSleep(const char* reason) {
     pinMode(PIN_LED_STATUS, OUTPUT);
     digitalWrite(PIN_LED_STATUS, HIGH);
 
-    // 5. Configure GPIO 0 (PTT button) as external wakeup source
+    // 5. Configure GPIO 5 (PTT button on D4) as external wakeup source
     esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_BUTTON_PTT, 0);
 
     // 6. Enter Deep Sleep
@@ -46,34 +46,34 @@ void DeviceManager::init() {
     pinMode(PIN_LED_STATUS, OUTPUT);
     digitalWrite(PIN_LED_STATUS, HIGH);
 
-    // 1. Button PTT
+    // 1. Push-To-Talk Button on Pin D4 (GPIO 5)
     ButtonManager::getInstance().init(PIN_BUTTON_PTT);
-    Serial.printf("[DEVICE] Button PTT initialized on GPIO %d (Debounce: %d ms)\n", PIN_BUTTON_PTT, BUTTON_DEBOUNCE_MS);
+    Serial.printf("[DEVICE] Push-To-Talk Button Initialized on Pin D4 (GPIO %d)\n", PIN_BUTTON_PTT);
 
     // 2. Battery ADC
     BatteryManager::getInstance().init(PIN_BATTERY_ADC);
     uint8_t initialBatt = BatteryManager::getInstance().getBatteryPercentage();
-    Serial.printf("[DEVICE] Battery ADC initialized on GPIO %d (Initial: %d%%)\n", PIN_BATTERY_ADC, initialBatt);
+    Serial.printf("[DEVICE] Battery ADC Initialized on GPIO %d (Initial: %d%%)\n", PIN_BATTERY_ADC, initialBatt);
 
-    // 3. Audio Subsystem (Microphone PDM + Speaker I2S DAC)
+    // 3. Audio Subsystem (INMP441 I2S Mic + MAX98357A I2S Speaker)
     AudioManager::getInstance().init();
-    Serial.println("[DEVICE] Audio Manager initialized (I2S Mic & Speaker ready)");
+    Serial.println("[DEVICE] Audio Manager Initialized (INMP441 Mic & MAX98357A Speaker ready)");
 
-    // 4. Camera Subsystem (Optional / On Hold in Mic-Only Mode)
+    // 4. Camera Subsystem (Optional / On Hold in Mic-Only Voice Mode)
     if (CameraManager::getInstance().init()) {
-        Serial.println("[DEVICE] Camera Manager initialized");
+        Serial.println("[DEVICE] Camera Manager Initialized");
     }
 
     // 5. BLE Stack
     BleManager::getInstance().init("SmartGlasses-S3");
-    Serial.println("[DEVICE] BLE Manager initialized. Advertising as 'SmartGlasses-S3'");
+    Serial.println("[DEVICE] BLE Manager Initialized. Advertising as 'SmartGlasses-S3'");
 
     // 6. WiFi Subsystem
     WiFiManager::getInstance().init();
 
     // 7. Mini OLED Display Subsystem
     OledManager::getInstance().init();
-    Serial.println("[DEVICE] OLED Display Subsystem initialized");
+    Serial.println("[DEVICE] OLED Display Subsystem Initialized");
 
     // Wire up incoming BLE Audio Stream Chunks to Speaker DAC
     BleManager::getInstance().setAudioRxCallback([this](const uint8_t* data, size_t len) {
@@ -81,10 +81,10 @@ void DeviceManager::init() {
         AudioManager::getInstance().streamPcmChunk(data, len);
     });
 
-    // Setup button callbacks for Push-to-Talk and Gesture Actions
+    // Setup button callbacks for Push-to-Talk and Actions
     ButtonManager::getInstance().setOnPressStartCallback([this]() {
         this->resetActivity();
-        Serial.println("[BUTTON] >>> PRESS START -> Sending TALK_START");
+        Serial.println("[PTT BUTTON] >>> PRESSED (D4=LOW) -> Starting Recording & Sending TALK_START to Phone");
         OledManager::getInstance().showListening();
         AudioManager::getInstance().playSound(SoundEffect::SOUND_PTT_START);
         AudioManager::getInstance().startMicrophone();
@@ -93,10 +93,10 @@ void DeviceManager::init() {
 
     ButtonManager::getInstance().setOnReleaseCallback([this]() {
         this->resetActivity();
-        Serial.println("[BUTTON] <<< RELEASE -> Sending TALK_STOP");
+        Serial.println("[PTT BUTTON] <<< RELEASED (D4=HIGH) -> Stopping Recording & Sending TALK_STOP to Phone");
         OledManager::getInstance().showThinking();
-        AudioManager::getInstance().playSound(SoundEffect::SOUND_PTT_STOP);
         AudioManager::getInstance().stopMicrophone();
+        AudioManager::getInstance().playSound(SoundEffect::SOUND_PTT_STOP);
         BleManager::getInstance().sendEvent("TALK_STOP");
     });
 
@@ -109,7 +109,7 @@ void DeviceManager::init() {
     ButtonManager::getInstance().setOnLongPressCallback([this]() {
         this->resetActivity();
         Serial.println("[BUTTON] HOLD -> Sending BUTTON_LONG_PRESSED");
-        OledManager::getInstance().showStatus("LARA AI", "Wake Triggered", "Listening...");
+        OledManager::getInstance().showStatus("EVA AI", "Wake Triggered", "Listening...");
         AudioManager::getInstance().playSound(SoundEffect::SOUND_WAKE);
         BleManager::getInstance().sendEvent("BUTTON_LONG_PRESSED");
     });
@@ -131,24 +131,24 @@ void DeviceManager::handleIncomingCommand(const String& cmdJson) {
         Serial.println();
         Serial.println("==================================================");
         Serial.println("  [OLED DISPLAY]");
-        Serial.println("  LARA");
+        Serial.println("  EVA");
         Serial.println("  BLE: OK");
         Serial.println();
         Serial.println("  RX:");
         Serial.printf("  %s\n", msg.c_str());
         Serial.println("==================================================");
         Serial.flush();
-        OledManager::getInstance().showAiResponse("LARA", msg);
+        OledManager::getInstance().showAiResponse("EVA", msg);
         AudioManager::getInstance().playSound(SoundEffect::SOUND_SUCCESS);
         return;
     }
 
-    if (cmdJson.indexOf("START_LISTENING") >= 0) {
+    if (cmdJson.indexOf("START_LISTENING") >= 0 || cmdJson.indexOf("TALK_START") >= 0) {
         Serial.println("[AUDIO] Command: START_LISTENING");
         OledManager::getInstance().showListening();
         AudioManager::getInstance().playSound(SoundEffect::SOUND_WAKE);
         AudioManager::getInstance().startMicrophone();
-    } else if (cmdJson.indexOf("STOP_LISTENING") >= 0) {
+    } else if (cmdJson.indexOf("STOP_LISTENING") >= 0 || cmdJson.indexOf("TALK_STOP") >= 0) {
         Serial.println("[AUDIO] Command: STOP_LISTENING");
         OledManager::getInstance().showThinking();
         AudioManager::getInstance().stopMicrophone();

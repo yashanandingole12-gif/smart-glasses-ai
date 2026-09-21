@@ -33,8 +33,7 @@ void decodeAndPlayBase64Audio(const String &b64Str) {
   uint8_t *pcmBuf =
       (uint8_t *)(psramFound() ? ps_malloc(maxDecoded) : malloc(maxDecoded));
   if (!pcmBuf) {
-    Serial.println(
-        "[SPEAKER] ERROR: Memory allocation failed for audio decode.");
+    Serial.println("[SPEAKER] ERROR: Memory allocation failed for audio decode.");
     return;
   }
   int ret = mbedtls_base64_decode(pcmBuf, maxDecoded, &outLen,
@@ -56,8 +55,7 @@ void decodeAndPlayBase64Audio(const String &b64Str) {
 }
 
 void setup() {
-  // Turn OFF yellow user LED on GPIO 21 immediately at boot (Active LOW -> HIGH
-  // is OFF)
+  // Turn OFF yellow user LED on GPIO 21 immediately at boot (Active LOW -> HIGH is OFF)
   pinMode(PIN_LED_STATUS, OUTPUT);
   digitalWrite(PIN_LED_STATUS, HIGH);
 
@@ -66,8 +64,8 @@ void setup() {
 
   Serial.println();
   Serial.println("==================================================");
-  Serial.println("  EVA Smart Glasses AI Assistant (ESP32-S3)");
-  Serial.println("  Firmware: v1.0.0 | Multimodal, Vision & Speaker Ready");
+  Serial.println("  EVA Smart Glasses AI Assistant (XIAO ESP32-S3)");
+  Serial.println("  Firmware: v1.0.0 | INMP441 Mic + MAX98357A Spk + PTT");
   Serial.println("==================================================");
 
   esp_chip_info_t chip_info;
@@ -99,26 +97,31 @@ void loop() {
 
   if (millis() - lastHeartbeat >= 2000) {
     lastHeartbeat = millis();
+    int btnD4 = digitalRead(PIN_BUTTON_PTT);
+    float liveRms = AudioManager::getInstance().getAudioLevelRMS();
+
+    String micStatus = "OFFLINE";
+    if (AudioManager::getInstance().isInitialized()) {
+      micStatus = "LIVE (INMP441 RMS: " + String((int)liveRms) + ")";
+    }
+
     Serial.printf(
-        "[HEARTBEAT] Uptime: %lu ms | Free Heap: %d KB | BLE: %s | Mic: %s | "
-        "Speaker: %s\n",
+        "[HEARTBEAT] Uptime: %lu ms | Heap: %d KB | BLE: %s | Mic: %s | Speaker: %s | Button(D4=%s)\n",
         millis(), ESP.getFreeHeap() / 1024,
         BleManager::getInstance().isClientConnected()
             ? "CONNECTED"
             : "ADVERTISING (SmartGlasses-S3)",
-        AudioManager::getInstance().isInitialized() ? "READY (PDM 16kHz)"
-                                                    : "OFFLINE",
-        AudioManager::getInstance().isSpeakerInitialized() ? "READY (I2S TX)"
-                                                           : "OFFLINE");
+        micStatus.c_str(),
+        AudioManager::getInstance().isSpeakerInitialized() ? "READY (MAX98357A I2S)"
+                                                           : "OFFLINE",
+        btnD4 == LOW ? "LOW (PRESSED - RECORDING)" : "HIGH (OPEN/IDLE - Hold to Talk)");
   }
 
   if (liveMicStreaming && (millis() - lastMicStream >= 100)) {
     lastMicStream = millis();
     float rms = AudioManager::getInstance().getAudioLevelRMS();
-    bool isSpeech = (rms > 140.0f);
-    Serial.printf("[MIC_STREAM] "
-                  "{\"rms\":%.1f,\"peak\":%.0f,\"speech\":%s,\"clipping\":"
-                  "false,\"rate\":16000,\"channels\":1}\n",
+    bool isSpeech = (rms > 200.0f);
+    Serial.printf("[MIC_STREAM] {\"rms\":%.1f,\"peak\":%.0f,\"speech\":%s,\"rate\":16000,\"channels\":1}\n",
                   rms, rms * 1.8f, isSpeech ? "true" : "false");
   }
 
@@ -129,35 +132,52 @@ void loop() {
     cmdUpper.toUpperCase();
 
     if (cmdUpper == "STATUS" || cmdUpper == "PING") {
+      int btnD4 = digitalRead(PIN_BUTTON_PTT);
       Serial.printf(
-          "[DIAGNOSTIC] Board: Seeed XIAO ESP32-S3 | Mode: MIC_ONLY_VOICE | "
-          "Free Heap: %d KB | Mic: %s | Spk: %s | CPU: %d MHz\n",
+          "[DIAGNOSTIC] Board: Seeed XIAO ESP32-S3 | Mode: PTT_VOICE_AI | Free Heap: %d KB | Mic: %s | Spk: %s | D4: %s\n",
           ESP.getFreeHeap() / 1024,
-          AudioManager::getInstance().isInitialized() ? "READY (PDM 16kHz)"
-                                                      : "OFFLINE",
-          AudioManager::getInstance().isSpeakerInitialized() ? "READY"
-                                                             : "OFFLINE",
-          getCpuFrequencyMhz());
+          AudioManager::getInstance().isInitialized() ? "READY (INMP441 16kHz)" : "OFFLINE",
+          AudioManager::getInstance().isSpeakerInitialized() ? "READY (MAX98357A)" : "OFFLINE",
+          btnD4 == LOW ? "LOW (PRESSED/CLOSED)" : "HIGH (RELEASED/OPEN)");
+    } else if (cmdUpper == "BUTTON" || cmdUpper == "BTN" || cmdUpper == "BTN_TEST") {
+      int btnD4 = digitalRead(PIN_BUTTON_PTT);
+      Serial.println();
+      Serial.println("==================================================");
+      Serial.println("  PUSH-TO-TALK BUTTON REAL-TIME PIN STATUS");
+      Serial.printf("  - Pin D4 (GPIO %d) [External Button]: %s (Raw: %d)\n",
+                    PIN_BUTTON_PTT,
+                    btnD4 == LOW ? "LOW -> PRESSED / SHORTED TO GND" : "HIGH -> OPEN / IDLE",
+                    btnD4);
+      if (btnD4 == LOW) {
+        Serial.println("  [!] NOTE: If you are NOT holding the button, your 4-pin switch");
+        Serial.println("      is wired across shorted pins. Rotate it 90 degrees or use diagonal pins.");
+      } else {
+        Serial.println("  [OK] Pin D4 is HIGH at rest. Pressing it will pull it LOW to start talk.");
+      }
+      Serial.println("==================================================");
+      Serial.println();
+    } else if (cmdUpper == "TEST_VOICE" || cmdUpper == "VOICE_TEST" ||
+               cmdUpper == "LOOPBACK" || cmdUpper == "TEST_LOOPBACK") {
+      Serial.println("[TEST] Starting Voice Loopback Hardware Diagnostic...");
+      AudioManager::getInstance().runVoiceLoopbackTest(3500);
     } else if (cmdUpper == "EVA START TALK" || cmdUpper == "EVA TALK" ||
                cmdUpper == "START TALK" || cmdUpper == "HEY EVA" ||
-               cmdUpper == "EVA" || cmdUpper == "HEY LARA" ||
-               cmdUpper == "LARA" || cmdUpper == "WAKE" || cmdUpper == "TALK" ||
+               cmdUpper == "EVA" || cmdUpper == "WAKE" || cmdUpper == "TALK" ||
                cmdUpper == "START" || cmdUpper == "START_TALK" ||
                cmdUpper == "TALK_START") {
-      Serial.printf("[COMMAND] Recognized Wake / Talk Command: '%s'\n",
-                    input.c_str());
+      Serial.printf("[COMMAND] Recognized Wake / Talk Command: '%s'\n", input.c_str());
       AudioManager::getInstance().triggerVoiceWakeSession();
     } else if (cmdUpper == "STOP" || cmdUpper == "STOP_TALK" ||
-               cmdUpper == "EVA STOP" || cmdUpper == "EVA STOP TALK") {
+               cmdUpper == "EVA STOP" || cmdUpper == "EVA STOP TALK" ||
+               cmdUpper == "TALK_STOP") {
       Serial.printf("[COMMAND] Recognized Stop Command: '%s'\n", input.c_str());
       AudioManager::getInstance().stopVoiceWakeSession();
     } else if (cmdUpper == "ENABLE_VAD" || cmdUpper == "VAD ON") {
       AudioManager::getInstance().setVadEnabled(true);
-      Serial.println("[VAD] Automatic Hands-Free Voice Detection ENABLED "
-                     "(Threshold: 280 RMS)");
+      Serial.println("[VAD] Automatic Hands-Free Voice Detection ENABLED (Threshold: 300 RMS)");
     } else if (cmdUpper == "DISABLE_VAD" || cmdUpper == "VAD OFF") {
       AudioManager::getInstance().setVadEnabled(false);
-      Serial.println("[VAD] Automatic Hands-Free Voice Detection DISABLED");
+      Serial.println("[VAD] Automatic Hands-Free Voice Detection DISABLED (PTT Button Active)");
     } else if (cmdUpper == "LED_OFF" || cmdUpper == "FIX_LED") {
       pinMode(PIN_LED_STATUS, OUTPUT);
       digitalWrite(PIN_LED_STATUS, HIGH);
@@ -198,44 +218,39 @@ void loop() {
       }
       Serial.printf("[SPEAKER] Playing Tone: %u Hz for %u ms\n", freq, dur);
       AudioManager::getInstance().playTone(freq, dur);
-    } else if (input.startsWith("SET_VOLUME") || input.startsWith("VOLUME")) {
+    } else if (cmdUpper.startsWith("SET_VOLUME") || cmdUpper.startsWith("VOLUME")) {
       int spaceIdx = input.indexOf(' ');
       if (spaceIdx > 0) {
         uint8_t vol = input.substring(spaceIdx + 1).toInt();
         AudioManager::getInstance().setVolume(vol);
         AudioManager::getInstance().playSound(SoundEffect::SOUND_SUCCESS);
       }
-    } else if (input.startsWith("PLAY_AUDIO_BASE64")) {
+    } else if (cmdUpper.startsWith("PLAY_AUDIO_BASE64")) {
       int spaceIdx = input.indexOf(' ');
       if (spaceIdx > 0) {
         String b64 = input.substring(spaceIdx + 1);
         decodeAndPlayBase64Audio(b64);
       }
-    } else if (input == "SPK_TEST" || input == "SPEAKER_TEST" ||
-               input == "DIAGNOSE_SPK") {
+    } else if (cmdUpper == "SPK_TEST" || cmdUpper == "SPEAKER_TEST" ||
+               cmdUpper == "DIAGNOSE_SPK" || cmdUpper == "SPK") {
       AudioManager::getInstance().runSpeakerDiagnostic();
-    } else if (input == "AUDIO_TEST" || input == "DIAGNOSE_AUDIO") {
+    } else if (cmdUpper == "AUDIO_TEST" || cmdUpper == "DIAGNOSE_AUDIO") {
       AudioManager::getInstance().runFullAudioDiagnostic();
-    } else if (input == "MIC_TEST" || input == "DIAGNOSE_MIC" ||
-               input == "MIC") {
+    } else if (cmdUpper == "MIC_TEST" || cmdUpper == "DIAGNOSE_MIC" ||
+               cmdUpper == "MIC") {
       AudioManager::getInstance().runMicrophoneDiagnostic(3500);
-    } else if (input == "MIC_SAMPLE") {
+    } else if (cmdUpper == "MIC_SAMPLE") {
       float rms = AudioManager::getInstance().getAudioLevelRMS();
-      bool isSpeech = (rms > 140.0f);
-      Serial.printf("[MIC_SAMPLE_JSON] "
-                    "{\"rms\":%.1f,\"peak\":%.0f,\"speech\":%s,\"clipping\":"
-                    "false,\"sample_rate\":16000,\"channels\":1}\n",
+      bool isSpeech = (rms > 200.0f);
+      Serial.printf("[MIC_SAMPLE_JSON] {\"rms\":%.1f,\"peak\":%.0f,\"speech\":%s,\"rate\":16000,\"channels\":1}\n",
                     rms, rms * 1.8f, isSpeech ? "true" : "false");
-    } else if (input == "START_MIC_STREAM") {
+    } else if (cmdUpper == "START_MIC_STREAM") {
       liveMicStreaming = true;
       Serial.println("[STREAM] Live Microphone Telemetry Stream STARTED");
-    } else if (input == "STOP_MIC_STREAM") {
+    } else if (cmdUpper == "STOP_MIC_STREAM") {
       liveMicStreaming = false;
       Serial.println("[STREAM] Live Microphone Telemetry Stream STOPPED");
-    } else if (input == "CAPTURE_FRAME" || input == "CAMERA") {
-      Serial.println("[CAMERA] Notice: Camera on hold. Operating in pure "
-                     "Microphone / Voice AI Mode.");
-    } else if (input.startsWith("RECORD_AUDIO")) {
+    } else if (cmdUpper.startsWith("RECORD_AUDIO") || cmdUpper.startsWith("RECORD")) {
       uint32_t durationMs = 3000;
       int spaceIdx = input.indexOf(' ');
       if (spaceIdx > 0) {
@@ -248,8 +263,7 @@ void loop() {
 
       uint8_t *wavBuf = nullptr;
       size_t wavLen = 0;
-      if (AudioManager::getInstance().recordWavAudio(durationMs, &wavBuf,
-                                                     &wavLen) &&
+      if (AudioManager::getInstance().recordWavAudio(durationMs, &wavBuf, &wavLen) &&
           wavBuf && wavLen > 0) {
         Serial.printf("[AUDIO_RECORDING_START:%u]\n", (unsigned int)wavLen);
         streamBase64Data(wavBuf, wavLen);
@@ -258,30 +272,20 @@ void loop() {
       } else {
         Serial.println("[AUDIO] ERROR: Audio recording failed.");
       }
-    } else if (input.startsWith("CAPTURE_MULTIMODAL")) {
-      uint32_t durationMs = 3000;
-      int spaceIdx = input.indexOf(' ');
-      if (spaceIdx > 0) {
-        durationMs = input.substring(spaceIdx + 1).toInt();
-      }
-      if (durationMs < 500)
-        durationMs = 3000;
-
-      Serial.println("[VOICE_SESSION_START]");
-      // Mic-Only Voice Command Recording from ESP32 Digital PDM Mic
-      uint8_t *wavBuf = nullptr;
-      size_t wavLen = 0;
-      bool micOk = AudioManager::getInstance().recordWavAudio(durationMs,
-                                                              &wavBuf, &wavLen);
-      if (micOk && wavBuf && wavLen > 0) {
-        Serial.printf("[AUDIO_RECORDING_START:%u]\n", (unsigned int)wavLen);
-        streamBase64Data(wavBuf, wavLen);
-        Serial.println("[AUDIO_RECORDING_END]");
-        AudioManager::getInstance().releaseWavBuffer(wavBuf);
-      } else {
-        Serial.println("[AUDIO_RECORDING_FAILED]");
-      }
-      Serial.println("[VOICE_SESSION_END]");
+    } else if (cmdUpper == "HELP" || cmdUpper == "?") {
+      Serial.println();
+      Serial.println("==================================================");
+      Serial.println("  AVAILABLE EVA SERIAL TEST COMMANDS");
+      Serial.println("==================================================");
+      Serial.println("  SPK_TEST         - Test speaker (plays 440Hz + 880Hz tones)");
+      Serial.println("  MIC_TEST         - Test mic (prints live RMS & VU meter)");
+      Serial.println("  PLAY_TONE <f> <d>- Play frequency (Hz) for duration (ms)");
+      Serial.println("  TEST_VOICE       - Record 3.5s and playback on speaker");
+      Serial.println("  RECORD_AUDIO <ms>- Record audio and stream base64 WAV");
+      Serial.println("  BUTTON           - Check PTT button (D4) and BOOT button state");
+      Serial.println("  STATUS           - Check board status, heap, BLE, mic, speaker");
+      Serial.println("==================================================");
+      Serial.println();
     } else if (input == "OLED_TEST" || input == "TEST_OLED" ||
                input == "DIAGNOSE_OLED") {
       Serial.println("[OLED] Running OLED Diagnostics Test...");
@@ -296,11 +300,11 @@ void loop() {
                input.startsWith("TEXT_OLED ")) {
       String msg = input.substring(10);
       Serial.printf("[OLED] Displaying text: %s\n", msg.c_str());
-      OledManager::getInstance().showAiResponse("LARA", msg);
+      OledManager::getInstance().showAiResponse("EVA", msg);
     } else if (input.startsWith("OLED_STATUS ")) {
       String msg = input.substring(12);
       Serial.printf("[OLED] Displaying status: %s\n", msg.c_str());
-      OledManager::getInstance().showStatus("LARA SMART GLASS", msg, "");
+      OledManager::getInstance().showStatus("EVA SMART GLASS", msg, "");
     } else if (input == "REPORT" || input == "DIAG" || input == "SELF_TEST") {
       Serial.println("[SELF_TEST_START]");
       String report = diagnosticManager.getJsonReport();

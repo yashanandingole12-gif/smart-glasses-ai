@@ -1,13 +1,9 @@
 #include "diagnostic_manager.h"
+#include "audio_manager.h"
+#include "board_config.h"
 #include <driver/i2s.h>
 #include <math.h>
 #include <stdio.h>
-
-#define PDM_MIC_CLK_PIN 42
-#define PDM_MIC_DATA_PIN 41
-#define I2S_PORT I2S_NUM_0
-#define SAMPLE_RATE 16000
-#define BUFFER_SIZE 512
 
 DiagnosticManager::DiagnosticManager() : _initialized(false) {
   memset(&_last_summary, 0, sizeof(HardwareDiagSummary));
@@ -36,7 +32,6 @@ CameraDiagStatus DiagnosticManager::testCamera() {
   status.width = fb->width;
   status.height = fb->height;
 
-  // Approximate luminance / brightness from JPEG/raw buffer samples
   uint64_t sum = 0;
   size_t sample_count = (fb->len > 1000) ? 1000 : fb->len;
   for (size_t i = 0; i < sample_count; i++) {
@@ -53,12 +48,9 @@ CameraDiagStatus DiagnosticManager::testCamera() {
 AudioDiagStatus DiagnosticManager::testMicrophone(uint32_t sample_duration_ms) {
   AudioDiagStatus status;
   memset(&status, 0, sizeof(AudioDiagStatus));
-  status.sample_rate_hz = SAMPLE_RATE;
+  status.sample_rate_hz = I2S_MIC_SAMPLE_RATE;
 
-  // Allocate test sample buffer
-  int16_t sample_buffer[BUFFER_SIZE];
-  size_t bytes_read = 0;
-
+  int16_t sample_buffer[256];
   uint32_t start_time = millis();
   float sum_squares = 0.0f;
   float peak_val = 0.0f;
@@ -66,17 +58,15 @@ AudioDiagStatus DiagnosticManager::testMicrophone(uint32_t sample_duration_ms) {
   bool clipped = false;
 
   while (millis() - start_time < sample_duration_ms) {
-    esp_err_t err =
-        i2s_read(I2S_PORT, (void *)sample_buffer, sizeof(sample_buffer),
-                 &bytes_read, pdMS_TO_TICKS(100));
-    if (err != ESP_OK || bytes_read == 0) {
+    size_t samples_read = AudioManager::getInstance().readMicrophone(sample_buffer, 256);
+    if (samples_read == 0) {
+      delay(5);
       continue;
     }
 
-    status.i2s_initialized = true;
+    status.i2s_initialized = AudioManager::getInstance().isInitialized();
     status.dma_active = true;
 
-    size_t samples_read = bytes_read / sizeof(int16_t);
     for (size_t i = 0; i < samples_read; i++) {
       float val = (float)sample_buffer[i] / 32768.0f;
       float abs_val = fabsf(val);
@@ -96,7 +86,7 @@ AudioDiagStatus DiagnosticManager::testMicrophone(uint32_t sample_duration_ms) {
     status.clip_warning = clipped;
     status.error_msg = "";
   } else {
-    status.error_msg = "No audio samples captured from PDM microphone.";
+    status.error_msg = "No audio samples captured from INMP441 microphone.";
   }
 
   return status;
@@ -124,7 +114,7 @@ String DiagnosticManager::getJsonReport() {
   char buf[1024];
   snprintf(
       buf, sizeof(buf),
-      "{\"board\":\"Seeed XIAO ESP32-S3 Sense\",\"passed\":%s,\"uptime_ms\":%u,"
+      "{\"board\":\"Seeed XIAO ESP32-S3\",\"passed\":%s,\"uptime_ms\":%u,"
       "\"heap\":{\"free_bytes\":%u,\"min_free_bytes\":%u},"
       "\"psram\":{\"total_bytes\":%u,\"free_bytes\":%u},"
       "\"camera\":{\"detected\":%s,\"capture_success\":%s,\"frame_size_bytes\":"

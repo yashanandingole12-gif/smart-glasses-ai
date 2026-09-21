@@ -8,7 +8,7 @@ async def test_root_dashboard():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/")
         assert resp.status_code == 200
-        assert "LARA Smart Glasses" in resp.text or "Smart Glasses" in resp.text
+        assert "EVA" in resp.text or "Smart Glasses" in resp.text
         assert "text/html" in resp.headers.get("content-type", "")
 
 @pytest.mark.asyncio

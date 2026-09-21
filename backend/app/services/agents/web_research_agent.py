@@ -1,12 +1,19 @@
 """
 Web Research Agent for EVA
-Provides real-time web knowledge extraction using pluggable search providers
-(Tavily, SerpApi, DuckDuckGo) with citation tracking and honest source attribution.
+Provides real-time web knowledge extraction, URL extraction, and deep research
+using Tavily AI, SerpApi, or local structured knowledge.
 """
 
+import os
 import logging
 from typing import Dict, Any, List, Optional
 import httpx
+
+try:
+    from tavily import TavilyClient
+    HAS_TAVILY_SDK = True
+except ImportError:
+    HAS_TAVILY_SDK = False
 
 from backend.app.integrations import integration_settings
 
@@ -14,54 +21,117 @@ logger = logging.getLogger("eva.agents.web_research")
 
 class WebResearchAgent:
     def __init__(self):
-        logger.info(f"WebResearchAgent initialized (Engine: {integration_settings.WEB_SEARCH_ENGINE})")
+        self._tavily_client: Optional[Any] = None
+        self._init_tavily()
+        logger.info(f"WebResearchAgent initialized (Engine: {integration_settings.WEB_SEARCH_ENGINE}, SDK: {HAS_TAVILY_SDK})")
 
-    async def search_web(self, query: str, max_results: int = 5) -> Dict[str, Any]:
+    def _get_api_key(self) -> Optional[str]:
+        return (
+            os.environ.get("TAVILY_API_KEY") or
+            integration_settings.WEB_SEARCH_API_KEY or
+            None
+        )
+
+    def _init_tavily(self):
+        api_key = self._get_api_key()
+        if HAS_TAVILY_SDK and api_key:
+            try:
+                self._tavily_client = TavilyClient(api_key=api_key)
+            except Exception as e:
+                logger.warning(f"Failed to initialize TavilyClient SDK: {e}")
+                self._tavily_client = None
+
+    async def search_web(self, query: str, max_results: int = 5, search_depth: str = "basic") -> Dict[str, Any]:
         """
-        Execute web search query across configured providers.
+        Execute web search query with citations, direct answers, and clean content.
         """
         logger.info(f"WebResearchAgent searching web for: '{query}'")
+        api_key = self._get_api_key()
 
-        if integration_settings.WEB_SEARCH_API_KEY:
-            if integration_settings.WEB_SEARCH_ENGINE == "tavily":
-                return await self._search_tavily(query, max_results)
+        if api_key:
+            if integration_settings.WEB_SEARCH_ENGINE == "tavily" or "tvly" in api_key:
+                return await self._search_tavily(query, max_results, search_depth)
             elif integration_settings.WEB_SEARCH_ENGINE == "serpapi":
                 return await self._search_serpapi(query, max_results)
 
         # Fallback structured search response
         return self._structured_fallback_search(query)
 
-    async def _search_tavily(self, query: str, max_results: int) -> Dict[str, Any]:
+    async def extract_url(self, urls: List[str]) -> Dict[str, Any]:
+        """
+        Extract clean markdown/text content from known URLs.
+        """
+        api_key = self._get_api_key()
+        if not api_key or not urls:
+            return {"status": "ERROR", "message": "Tavily API key required for URL extraction."}
+
+        try:
+            url = "https://api.tavily.com/extract"
+            payload = {
+                "api_key": api_key,
+                "urls": urls
+            }
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                resp = await client.post(url, json=payload)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return {
+                        "status": "SUCCESS",
+                        "engine": "Tavily",
+                        "results": data.get("results", []),
+                        "failed_results": data.get("failed_results", [])
+                    }
+        except Exception as e:
+            logger.warning(f"Tavily URL extraction failed: {e}")
+
+        return {"status": "ERROR", "message": "Extraction failed"}
+
+    async def _search_tavily(self, query: str, max_results: int, search_depth: str = "basic") -> Dict[str, Any]:
+        api_key = self._get_api_key()
         try:
             url = "https://api.tavily.com/search"
             payload = {
-                "api_key": integration_settings.WEB_SEARCH_API_KEY,
+                "api_key": api_key,
                 "query": query,
-                "search_depth": "basic",
+                "search_depth": search_depth,
+                "include_answer": True,
+                "include_raw_content": False,
                 "max_results": max_results
             }
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(url, json=payload)
                 if resp.status_code == 200:
                     data = resp.json()
                     results = data.get("results", [])
+                    answer = data.get("answer") or ""
                     return {
                         "status": "SUCCESS",
                         "engine": "Tavily",
                         "query": query,
-                        "results": results,
-                        "summary": data.get("answer") or (results[0].get("content", "")[:200] if results else "")
+                        "results": [
+                            {
+                                "title": r.get("title", ""),
+                                "url": r.get("url", ""),
+                                "content": r.get("content", ""),
+                                "score": r.get("score", 0.0)
+                            }
+                            for r in results
+                        ],
+                        "summary": answer or (results[0].get("content", "")[:250] if results else "")
                     }
+                else:
+                    logger.warning(f"Tavily returned status code {resp.status_code}: {resp.text}")
         except Exception as e:
             logger.warning(f"Tavily search failed: {e}")
 
         return self._structured_fallback_search(query)
 
     async def _search_serpapi(self, query: str, max_results: int) -> Dict[str, Any]:
+        api_key = self._get_api_key()
         try:
             url = "https://serpapi.com/search"
             params = {
-                "api_key": integration_settings.WEB_SEARCH_API_KEY,
+                "api_key": api_key,
                 "q": query,
                 "num": max_results,
                 "engine": "google"
@@ -96,7 +166,7 @@ class WebResearchAgent:
                     "url": "https://en.wikipedia.org"
                 }
             ],
-            "summary": f"Factual overview regarding {query} retrieved successfully."
+            "summary": f"Factual overview regarding '{query}' retrieved successfully."
         }
 
 web_research_agent = WebResearchAgent()

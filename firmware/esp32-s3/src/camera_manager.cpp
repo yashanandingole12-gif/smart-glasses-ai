@@ -1,9 +1,16 @@
 #include "camera_manager.h"
+#include "board_config.h"
 #include "esp_camera.h"
 
 CameraManager::CameraManager() {}
 
 bool CameraManager::init() {
+  if (CAM_PIN_XCLK == -1 || CAM_PIN_D0 == -1) {
+    Serial.println("[CAMERA] Notice: Camera on hold. Operating in dedicated Microphone & Speaker Voice AI Mode.");
+    _initialized = false;
+    return false;
+  }
+
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
@@ -29,14 +36,12 @@ bool CameraManager::init() {
   config.pixel_format = PIXFORMAT_JPEG;
   config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   config.fb_location = CAMERA_FB_IN_PSRAM;
-  config.jpeg_quality =
-      10; // High clarity (lower is better, 10 is crisp for OCR & QR)
-  config.frame_size = FRAMESIZE_VGA; // 640x480
-  config.fb_count = 2;               // Double buffering in 8MB Octal PSRAM
+  config.jpeg_quality = 10;
+  config.frame_size = FRAMESIZE_VGA;
+  config.fb_count = 2;
 
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
-    // Fallback: QVGA (320x240) if PSRAM is constrained
     config.frame_size = FRAMESIZE_QVGA;
     config.fb_count = 1;
     config.jpeg_quality = 12;
@@ -45,49 +50,40 @@ bool CameraManager::init() {
 
   if (err == ESP_OK) {
     _initialized = true;
-    setSensorParameters(
-        1, 1, 1); // Boost brightness, contrast & enable auto-exposure AEC2
-    Serial.println("[CAMERA] Onboard Camera Initialized (VGA 640x480 PSRAM "
-                   "High-Clarity Mode Ready)");
+    setSensorParameters(1, 1, 1);
+    Serial.println("[CAMERA] Onboard Camera Initialized (VGA 640x480 PSRAM High-Clarity Mode Ready)");
     return true;
   } else {
     _initialized = false;
-    // Silent in mic-only audio mode
     return false;
   }
 }
 
-void CameraManager::setSensorParameters(int brightness, int contrast,
-                                        int aec2) {
+void CameraManager::setSensorParameters(int brightness, int contrast, int aec2) {
   sensor_t *s = esp_camera_sensor_get();
   if (s != nullptr) {
-    s->set_brightness(
-        s, brightness); // 1 = slightly brighter for indoor/glasses use
-    s->set_contrast(
-        s, contrast); // 1 = higher contrast for sharp equation lines & QR codes
+    s->set_brightness(s, brightness);
+    s->set_contrast(s, contrast);
     s->set_saturation(s, 0);
-    s->set_special_effect(s, 0); // Normal
-    s->set_whitebal(s, 1);       // Auto White Balance
+    s->set_special_effect(s, 0);
+    s->set_whitebal(s, 1);
     s->set_awb_gain(s, 1);
-    s->set_wb_mode(s, 0);       // Auto WB
-    s->set_exposure_ctrl(s, 1); // Auto Exposure Control
-    s->set_aec2(s, aec2);       // Enable AEC2 for rapid lighting adaptation
-    s->set_gain_ctrl(s, 1);     // Auto Gain
+    s->set_wb_mode(s, 0);
+    s->set_exposure_ctrl(s, 1);
+    s->set_aec2(s, aec2);
+    s->set_gain_ctrl(s, 1);
     s->set_agc_gain(s, 0);
     s->set_gainceiling(s, (gainceiling_t)2);
-    s->set_bpc(s, 1);     // Black pixel correction
-    s->set_wpc(s, 1);     // White pixel correction
-    s->set_raw_gma(s, 1); // Gamma correction
-    s->set_lenc(s, 1);    // Lens correction
+    s->set_bpc(s, 1);
+    s->set_wpc(s, 1);
+    s->set_raw_gma(s, 1);
+    s->set_lenc(s, 1);
 
-    // Handle OV3660 specific registers if detected
     if (s->id.PID == OV3660_PID) {
       s->set_vflip(s, 1);
       s->set_brightness(s, brightness);
       s->set_contrast(s, contrast);
     }
-    Serial.println("[CAMERA] Sensor parameters tuned (Brightness+1, "
-                   "Contrast+1, AEC2 Auto-Exposure Active)");
   }
 }
 
@@ -95,7 +91,7 @@ bool CameraManager::captureImage(uint8_t **outBuffer, size_t *outLength) {
   if (!_initialized || outBuffer == nullptr || outLength == nullptr)
     return false;
 
-  releaseBuffer(); // Return any previous frame buffer
+  releaseBuffer();
 
   camera_fb_t *fb = esp_camera_fb_get();
   if (!fb) {

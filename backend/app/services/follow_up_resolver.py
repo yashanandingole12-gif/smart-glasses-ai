@@ -21,6 +21,50 @@ class FollowUpResolver:
     and cross-tool context BEFORE routing to LLM or tool dispatchers.
     """
 
+    def resolve_research_follow_up(self, query: str, ctx: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        if not ctx or not getattr(ctx, "active_research", None):
+            return None
+        papers = ctx.active_research.get("papers", [])
+        if not papers:
+            return None
+
+        q = query.lower().strip()
+        ordinal_match = re.search(r"\b(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|1|2|3|4|5)\b", q)
+        ordinal_map = {
+            "first": 1, "1st": 1, "1": 1,
+            "second": 2, "2nd": 2, "2": 2,
+            "third": 3, "3rd": 3, "3": 3,
+            "fourth": 4, "4th": 4, "4": 4,
+            "fifth": 5, "5th": 5, "5": 5
+        }
+        idx = ordinal_map.get(ordinal_match.group(1), 1) if ordinal_match else 1
+
+        if any(w in q for w in ["who wrote", "author"]) and not ordinal_match and ctx.active_research.get("selected"):
+            target_paper = ctx.active_research["selected"]
+        elif 1 <= idx <= len(papers):
+            target_paper = papers[idx - 1]
+            ctx.active_research["selected"] = target_paper
+        else:
+            target_paper = papers[0]
+            ctx.active_research["selected"] = target_paper
+
+        authors = target_paper.get("authors", [])
+        authors_str = ", ".join(authors) if isinstance(authors, list) else str(authors)
+        title = target_paper.get("title", "Paper")
+        year = target_paper.get("publication_year", target_paper.get("year", "Recent"))
+        abstract = target_paper.get("abstract", "")
+
+        action = "SUMMARIZE_PAPER" if any(w in q for w in ["summarize", "detail", "method"]) else "QUERY_ATTRIBUTE"
+        spoken = f"'{title}' was authored by {authors_str} ({year}). {abstract[:150]}"
+
+        return {
+            "action": action,
+            "paper": target_paper,
+            "spoken_response": spoken,
+            "authors": authors_str,
+            "title": title
+        }
+
     def resolve(self, session_id: str, message: str) -> ResolvedFollowUp:
         raw = message.strip()
         q = raw.lower().rstrip("?.,! ")
@@ -79,6 +123,55 @@ class FollowUpResolver:
                         resolved_parameters={"index": idx, "event": target_evt},
                         direct_answer=f"Event {idx} is '{title}' at {start}{loc_str}."
                     )
+
+        # 1.3 Research Ordinal & Paper Reading: "tell me about the first paper", "first paper", "summarize the whole paper", "paper 2"
+        if any(w in q for w in ["first", "second", "third", "fourth", "fifth", "1st", "2nd", "3rd", "4th", "5th", "paper 1", "paper 2", "paper 3", "the whole paper", "this paper", "the paper"]) and (any(w in q for w in ["paper", "research", "study", "one", "summarize", "tell me about", "details", "method", "author", "authors", "who wrote"]) or q in ["first paper", "second paper", "third paper", "the first one", "first"]):
+            if getattr(ctx, "active_research", None) and ctx.active_research.get("papers"):
+                papers = ctx.active_research["papers"]
+                idx_str = ordinal_match.group(1) if ordinal_match else "first"
+                idx = ordinal_map.get(idx_str, 1)
+                if any(w in q for w in ["whole paper", "this paper", "the paper"]) and ctx.active_research.get("selected"):
+                    target_paper = ctx.active_research["selected"]
+                elif 1 <= idx <= len(papers):
+                    target_paper = papers[idx - 1]
+                    ctx.active_research["selected"] = target_paper
+                else:
+                    target_paper = papers[0]
+                    ctx.active_research["selected"] = target_paper
+
+                title = target_paper.get("title", "Research Paper")
+                authors = ", ".join(target_paper.get("authors", ["Researchers"])[:3])
+                year = target_paper.get("year", target_paper.get("published", "Recent"))
+                abstract = target_paper.get("abstract") or target_paper.get("summary") or "Abstract available via publisher."
+
+                if "who wrote" in q or "author" in q:
+                    return ResolvedFollowUp(
+                        is_follow_up=True,
+                        augmented_message=f"Who authored the paper {title}",
+                        target_capability="research",
+                        action_type="query_attribute",
+                        resolved_parameters={"paper": target_paper, "attribute": "authors"},
+                        direct_answer=f"'{title}' was authored by {authors} ({year})."
+                    )
+
+                if any(w in q for w in ["summarize the whole", "full summary", "in detail", "method", "methodology"]):
+                    return ResolvedFollowUp(
+                        is_follow_up=True,
+                        augmented_message=f"Provide a structured academic summary of paper: {title}. Abstract: {abstract}",
+                        target_capability="research",
+                        action_type="full_summary",
+                        resolved_parameters={"paper": target_paper},
+                        direct_answer=f"Summary of '{title}' by {authors} ({year}): Focuses on core domain improvements. Findings: {abstract[:200]}..."
+                    )
+
+                return ResolvedFollowUp(
+                    is_follow_up=True,
+                    augmented_message=f"Explain research paper {idx}: {title}",
+                    target_capability="research",
+                    action_type="read_ordinal",
+                    resolved_parameters={"index": idx, "paper": target_paper},
+                    direct_answer=f"Paper {idx} is '{title}' by {authors} ({year}). {abstract[:180]}..."
+                )
 
         # 2. Sender & Attribute Questions: "who sent it?", "who is the sender?", "who sent that message?", "who texted?"
         if re.search(r"\b(?:who sent|who is the sender|who messaged|who texted|who wrote|sender)\b", q):

@@ -36,6 +36,11 @@ class ActiveSessionContext:
             "results": [],
             "selected": None
         }
+        self.active_research: Dict[str, Any] = {
+            "query": None,
+            "papers": [],
+            "selected": None
+        }
         self.active_document: Optional[Dict[str, Any]] = None
         self.active_calculation: Optional[Dict[str, Any]] = None
         self.active_vision: Optional[Dict[str, Any]] = None

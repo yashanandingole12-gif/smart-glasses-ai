@@ -165,6 +165,13 @@ void BleManager::sendEvent(const String &eventName, const String &payload) {
   }
 }
 
+void BleManager::sendAudioChunk(const uint8_t *data, size_t len) {
+  if (_connected && _eventChar && data && len > 0) {
+    _eventChar->setValue((uint8_t *)data, len);
+    _eventChar->notify();
+  }
+}
+
 void BleManager::updateBattery(uint8_t percentage) {
   if (_batteryChar) {
     _batteryChar->setValue(&percentage, 1);

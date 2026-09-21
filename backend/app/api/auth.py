@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Google OAuth 2.0"])
 
 
 @router.get("/google")
+@router.get("/google/login")
 async def google_auth_login(
     user_id: str = Query("default_user", description="Identifier of the authenticated user"),
     client_redirect: Optional[str] = Query(None, description="Optional client deep-link URL after authorization"),

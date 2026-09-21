@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartglasses.ai.core.bluetooth.BleManager
 import com.smartglasses.ai.presentation.activity.ActivityScreen
+import com.smartglasses.ai.presentation.components.EvaAtmosphere
 import com.smartglasses.ai.presentation.devices.DevicesHubScreen
 import com.smartglasses.ai.presentation.home.WearableHomeScreen
 import com.smartglasses.ai.presentation.home.WearableHomeViewModel
@@ -20,19 +21,22 @@ import com.smartglasses.ai.presentation.settings.BackendConfigDialog
 import com.smartglasses.ai.presentation.theme.*
 import com.smartglasses.ai.presentation.you.YouProfileScreen
 
-enum class LaraTab(val label: String, val icon: ImageVector) {
-    HOME("Home", Icons.Default.Adjust),
-    ACTIVITY("Activity", Icons.Default.AccessTime),
-    DEVICES("Devices", Icons.Default.Devices),
-    YOU("You", Icons.Default.Person)
+enum class EvaTab(val label: String, val icon: ImageVector) {
+    HOME("Presence", Icons.Default.Adjust),
+    ACTIVITY("Stream", Icons.Default.AccessTime),
+    DEVICES("Perception", Icons.Default.Devices),
+    YOU("Profile", Icons.Default.Person)
 }
 
+// Alias for backward compatibility
+typealias LaraTab = EvaTab
+
 @Composable
-fun LaraMainScreen(
+fun EvaMainScreen(
     viewModel: WearableHomeViewModel,
     bleManager: BleManager
 ) {
-    var selectedTab by remember { mutableStateOf(LaraTab.HOME) }
+    var selectedTab by remember { mutableStateOf(EvaTab.HOME) }
     val state by viewModel.uiState.collectAsState()
 
     if (state.isConfigDialogOpen) {
@@ -45,15 +49,15 @@ fun LaraMainScreen(
     }
 
     Scaffold(
-        containerColor = LaraIvory,
+        containerColor = EvaVoid,
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
-                contentColor = LaraCharcoal,
-                tonalElevation = 6.dp,
+                containerColor = EvaNight,
+                contentColor = EvaTextPure,
+                tonalElevation = 8.dp,
                 modifier = Modifier.height(64.dp)
             ) {
-                LaraTab.values().forEach { tab ->
+                EvaTab.values().forEach { tab ->
                     val isSelected = selectedTab == tab
                     NavigationBarItem(
                         selected = isSelected,
@@ -62,7 +66,7 @@ fun LaraMainScreen(
                             Icon(
                                 imageVector = tab.icon,
                                 contentDescription = tab.label,
-                                tint = if (isSelected) LaraMutedOrange else LaraTextSecondaryLight,
+                                tint = if (isSelected) EvaTeal else EvaTextMuted,
                                 modifier = Modifier.size(20.dp)
                             )
                         },
@@ -71,36 +75,50 @@ fun LaraMainScreen(
                                 text = tab.label,
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal,
-                                color = if (isSelected) LaraMutedOrange else LaraTextSecondaryLight
+                                color = if (isSelected) EvaTeal else EvaTextMuted
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = LaraOrangeLight
+                            indicatorColor = EvaTealGlow
                         )
                     )
                 }
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(EvaVoid)
+        ) {
             when (selectedTab) {
-                LaraTab.HOME -> WearableHomeScreen(
+                EvaTab.HOME -> WearableHomeScreen(
                     viewModel = viewModel,
-                    onNavigateToDevices = { selectedTab = LaraTab.DEVICES }
+                    onNavigateToDevices = { selectedTab = EvaTab.DEVICES }
                 )
-                LaraTab.ACTIVITY -> ActivityScreen(
+                EvaTab.ACTIVITY -> ActivityScreen(
                     viewModel = viewModel,
-                    onNavigateToHome = { selectedTab = LaraTab.HOME }
+                    onNavigateToHome = { selectedTab = EvaTab.HOME }
                 )
-                LaraTab.DEVICES -> DevicesHubScreen(
+                EvaTab.DEVICES -> DevicesHubScreen(
                     bleManager = bleManager,
                     viewModel = viewModel
                 )
-                LaraTab.YOU -> YouProfileScreen(
+                EvaTab.YOU -> YouProfileScreen(
                     viewModel = viewModel,
                     onOpenConfigDialog = { viewModel.openConfigDialog() }
                 )
             }
         }
     }
+}
+
+// Backward-compatible entrypoint
+@Composable
+fun LaraMainScreen(
+    viewModel: WearableHomeViewModel,
+    bleManager: BleManager
+) {
+    EvaMainScreen(viewModel = viewModel, bleManager = bleManager)
 }

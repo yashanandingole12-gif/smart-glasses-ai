@@ -520,7 +520,7 @@ class LLMService:
 
         # Default conversational response
         return LLMResponse(
-            content="I am listening on your smart glasses. How can I help you?",
+            content="I don't have that information right now.",
             provider="mock",
             model=self.model
         )

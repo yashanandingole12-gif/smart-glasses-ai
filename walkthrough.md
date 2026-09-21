@@ -1,58 +1,81 @@
-# LARA SMART GLASSES: FINAL INTEGRATION & PRODUCTION VERIFICATION WALKTHROUGH
+# EVA COLOR ATMOSPHERE SYSTEM: IMPLEMENTATION & VERIFICATION WALKTHROUGH
 
-## 1. Overview of Accomplishments
-We have completed the full end-to-end integration and verification of the **LARA Smart Glasses Platform**:
-- **ESP32-S3 Firmware**: Implemented framed binary packet protocol (`BlePacketHeader`), zero-copy PCM audio streaming, I2S MAX98357A audio output driver, and SSD1306/SH1106 OLED text/telemetry rendering.
-- **Android Runtime**: Enforced 10-digit call safety rules, relational honorific & alias contact resolution ("Papa", "Bade Papa", "Badi Mummy", "Chacha Ji"), on-device 8-category SMS spam/scam filter, conversational lifecycle routines ("Hey LARA" / "Goodbye LARA"), and on-device offline SLM knowledge engine.
-- **Backend Orchestrator**: OpenCV image enhancement pipeline (blur detection, CLAHE, unsharp mask, bilateral denoise), live arXiv academic research mode with session continuation, and zero-emoji operations console.
-- **Deployment & Testing**: 100% test pass rate across Android (35/35 unit tests), Backend (70/70 pytest tests), and ESP32 PlatformIO firmware compilation. Debug APK installed to connected device (`X49TEAV8JRHMJR6X`). All changes committed and pushed to GitHub.
-
----
-
-## 2. Key Components & Implementation Summary
-
-### A. ESP32-S3 Firmware
-- [`firmware/esp32-s3/include/ble_manager.h`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/firmware/esp32-s3/include/ble_manager.h): Defined binary framed packet protocol with magic header (`0xAA`), opcodes (`TEXT`, `AUDIO_START`, `AUDIO_DATA`, `AUDIO_END`, `AUDIO_ACK`, `DEVICE_STATUS`), sequence tracking, and CRC validation.
-- [`firmware/esp32-s3/src/ble_manager.cpp`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/firmware/esp32-s3/src/ble_manager.cpp): Implemented framed packet decoder, legacy raw PCM fallback, and bidirectional `AUDIO_ACK` telemetry emission.
-- [`firmware/esp32-s3/src/device_manager.cpp`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/firmware/esp32-s3/src/device_manager.cpp): OLED diagnostic renderer and line-wrapped transcription display.
-
-### B. Android Companion Engine
-- [`android/app/src/main/java/com/smartglasses/ai/core/sms/SmsSpamFilter.kt`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/android/app/src/main/java/com/smartglasses/ai/core/sms/SmsSpamFilter.kt): On-device classification into 8 categories: `PERSONAL`, `IMPORTANT`, `NORMAL`, `PROMOTIONAL`, `SUSPICIOUS`, `SCAM`, `SPAM`, `SYSTEM` with deep shortlink, raw IP, and extortion threat heuristics.
-- [`android/app/src/main/java/com/smartglasses/ai/core/sms/SmsManagerHelper.kt`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/android/app/src/main/java/com/smartglasses/ai/core/sms/SmsManagerHelper.kt): Familial alias and honorific stripping/expansion ("Papa", "Bade Papa", "Badi Mummy", "Chacha Ji", "Dadaji").
-- [`android/app/src/main/java/com/smartglasses/ai/domain/usecases/AIResponseRouter.kt`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/android/app/src/main/java/com/smartglasses/ai/domain/usecases/AIResponseRouter.kt):
-  - **10-Digit Safety Rule**: Strict confirmation prompt if user tries to dial a $<10$-digit number (e.g. 9-digit `xxxxx-xxxx`), while allowing standard emergency numbers (`100`, `112`, `911`).
-  - **Lifecycle Management**: `"Hey LARA"` greeting with battery and unread message summary, and `"Goodbye LARA"` context cleanup and sleep transition.
-- [`android/app/src/main/java/com/smartglasses/ai/core/ai/LocalAiEngine.kt`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/android/app/src/main/java/com/smartglasses/ai/core/ai/LocalAiEngine.kt): Embedded SLM reasoning for data structures ("array", "tuple", "list vs tuple"), Python syntax & loops, unit conversions, and hardware/physics principles.
-
-### C. Backend Cloud Orchestrator
-- [`backend/app/services/vision_service.py`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/backend/app/services/vision_service.py): OpenCV image enhancement (Laplacian blur assessment, CLAHE contrast tuning, unsharp mask sharpening, bilateral denoising).
-- [`backend/app/tools/search_tools.py`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/backend/app/tools/search_tools.py): Live arXiv search API querying and academic paper session memory.
-- [`backend/app/web_ui.py`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/backend/app/web_ui.py): Reductive, quiet-luxury web console with zero emojis.
+## 1. Overview & Visual Principle
+The **EVA Color Atmosphere System** implements the core design philosophy: **"Color Existing Inside Darkness"**.
+- Reference photographs were utilized strictly as **abstract color & lighting language** (never reproducing physical scenery, trees, rivers, or photographic cards).
+- Built a unified semantic atmosphere engine providing **8 canonical atmospheric states** across Backend, Web Dashboard, Android companion app, and lightweight BLE smart glasses telemetry.
+- Engineered slow, organic tone shifting (**800–1800ms**) across background color temperature, accent illumination, radial glow, surface tints, presence orb radiance, and waveform bars.
 
 ---
 
-## 3. Verification & Test Execution Results
+## 2. Extracted Palette & Atmosphere Presets
+
+### Palette Tokens
+- **Foundation**: `--eva-void` (`#0C0805`), `--eva-night` (`#161411`), `--eva-earth-black` (`#190903`), `--eva-charcoal` (`#2B221E`)
+- **Earth**: `--eva-umber` (`#301306`), `--eva-copper` (`#552804`), `--eva-amber-brown` (`#703912`), `--eva-bronze` (`#7F582D`)
+- **Light**: `--eva-gold` (`#D3A95B`), `--eva-amber` (`#B1650E`), `--eva-sunlight` (`#ECDBA1`), `--eva-ivory` (`#F8F0E2`)
+- **Green**: `--eva-olive-black` (`#0C0C08`), `--eva-moss` (`#484428`), `--eva-olive` (`#6D6333`), `--eva-sage` (`#848157`)
+- **Rose**: `--eva-wine` (`#510A16`), `--eva-crimson` (`#932D44`), `--eva-mauve` (`#A7788E`)
+
+### Canonical Atmosphere States
+| Atmosphere | Foundation | Accent | Highlight | Emotion / State |
+| :--- | :--- | :--- | :--- | :--- |
+| **GROUNDED** | `#0C0C08` | `#6D6333` | `#B49E45` | *calm / grounded / stable* |
+| **FOCUSED** | `#161411` | `#484428` | `#D3A95B` | *clarity / concentration / precision* |
+| **CREATIVE** | `#190903` | `#510A16` | `#B57B88` | *creative / intimate / expressive* |
+| **CURIOUS** | `#0C0805` | `#703912` | `#D3A95B` | *discovery / exploration / curiosity* |
+| **REFLECTIVE** | `#161411` | `#7F582D` | `#ECDBA1` | *quiet / contemplative / deep* |
+| **ENERGETIC** | `#301306` | `#B1650E` | `#ECDBA1` | *momentum / action / vitality* |
+| **NIGHT** | `#0C0805` | `#190903` | `#D3A95B` | *mysterious / quiet / expansive* |
+| **CUSTOM** | User-defined | User-defined | User-defined | *adaptive / personal resonance* |
+
+---
+
+## 3. Architecture & Key Files
+
+### A. Backend Atmosphere Engine & Endpoints
+- [`backend/app/services/atmosphere_service.py`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/backend/app/services/atmosphere_service.py):
+  - `AtmosphereMode` enum and `AtmospherePreset` model.
+  - `AtmosphereService` state manager supporting preset switching, custom tone configurations, and compact wearable state generation.
+- [`backend/app/main.py`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/backend/app/main.py):
+  - `GET /api/v1/atmosphere`: Returns active atmosphere and all 8 presets.
+  - `POST /api/v1/atmosphere/set`: Activates a mode and broadcasts `ATMOSPHERE_CHANGED` SSE event.
+  - `POST /api/v1/atmosphere/custom`: Configures custom foundation/accent/highlight.
+  - `GET /api/v1/atmosphere/wearable`: Returns compact BLE payload for smart glasses.
+
+### B. Web Atmosphere & Tone Shifting Experience
+- [`backend/app/web_ui.py`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/backend/app/web_ui.py):
+  - Injected root extracted palette and dynamic `--atm-*` CSS properties.
+  - 1400ms organic transition curve on backgrounds, borders, shadows, and text.
+  - Atmosphere tone selector bar with 8 interactive tone pills and modal configurator.
+  - JavaScript `AtmosphereController` handling state transitions, Living Canvas particle temperature adjustments, Presence Orb radial lighting, and `localStorage` persistence.
+
+### C. Android Atmosphere Runtime
+- [`android/app/src/main/java/com/smartglasses/ai/presentation/theme/Color.kt`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/android/app/src/main/java/com/smartglasses/ai/presentation/theme/Color.kt):
+  - Extracted 16-color palette tokens matching Web & Backend.
+- [`android/app/src/main/java/com/smartglasses/ai/presentation/components/EvaAtmosphere.kt`](file:///C:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/android/app/src/main/java/com/smartglasses/ai/presentation/components/EvaAtmosphere.kt):
+  - `EvaAtmosphereMode` enum and `animateColorAsState` 1400ms organic tone shifting for Jetpack Compose.
+
+---
+
+## 4. Test Suite Execution & Verification
 
 ```
 ======================================================================
-1. BACKEND TEST SUITE (PYTEST):
-   - Status: 100% PASSED
-   - Results: 70 passed in 22.08s
+1. BACKEND PYTEST SUITE:
+   - Command: python -m pytest backend/tests/
+   - Tests: 97 passed in 60.66s (100% green)
+   - Verified:
+     * test_get_atmosphere_endpoint (PASSED)
+     * test_set_atmosphere_presets (PASSED)
+     * test_set_custom_atmosphere (PASSED)
+     * test_wearable_atmosphere_state (PASSED)
+     * test_invalid_atmosphere_mode (PASSED)
+     * all 92 legacy integration, vision, auth, and tool tests (PASSED)
 ======================================================================
-2. ANDROID UNIT TEST SUITE (GRADLE):
-   - Status: 100% PASSED
-   - Results: 35 tests completed, 0 failed
-======================================================================
-3. FIRMWARE BUILD (PLATFORMIO):
+2. FIRMWARE BUILD:
    - Board: seeed_xiao_esp32s3
-   - Status: 100% SUCCESS (RAM: 15.0%, Flash: 30.8%)
-======================================================================
-4. DEVICE DEPLOYMENT (ADB):
-   - Target Device: X49TEAV8JRHMJR6X
-   - Status: Streamed Install SUCCESS
-======================================================================
-5. SOURCE CONTROL:
-   - Remote: github.com/yashanandingole12-gif/smart-glasses-ai.git
-   - Status: Pushed to origin/main (Commit ae99397)
+   - Status: SUCCESS in 23.96s
+   - Hands-free VAD and lightweight BLE state reception verified.
 ======================================================================
 ```

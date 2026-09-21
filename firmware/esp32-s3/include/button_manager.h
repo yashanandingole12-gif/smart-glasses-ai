@@ -17,10 +17,13 @@ public:
     void setOnReleaseCallback(std::function<void()> cb);
     void setOnPressCallback(std::function<void()> cb);
     void setOnLongPressCallback(std::function<void()> cb);
+    bool isButtonPressed() const { return _isPressed; }
+    int getPinState() const { return digitalRead(_pin); }
 
 private:
     ButtonManager();
     uint8_t _pin = PIN_BUTTON_PTT;
+
     int _lastState = HIGH;
     int _stableState = HIGH;
     unsigned long _lastDebounceTime = 0;

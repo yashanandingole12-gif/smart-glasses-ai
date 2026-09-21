@@ -242,7 +242,7 @@ class LLMRouter:
         total_dur_ms = (time.time() - start_time) * 1000.0
 
         return RouterResponse(
-            content=fallback_resp.content or "I am listening on your smart glasses.",
+            content=fallback_resp.content or "I don't have that information right now.",
             tool_calls=fallback_resp.tool_calls,
             tier_used=RoutingTier.FALLBACK,
             provider="mock_fallback",

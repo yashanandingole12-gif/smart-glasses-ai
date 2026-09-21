@@ -183,9 +183,9 @@ class LocalAiEngine(private val context: Context) {
                 "Web search requires an active internet connection."
             }
 
-            // General Knowledge & Concise Echo
+            // General Knowledge & Confident fallback
             else -> {
-                "I'm listening on your smart glasses. You asked: \"$q\"."
+                "I don't have that information right now."
             }
         }
 

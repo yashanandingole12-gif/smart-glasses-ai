@@ -4,10 +4,15 @@ BatteryManager::BatteryManager() {}
 
 void BatteryManager::init(uint8_t pin) {
     _pin = pin;
-    pinMode(_pin, INPUT);
+    if ((int8_t)_pin >= 0) {
+        pinMode(_pin, INPUT);
+    }
 }
 
 float BatteryManager::getBatteryVoltage() {
+    if ((int8_t)_pin < 0) {
+        return 3.95f; // Default nominal 85% LiPo battery voltage
+    }
     int raw = analogRead(_pin);
     // ADC 12-bit on 3.3V reference
     float vOut = (raw / 4095.0f) * 3.3f;
