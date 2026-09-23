@@ -4,36 +4,50 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-private val LaraExecutiveColorScheme = lightColorScheme(
-    primary = LaraCharcoal,
-    secondary = LaraMutedOrange,
-    tertiary = LaraEmerald,
-    background = LaraIvory,
-    surface = LaraWarmWhite,
-    surfaceVariant = LaraSurfaceSubtle,
-    onPrimary = LaraWarmWhite,
-    onSecondary = LaraCharcoal,
-    onBackground = LaraCharcoal,
-    onSurface = LaraCharcoal,
-    onSurfaceVariant = LaraTextSecondaryLight,
-    outline = LaraBorderLight
+// =========================================================================
+// EVA Premium Natural Theme — Clean Light Color Scheme
+// =========================================================================
+private val EvaNaturalColorScheme = lightColorScheme(
+    primary = EvaPrimaryGreen,
+    onPrimary = EvaPureWhite,
+    primaryContainer = EvaMistGreen,
+    onPrimaryContainer = EvaDeepGreen,
+    secondary = EvaSoftGreen,
+    onSecondary = EvaPureWhite,
+    secondaryContainer = EvaPaleGreen,
+    onSecondaryContainer = EvaDeepGreen,
+    tertiary = EvaDeepGreen,
+    background = EvaIvory,
+    onBackground = EvaPrimaryBlack,
+    surface = EvaPureWhite,
+    onSurface = EvaPrimaryBlack,
+    surfaceVariant = EvaWarmIvory,
+    onSurfaceVariant = EvaMutedText,
+    outline = EvaBorderSubtle
 )
 
 @Composable
-fun LaraTheme(
+fun EvaTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = LaraExecutiveColorScheme,
+        colorScheme = EvaNaturalColorScheme,
         typography = WearableTypography,
         content = content
     )
 }
 
-// Backward Compatibility Alias
+// Backward Compatibility Aliases
+@Composable
+fun LaraTheme(
+    content: @Composable () -> Unit
+) {
+    EvaTheme(content = content)
+}
+
 @Composable
 fun SmartGlassesTheme(
     content: @Composable () -> Unit
 ) {
-    LaraTheme(content = content)
+    EvaTheme(content = content)
 }

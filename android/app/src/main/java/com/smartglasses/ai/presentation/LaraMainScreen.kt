@@ -7,13 +7,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartglasses.ai.core.bluetooth.BleManager
 import com.smartglasses.ai.presentation.activity.ActivityScreen
-import com.smartglasses.ai.presentation.components.EvaAtmosphere
 import com.smartglasses.ai.presentation.devices.DevicesHubScreen
 import com.smartglasses.ai.presentation.home.WearableHomeScreen
 import com.smartglasses.ai.presentation.home.WearableHomeViewModel
@@ -22,10 +20,10 @@ import com.smartglasses.ai.presentation.theme.*
 import com.smartglasses.ai.presentation.you.YouProfileScreen
 
 enum class EvaTab(val label: String, val icon: ImageVector) {
-    HOME("Presence", Icons.Default.Adjust),
-    ACTIVITY("Stream", Icons.Default.AccessTime),
-    DEVICES("Perception", Icons.Default.Devices),
-    YOU("Profile", Icons.Default.Person)
+    HOME("Home", Icons.Default.ChatBubbleOutline),
+    ACTIVITY("Activity", Icons.Default.AccessTime),
+    DEVICES("Device", Icons.Default.Headset),
+    YOU("Settings", Icons.Default.Settings)
 }
 
 // Alias for backward compatibility
@@ -49,12 +47,12 @@ fun EvaMainScreen(
     }
 
     Scaffold(
-        containerColor = EvaVoid,
+        containerColor = EvaIvory,
         bottomBar = {
             NavigationBar(
-                containerColor = EvaNight,
-                contentColor = EvaTextPure,
-                tonalElevation = 8.dp,
+                containerColor = EvaPureWhite,
+                contentColor = EvaPrimaryBlack,
+                tonalElevation = 2.dp,
                 modifier = Modifier.height(64.dp)
             ) {
                 EvaTab.values().forEach { tab ->
@@ -66,8 +64,8 @@ fun EvaMainScreen(
                             Icon(
                                 imageVector = tab.icon,
                                 contentDescription = tab.label,
-                                tint = if (isSelected) EvaTeal else EvaTextMuted,
-                                modifier = Modifier.size(20.dp)
+                                tint = if (isSelected) EvaPrimaryGreen else EvaMutedText,
+                                modifier = Modifier.size(22.dp)
                             )
                         },
                         label = {
@@ -75,11 +73,13 @@ fun EvaMainScreen(
                                 text = tab.label,
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal,
-                                color = if (isSelected) EvaTeal else EvaTextMuted
+                                color = if (isSelected) EvaPrimaryGreen else EvaMutedText
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = EvaTealGlow
+                            indicatorColor = EvaMistGreen,
+                            selectedIconColor = EvaPrimaryGreen,
+                            unselectedIconColor = EvaMutedText
                         )
                     )
                 }
@@ -90,7 +90,7 @@ fun EvaMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(EvaVoid)
+                .background(EvaIvory)
         ) {
             when (selectedTab) {
                 EvaTab.HOME -> WearableHomeScreen(

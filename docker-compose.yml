@@ -1,29 +1,52 @@
 version: '3.8'
 
 services:
-  lara-backend:
+  eva-backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: lara-smart-glasses-ai
-    restart: unless-stopped
-    ports:
-      - "8001:8001"
+    container_name: eva_cloud_backend
+    restart: always
     environment:
+      - ENVIRONMENT=production
       - HOST=0.0.0.0
-      - PORT=8001
-      - LLM_PROVIDER=gemini
-      - GEMINI_MODEL=gemini-2.5-flash
-      - DATABASE_PATH=sqlite:////app/storage/smart_glasses.db
-      - DOCKER_CONTAINER=true
-    env_file:
-      - .env
+      - PORT=8000
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-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}
     volumes:
-      - ./storage:/app/storage
-      - ./captures:/app/captures
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/api/v1/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      - eva_data:/app/data
+      - eva_uploads:/app/uploads
+      - eva_logs:/app/logs
+    ports:
+      - "8000:8000"
+    networks:
+      - eva_net
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: eva_caddy_proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - eva-backend
+    networks:
+      - eva_net
+
+volumes:
+  eva_data:
+  eva_uploads:
+  eva_logs:
+  caddy_data:
+  caddy_config:
+
+networks:
+  eva_net:
+    driver: bridge

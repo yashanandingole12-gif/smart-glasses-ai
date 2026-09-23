@@ -1,8 +1,8 @@
 package com.smartglasses.ai.presentation.home
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,13 +10,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Headset
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,14 +26,14 @@ import androidx.compose.ui.unit.sp
 import com.smartglasses.ai.core.bluetooth.DeviceConnectionState
 import com.smartglasses.ai.core.network.ConnectionState
 import com.smartglasses.ai.domain.models.AssistantState
-import com.smartglasses.ai.presentation.components.*
+import com.smartglasses.ai.presentation.components.EvaAtmosphere
 import com.smartglasses.ai.presentation.settings.BackendConfigDialog
 import com.smartglasses.ai.presentation.theme.*
 
 /**
- * WearableHomeScreen: The Primary Android Experience for EVA.
- * A voice-first living digital environment featuring living darkness,
- * dynamic orbital presence, organic waveform, and seamless smart glasses perception.
+ * WearableHomeScreen: The Everyday Mobile Companion for EVA.
+ * A calm, premium, light interface focused on everyday voice assistance,
+ * device readiness, and glanceable daily context.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,241 +53,252 @@ fun WearableHomeScreen(
         )
     }
 
+    val isGlassesConnected = state.deviceConnectionState == DeviceConnectionState.CONNECTED
     val isOnline = state.connectionState == ConnectionState.CONNECTED
 
     EvaAtmosphere {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 20.dp)
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 1. Top Header: EVA Title & Atmospheric Online Vitality
-                Column(
+            // 1. Top Header: Brand & Live Status
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "EVA",
-                            fontFamily = FontFamily.Serif,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
-                            letterSpacing = 3.sp,
-                            color = EvaTextPure
-                        )
-
-                        // Ambient Status Dot
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isOnline) EvaTeal else EvaSlate)
-                            )
-                            Text(
-                                text = if (isOnline) "Living" else "Offline Realm",
-                                fontSize = 11.sp,
-                                letterSpacing = 0.5.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (isOnline) EvaTeal else EvaTextMuted
-                            )
-                        }
-                    }
-
-                    // Integrated Glasses Recognition Presence
-                    EvaDevicePresence(
-                        connectionState = state.deviceConnectionState,
-                        onNavigateToDevices = onNavigateToDevices
+                    Text(
+                        text = "EVA",
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        letterSpacing = 2.sp,
+                        color = EvaPrimaryBlack
                     )
-                }
 
-                // 2. Spatial Center: EVA Living Presence & Voice Cadence
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    // Live Status Pill
+                    Row(
+                        modifier = Modifier
+                            .background(EvaMistGreen, RoundedCornerShape(50))
+                            .border(1.dp, EvaPaleGreen, RoundedCornerShape(50))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // Central Living Presence Core
-                        EvaPresence(
-                            state = state.assistantState,
-                            isOnline = isOnline,
-                            onClick = { viewModel.onTalkButtonClicked() }
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(if (isGlassesConnected || isOnline) EvaPrimaryGreen else EvaMutedText)
                         )
-
-                        // Organic Waveform
-                        EvaWaveform(
-                            isActive = state.assistantState == AssistantState.LISTENING ||
-                                    state.assistantState == AssistantState.SPEAKING
+                        Text(
+                            text = if (isGlassesConnected) "Connected" else if (isOnline) "Ready" else "Standby",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = EvaDeepGreen
                         )
-
-                        // Partial voice transcript stream
-                        if (state.partialVoiceTranscript.isNotBlank()) {
-                            Text(
-                                text = "\"${state.partialVoiceTranscript}\"",
-                                fontSize = 14.sp,
-                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                color = EvaTextSecondary
-                            )
-                        }
-
-                        // Luminous Response Surface (if EVA spoken response received)
-                        AnimatedVisibility(
-                            visible = state.latestSpeech.isNotBlank() &&
-                                    !state.latestSpeech.contains("Ready on your smart glasses"),
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(EvaSurfaceGlass)
-                                    .border(1.dp, EvaBorderSubtle, RoundedCornerShape(18.dp))
-                                    .padding(18.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                // Render captured camera photo if available
-                                val imageBitmap = remember(state.latestImageBase64) {
-                                    state.latestImageBase64?.let { b64 ->
-                                        try {
-                                            val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
-                                            val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                            bmp?.asImageBitmap()
-                                        } catch (_: Exception) { null }
-                                    }
-                                }
-
-                                imageBitmap?.let { bmp ->
-                                    androidx.compose.foundation.Image(
-                                        bitmap = bmp,
-                                        contentDescription = "Smart Glasses Perception Capture",
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .heightIn(max = 200.dp)
-                                            .clip(RoundedCornerShape(10.dp)),
-                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                    )
-                                }
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "EVA SYNTHESIS",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 1.2.sp,
-                                        color = EvaTeal
-                                    )
-                                    IconButton(
-                                        onClick = { viewModel.clearLatestSpeech() },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Dismiss",
-                                            tint = EvaTextMuted,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    }
-                                }
-
-                                Text(
-                                    text = state.latestSpeech,
-                                    fontSize = 14.sp,
-                                    lineHeight = 22.sp,
-                                    color = EvaTextPure
-                                )
-                            }
-                        }
                     }
                 }
 
-                // 3. Command Instrument Bar
-                EvaCommandField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    onSend = {
-                        if (inputText.isNotBlank()) {
-                            viewModel.sendTextMessage(inputText)
-                            inputText = ""
-                        }
-                    },
-                    isListening = state.assistantState == AssistantState.LISTENING,
-                    onToggleVoice = { viewModel.onTalkButtonClicked() },
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    text = "Good morning, Yash.",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = EvaPrimaryBlack,
+                    letterSpacing = (-0.5).sp,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+
+                Text(
+                    text = "Your glasses are active and listening for your day.",
+                    fontSize = 13.sp,
+                    color = EvaMutedText
                 )
             }
 
-            // 4. Approval Confirmation Modal
-            state.pendingConfirmation?.let { conf ->
-                ModalBottomSheet(
-                    onDismissRequest = { viewModel.cancelPendingAction() },
-                    containerColor = EvaNight,
-                    tonalElevation = 8.dp
+            // 2. Center: Refined Voice Interaction Surface
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val isListening = state.assistantState == AssistantState.LISTENING
+                val isResponding = state.assistantState == AssistantState.RESPONDING
+                val isThinking = state.assistantState == AssistantState.THINKING
+
+                val orbBorderColor by animateColorAsState(
+                    targetValue = if (isListening) EvaPrimaryGreen else if (isResponding) EvaSoftGreen else EvaBorderSubtle,
+                    animationSpec = tween(400),
+                    label = "OrbBorder"
+                )
+
+                val orbBgColor by animateColorAsState(
+                    targetValue = if (isListening) EvaMistGreen else EvaPureWhite,
+                    animationSpec = tween(400),
+                    label = "OrbBg"
+                )
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                            .size(130.dp)
+                            .clip(CircleShape)
+                            .background(orbBgColor)
+                            .border(1.5.dp, orbBorderColor, CircleShape)
+                            .clickable {
+                                if (isListening) viewModel.stopListening() else viewModel.startListening()
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "Talk to EVA",
+                            tint = if (isListening) EvaPrimaryGreen else EvaPrimaryBlack,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    Text(
+                        text = when (state.assistantState) {
+                            AssistantState.LISTENING -> "Listening..."
+                            AssistantState.THINKING -> "Thinking..."
+                            AssistantState.RESPONDING -> "Responding..."
+                            else -> "Talk to EVA"
+                        },
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isListening) EvaPrimaryGreen else EvaPrimaryBlack
+                    )
+                }
+            }
+
+            // 3. Bottom: Quick Everyday Context Cards
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Device Quick Glance
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(EvaPureWhite, RoundedCornerShape(14.dp))
+                        .border(1.dp, EvaBorderSubtle, RoundedCornerShape(14.dp))
+                        .clickable { onNavigateToDevices() }
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(EvaMistGreen, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Headset,
+                                contentDescription = null,
+                                tint = EvaPrimaryGreen,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "EVA Glasses",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = EvaPrimaryBlack
+                            )
+                            Text(
+                                text = "Battery 78% • TWS Audio Connected",
+                                fontSize = 12.sp,
+                                color = EvaMutedText
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Ready",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = EvaPrimaryGreen
+                    )
+                }
+
+                // Today's Glance Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(EvaPureWhite, RoundedCornerShape(14.dp))
+                        .border(1.dp, EvaBorderSubtle, RoundedCornerShape(14.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "ACTION APPROVAL",
+                            text = "Today's Glance",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp,
-                            color = EvaGold
+                            color = EvaMutedText,
+                            letterSpacing = 1.sp
                         )
-
                         Text(
-                            text = conf.text,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = EvaTextPure,
-                            lineHeight = 22.sp
+                            text = "3 unread messages • 2 calendar events",
+                            fontSize = 13.sp,
+                            color = EvaPrimaryBlack,
+                            fontWeight = FontWeight.Medium
                         )
+                        Text(
+                            text = "Next: Team sync at 2:30 PM",
+                            fontSize = 12.sp,
+                            color = EvaMutedText
+                        )
+                    }
+                }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = { viewModel.cancelPendingAction() },
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(text = "Dismiss", color = EvaTextSecondary)
-                            }
+                // Text Input Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(EvaPureWhite, RoundedCornerShape(50))
+                        .border(1.dp, EvaBorderSubtle, RoundedCornerShape(50))
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        placeholder = { Text("Ask EVA anything...", color = EvaMutedText, fontSize = 13.sp) },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
 
-                            Button(
-                                onClick = { viewModel.confirmPendingAction() },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = EvaTeal),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(text = "Approve", color = EvaVoid, fontWeight = FontWeight.Bold)
+                    IconButton(
+                        onClick = {
+                            if (inputText.isNotBlank()) {
+                                viewModel.sendMessage(inputText)
+                                inputText = ""
                             }
                         }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send",
+                            tint = EvaPrimaryGreen,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }

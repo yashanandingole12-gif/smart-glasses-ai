@@ -46,6 +46,32 @@ from backend.app.api.auth import router as auth_router
 from backend.app.services.data_analytics_engine import data_analytics_engine
 from backend.app.services.event_repository import event_repository
 from backend.app.services.capability_registry import capability_registry
+from hardware.pcb.pcb_manager import PCBHardwareManager
+from backend.app.services.perception.perception_buffer import PerceptionBuffer, RawSensorSnapshot, PerceptionEvent
+from backend.app.services.perception.event_encoder import TinyEventEncoder
+from backend.app.services.memory.salience_gate import SalienceGate
+from backend.app.services.memory.working_memory_engine import WorkingMemoryEngine
+from backend.app.services.memory.temporal_graph_store import TemporalGraphStore
+from backend.app.services.memory.sleep_consolidation import SleepConsolidationEngine
+from backend.app.services.emotion.affect_engine import AffectEngine, AffectVector
+from backend.app.services.emotion.social_affect_separator import SocialAffectSeparator
+from backend.app.services.emotion.attenuation_policy import AttenuationPolicyEngine
+from backend.app.services.emotion.ethical_guard import EmotionEthicalGuard, EthicalRefusalError
+from backend.app.services.spatial.gods_eye_engine import GodsEyeSpatialEngine
+from backend.app.services.spatial.spatial_anchors import SpatialAnchorResolver
+
+# Subsystem singletons
+pcb_hardware_manager = PCBHardwareManager()
+perception_buffer = PerceptionBuffer()
+tiny_event_encoder = TinyEventEncoder()
+salience_gate = SalienceGate()
+working_memory = WorkingMemoryEngine()
+temporal_graph_store = TemporalGraphStore()
+sleep_consolidation = SleepConsolidationEngine(working_memory, temporal_graph_store)
+affect_engine = AffectEngine()
+social_affect_separator = SocialAffectSeparator()
+attenuation_policy = AttenuationPolicyEngine()
+gods_eye_spatial_engine = GodsEyeSpatialEngine()
 
 
 logger = logging.getLogger("SmartGlasses.API")
@@ -65,6 +91,12 @@ app.add_middleware(
 )
 
 from backend.app.web_ui import get_dashboard_html
+from fastapi.staticfiles import StaticFiles
+import os
+
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 app.include_router(auth_router)
 
@@ -2775,6 +2807,252 @@ async def get_wearable_atmosphere_endpoint():
         "success": True,
         **state
     }
+
+
+# ==============================================================================
+# HARDWARE & MODULAR PCB SYSTEM ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/v1/hardware/spec")
+async def get_hardware_specification_endpoint():
+    """Returns the rigid-flex PCB layer stackup, center of gravity, and modular hardware spec."""
+    spec = pcb_hardware_manager.get_system_spec()
+    return {"success": True, "spec": spec}
+
+
+@app.get("/api/v1/hardware/pogo-pinout")
+async def get_pogo_pinout_endpoint():
+    """Returns the 6-pin gold pogo-pin inter-module bus pinout definition."""
+    pinout = pcb_hardware_manager.get_pogo_pinout()
+    return {"success": True, "pinout": pinout}
+
+
+@app.post("/api/v1/hardware/power-budget")
+async def calculate_power_budget_endpoint(payload: Dict[str, Any]):
+    """Calculates active power dissipation and battery endurance for an operational mode."""
+    mode = payload.get("mode", "nominal")
+    budget = pcb_hardware_manager.validate_power_budget(mode)
+    return {"success": True, "budget": budget}
+
+
+# ==============================================================================
+# AMBIENT-FIRST PERCEPTION BUFFER & EVENT ENCODER ENDPOINTS
+# ==============================================================================
+
+@app.post("/api/v1/perception/snapshot")
+async def push_perception_snapshot_endpoint(payload: Dict[str, Any]):
+    """Ingests high-frequency raw telemetry, runs edge event encoding, and discards raw pixels."""
+    snapshot = RawSensorSnapshot(**payload)
+    perception_buffer.push_snapshot(snapshot)
+    
+    # Run tiny edge encoder on recent window
+    window = perception_buffer.get_recent_window(1.0)
+    entities = payload.get("detected_entities", [])
+    events = tiny_event_encoder.encode_events(window, entities)
+
+    promoted_count = 0
+    active_ctx = working_memory.current_location
+    arousal = affect_engine.current_affect.arousal
+
+    for evt in events:
+        perception_buffer.emitted_events_count += 1
+        if salience_gate.should_promote(evt, active_ctx, arousal):
+            working_memory.ingest_salient_event(evt)
+            promoted_count += 1
+
+    return {
+        "success": True,
+        "emitted_events": [e.model_dump() for e in events],
+        "promoted_to_working_memory": promoted_count,
+        "buffer_stats": perception_buffer.get_telemetry_stats()
+    }
+
+
+@app.get("/api/v1/perception/stats")
+async def get_perception_stats_endpoint():
+    """Returns perception buffer telemetry discard and emission statistics."""
+    return {"success": True, "stats": perception_buffer.get_telemetry_stats()}
+
+
+# ==============================================================================
+# COGNITIVE WORKING MEMORY & TEMPORAL GRAPH STORE ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/v1/memory/working")
+async def get_working_memory_state_endpoint():
+    """Returns the current rolling attended facts in working memory."""
+    return {"success": True, "working_memory": working_memory.get_state()}
+
+
+@app.post("/api/v1/memory/fact")
+async def add_working_memory_fact_endpoint(payload: Dict[str, Any]):
+    """Manually adds or updates an attended fact in working memory."""
+    fact_id = payload.get("fact_id", f"fact_{int(time.time())}")
+    cat = payload.get("category", "CUSTOM")
+    content = payload.get("content", "")
+    ttl = payload.get("ttl_seconds", 1800.0)
+    meta = payload.get("metadata", {})
+    
+    fact = working_memory.add_or_update_fact(fact_id, cat, content, ttl, meta)
+    return {"success": True, "fact": fact.model_dump()}
+
+
+@app.post("/api/v1/memory/assemble-context")
+async def assemble_fresh_turn_context_endpoint(payload: Dict[str, Any]):
+    """Assembles a fresh, compact turn prompt context from working memory and temporal graph."""
+    query = payload.get("query", "")
+    ltm_facts = temporal_graph_store.query_relevant_facts(query)
+    affect_sum = affect_engine.get_affect_summary()
+    assembled = working_memory.assemble_fresh_turn_context(query, ltm_facts, affect_sum)
+    return {
+        "success": True,
+        "query": query,
+        "assembled_prompt_context": assembled,
+        "temporal_facts_recalled": ltm_facts
+    }
+
+
+@app.get("/api/v1/memory/temporal-graph")
+async def query_temporal_graph_endpoint(entity: Optional[str] = None, query: Optional[str] = None):
+    """Queries long-term temporal graph history or keyword facts."""
+    if entity:
+        history = temporal_graph_store.query_entity_history(entity)
+        return {"success": True, "entity": entity, "history": history}
+    elif query:
+        facts = temporal_graph_store.query_relevant_facts(query, active_only=False)
+        return {"success": True, "query": query, "facts": facts}
+    return {"success": True, "total_edges": len(temporal_graph_store.edges)}
+
+
+@app.post("/api/v1/memory/consolidate")
+async def trigger_sleep_memory_consolidation_endpoint():
+    """Triggers sleep memory consolidation pass merging working memory into long-term graph."""
+    result = sleep_consolidation.run_consolidation_cycle()
+    return {"success": True, "consolidation": result}
+
+
+# ==============================================================================
+# EMOTION CONTEXT ENGINE & ATTENUATION POLICY ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/v1/emotion/affect")
+async def get_affect_state_endpoint():
+    """Returns running affect state, wearer vs surround separation, and HUD attenuation."""
+    wearer_affect = affect_engine.current_affect
+    social_state = social_affect_separator.get_social_context_summary(wearer_affect)
+    render_policy = attenuation_policy.compute_render_policy(wearer_affect)
+    proposal = EmotionEthicalGuard.generate_tentative_proposal(wearer_affect)
+
+    return {
+        "success": True,
+        "wearer_affect": wearer_affect.model_dump(),
+        "affect_summary": affect_engine.get_affect_summary(),
+        "social_context": social_state,
+        "hud_render_policy": render_policy.model_dump(),
+        "tentative_proposal": proposal
+    }
+
+
+@app.post("/api/v1/emotion/telemetry")
+async def update_affect_from_telemetry_endpoint(payload: Dict[str, Any]):
+    """Integrates acoustic/prosodic/biometric telemetry with slow decay tau filtering."""
+    v = float(payload.get("valence", 0.0))
+    a = float(payload.get("arousal", 0.2))
+    src = payload.get("source", "voice_prosody")
+    
+    updated = affect_engine.update_from_telemetry(v, a, source=src)
+    return {
+        "success": True,
+        "updated_affect": updated.model_dump(),
+        "summary": affect_engine.get_affect_summary()
+    }
+
+
+@app.post("/api/v1/emotion/correct")
+async def apply_user_emotion_correction_endpoint(payload: Dict[str, Any]):
+    """User-correctable feedback loop adjusting inferred valence and arousal."""
+    v = float(payload.get("valence", 0.0))
+    a = float(payload.get("arousal", 0.2))
+    corrected = affect_engine.apply_user_correction(v, a)
+    return {
+        "success": True,
+        "corrected_affect": corrected.model_dump(),
+        "summary": affect_engine.get_affect_summary(),
+        "status": "USER_GROUNDED"
+    }
+
+
+@app.post("/api/v1/emotion/appearance-mutation-check")
+async def check_appearance_mutation_safety_endpoint(payload: Dict[str, Any]):
+    """Validates appearance requests against the strict deception/manipulation ethical guardrail."""
+    try:
+        verdict = EmotionEthicalGuard.validate_appearance_mutation_request(payload)
+        return {"success": True, "verdict": verdict}
+    except EthicalRefusalError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+# ==============================================================================
+# GOD'S EYE VIEW 3D SPATIAL INTELLIGENCE ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/v1/spatial/gods-eye")
+async def get_gods_eye_spatial_map_endpoint():
+    """Returns 3D exocentric orbital spatial map payload with frustum intersection."""
+    orbital_data = gods_eye_spatial_engine.get_exocentric_orbital_snapshot()
+    return {"success": True, "spatial_map": orbital_data}
+
+
+@app.post("/api/v1/spatial/pose")
+async def update_spatial_pose_endpoint(payload: Dict[str, Any]):
+    """Updates the 6-DoF position and orientation of the smart glasses in geospatial space."""
+    lat = float(payload.get("latitude", 19.0760))
+    lon = float(payload.get("longitude", 72.8777))
+    alt = float(payload.get("altitude_m", 15.0))
+    heading = float(payload.get("heading_deg", 0.0))
+    pitch = float(payload.get("pitch_deg", 0.0))
+    roll = float(payload.get("roll_deg", 0.0))
+
+    pose = gods_eye_spatial_engine.update_wearer_pose(lat, lon, alt, heading, pitch, roll)
+    return {
+        "success": True,
+        "pose": pose.model_dump(),
+        "orbital_map": gods_eye_spatial_engine.get_exocentric_orbital_snapshot()
+    }
+
+
+# ==============================================================================
+# GOD'S EYE LIVE TRANSIT & SPATIAL INTELLIGENCE ENDPOINTS
+# ==============================================================================
+from backend.app.services.transit_service import transit_service
+
+@app.get("/api/v1/transit/traffic")
+async def get_transit_traffic_endpoint(location: str = "", destination: str = ""):
+    """Returns live road traffic, congestion levels, bottlenecks, and alternate routes."""
+    return transit_service.get_traffic_status(location=location, destination=destination)
+
+@app.get("/api/v1/transit/metro")
+async def get_transit_metro_endpoint(query: str = ""):
+    """Returns nearest metro stations, line colors, platform numbers, and upcoming train arrivals."""
+    return transit_service.get_nearest_metro(query=query)
+
+@app.get("/api/v1/transit/trains")
+async def get_transit_trains_endpoint(query: str = ""):
+    """Returns live suburban and intercity train departure schedules, delays, and platform numbers."""
+    return transit_service.get_train_schedule(query=query)
+
+@app.get("/api/v1/transit/flights")
+async def get_transit_flights_endpoint(flight_number: str = "6E204"):
+    """Returns real-time flight tracking, gate, terminal, and baggage carousel."""
+    return transit_service.get_flight_status(flight_number=flight_number)
+
+@app.post("/api/v1/transit/query")
+async def post_transit_query_endpoint(payload: Dict[str, Any]):
+    """Unified God's Eye transit query across traffic, metro, train, and flights."""
+    query = payload.get("query", "")
+    return transit_service.query_god_eye(message=query)
+
+
 
 
 

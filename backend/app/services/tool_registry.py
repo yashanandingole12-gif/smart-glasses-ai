@@ -355,3 +355,54 @@ def _tool_tabular_data_operation(operation: str, dataset_name: str = None):
     from backend.app.tools.data_tools import tabular_data_operation
     return tabular_data_operation(operation=operation, dataset_name=dataset_name)
 
+@registry.register(
+    name="transit_traffic_status",
+    description="Check live road traffic, congestion levels, bottlenecks, and alternate routes.",
+    risk_level=RiskLevel.READ,
+    requires_confirmation=False
+)
+def _tool_transit_traffic_status(location: str = "", destination: str = ""):
+    from backend.app.tools.god_eye_transit_tools import transit_traffic_status
+    return transit_traffic_status(location=location, destination=destination)
+
+@registry.register(
+    name="transit_metro_stations",
+    description="Find nearest metro stations, line colors, platform numbers, and upcoming train arrival times.",
+    risk_level=RiskLevel.READ,
+    requires_confirmation=False
+)
+def _tool_transit_metro_stations(query: str = ""):
+    from backend.app.tools.god_eye_transit_tools import transit_metro_stations
+    return transit_metro_stations(query=query)
+
+@registry.register(
+    name="transit_train_schedule",
+    description="Check suburban and intercity train departure schedules, delays, and platform numbers.",
+    risk_level=RiskLevel.READ,
+    requires_confirmation=False
+)
+def _tool_transit_train_schedule(query: str = ""):
+    from backend.app.tools.god_eye_transit_tools import transit_train_schedule
+    return transit_train_schedule(query=query)
+
+@registry.register(
+    name="transit_flight_status",
+    description="Track real-time flight status, departure/arrival gate, terminal, and baggage carousel.",
+    risk_level=RiskLevel.READ,
+    requires_confirmation=False
+)
+def _tool_transit_flight_status(flight_number: str):
+    from backend.app.tools.god_eye_transit_tools import transit_flight_status
+    return transit_flight_status(flight_number=flight_number)
+
+@registry.register(
+    name="transit_god_eye_overview",
+    description="Unified God's Eye spatial query across traffic, metro, trains, and flights.",
+    risk_level=RiskLevel.READ,
+    requires_confirmation=False
+)
+def _tool_transit_god_eye_overview(query: str = ""):
+    from backend.app.tools.god_eye_transit_tools import transit_god_eye_overview
+    return transit_god_eye_overview(query=query)
+
+

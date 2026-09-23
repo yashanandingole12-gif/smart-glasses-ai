@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import com.smartglasses.ai.presentation.theme.*
 
 /**
- * EVA Atmosphere Modes — 8 Shared Semantic States
+ * EVA Atmosphere Modes — Adapted for Clean Light Ivory / Green Identity
  */
 enum class EvaAtmosphereMode(
     val emotion: String,
@@ -22,19 +22,19 @@ enum class EvaAtmosphereMode(
     val accent: Color,
     val highlight: Color
 ) {
-    GROUNDED("calm / grounded / stable", EvaOliveBlack, EvaOlive, Color(0xFFB49E45)),
-    FOCUSED("clarity / concentration / precision", EvaNight, EvaMoss, EvaGold),
-    CREATIVE("creative / intimate / expressive", EvaEarthBlack, EvaWine, Color(0xFFB57B88)),
-    CURIOUS("discovery / exploration / curiosity", EvaVoid, EvaAmberBrown, EvaGold),
-    REFLECTIVE("quiet / contemplative / deep", EvaNight, EvaBronze, EvaSunlight),
-    ENERGETIC("momentum / action / vitality", EvaUmber, EvaAmber, EvaSunlight),
-    NIGHT("mysterious / quiet / expansive", EvaVoid, EvaEarthBlack, EvaGold),
-    CUSTOM("adaptive / personal resonance", EvaVoid, EvaAmberBrown, EvaGold)
+    GROUNDED("calm / grounded / stable", EvaIvory, EvaPrimaryGreen, EvaPaleGreen),
+    FOCUSED("clarity / concentration / precision", EvaPureWhite, EvaDeepGreen, EvaMistGreen),
+    CREATIVE("creative / intimate / expressive", EvaWarmIvory, EvaSoftGreen, EvaPaleGreen),
+    CURIOUS("discovery / exploration / curiosity", EvaIvory, EvaPrimaryGreen, EvaMistGreen),
+    REFLECTIVE("quiet / contemplative / deep", EvaLightStone, EvaSoftGreen, EvaPureWhite),
+    ENERGETIC("momentum / action / vitality", EvaPureWhite, EvaPrimaryGreen, EvaPaleGreen),
+    NIGHT("quiet / resting / soft light", EvaLightStone, EvaDeepGreen, EvaMistGreen),
+    CUSTOM("adaptive / personal resonance", EvaIvory, EvaPrimaryGreen, EvaPaleGreen)
 }
 
 /**
- * EvaAtmosphere renders the organic living darkness atmosphere of EVA.
- * Performs smooth organic tone shifting across 800-1800ms when mode changes.
+ * EvaAtmosphere renders the calm, natural, light atmosphere of EVA.
+ * Soft diffuse warm light with subtle natural green illumination.
  */
 @Composable
 fun EvaAtmosphere(
@@ -42,32 +42,15 @@ fun EvaAtmosphere(
     mode: EvaAtmosphereMode = EvaAtmosphereMode.GROUNDED,
     content: @Composable () -> Unit
 ) {
-    // Smooth tone-shifting color interpolation (1400ms organic transition)
     val animatedFoundation by animateColorAsState(
         targetValue = mode.foundation,
-        animationSpec = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
         label = "FoundationColor"
     )
     val animatedAccent by animateColorAsState(
         targetValue = mode.accent,
-        animationSpec = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
         label = "AccentColor"
-    )
-    val animatedHighlight by animateColorAsState(
-        targetValue = mode.highlight,
-        animationSpec = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
-        label = "HighlightColor"
-    )
-
-    val infiniteTransition = rememberInfiniteTransition(label = "AtmosphereDrift")
-    val driftAnim by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(14000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "Drift"
     )
 
     Box(
@@ -77,22 +60,22 @@ fun EvaAtmosphere(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val centerOffset = Offset(
-                x = size.width * (0.45f + 0.1f * driftAnim),
-                y = size.height * (0.35f + 0.1f * (1f - driftAnim))
+                x = size.width * 0.5f,
+                y = size.height * 0.25f
             )
 
-            // Deep atmospheric radial illumination (Color Existing Inside Darkness)
+            // Ultra-subtle diffuse soft natural radiance
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        animatedAccent.copy(alpha = 0.28f),
-                        animatedHighlight.copy(alpha = 0.12f),
+                        animatedAccent.copy(alpha = 0.05f),
+                        animatedFoundation.copy(alpha = 0.4f),
                         Color.Transparent
                     ),
                     center = centerOffset,
-                    radius = size.maxDimension * 0.70f
+                    radius = size.maxDimension * 0.85f
                 ),
-                radius = size.maxDimension * 0.70f,
+                radius = size.maxDimension * 0.85f,
                 center = centerOffset
             )
         }

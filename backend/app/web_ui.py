@@ -1,10 +1,18 @@
 def get_dashboard_html() -> str:
     """
-    Returns EVA: The Living Digital Atmosphere & Private Intelligence Realm.
-    Master Web Experience featuring 'Color Existing Inside Darkness',
-    reusable Atmosphere Engine (GROUNDED, FOCUSED, CREATIVE, CURIOUS, REFLECTIVE,
-    ENERGETIC, NIGHT, CUSTOM), organic Tone Shifting (800-1800ms),
-    ambient Presence Orb, Document Knowledge System, and Research Constellation.
+    Returns EVA: Immersive Nature-First Product Experience & Device Management Console.
+    Visual Identity: Ivory (#F7F4EC) + Pure White (#FFFFFF) + Natural Green (#3F6B4F) + Controlled Black (#111311).
+    Philosophy: 'THIS IS THE WORLD AS EXPERIENCED WITH EVA.' World First, Interface Second.
+    
+    Structure:
+      - Immersive Environmental Hero (Eye-level Autumn Walkway)
+      - World First Philosophy & 5 Core Pillars (Voice, Vision, Context, Memory, Assistance)
+      - Environmental Journey (Forest, Campus, City, Night) with Ambient Glass HUD Layers
+      - Personal Activity Journal (Chronological Real-Time Timeline)
+      - App Configuration & Experience Controls (Voice, Vision, Context, Integrations)
+      - Usage & Insights (Clean Green Environmental Metrics)
+      - God's Eye Live Transit Intelligence (Traffic, Metro, Trains, Flights)
+      - Full-Featured Device Management Console (/console)
     """
     return r"""<!DOCTYPE html>
 <html lang="en">
@@ -12,7 +20,7 @@ def get_dashboard_html() -> str:
     <meta charset="UTF-8">
     <!-- LARA Smart Glasses Operations Console | ESP32 Smart Glasses & Android Hub | Private Intelligence & Control | Intent Inspector | Desk & Data Analysis | Automations Center | Smart Notifications -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EVA — Color Atmosphere System &amp; Private Intelligence</title>
+    <title>EVA — See More. Live Deeper. | Ambient Spatial Companion</title>
     <script>
         function updateHardwareStatus(d){console.debug("Hardware sync", d);}
         function simulateIncomingSmsPrompt(){console.debug("Simulate SMS");}
@@ -20,74 +28,59 @@ def get_dashboard_html() -> str:
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             /* ========================================================= */
-            /* EXTRACTED EVA PALETTE (Color Existing Inside Darkness)    */
+            /* EVA DESIGN SYSTEM — IVORY + WHITE + GREEN + BLACK         */
             /* ========================================================= */
-            /* FOUNDATION */
-            --eva-void: #0C0805;
-            --eva-night: #161411;
-            --eva-earth-black: #190903;
-            --eva-charcoal: #2B221E;
+            --eva-ivory: #F7F4EC;
+            --eva-warm-ivory: #F1EEE4;
+            --eva-pure-white: #FFFFFF;
+            --eva-soft-white: #FCFBF8;
+            --eva-light-stone: #E8E5DC;
+            --eva-border: #E2E0D8;
+            --eva-border-light: rgba(226, 224, 216, 0.6);
 
-            /* EARTH */
-            --eva-umber: #301306;
-            --eva-copper: #552804;
-            --eva-amber-brown: #703912;
-            --eva-bronze: #7F582D;
+            /* Glassmorphism Tokens */
+            --eva-glass-bg: rgba(247, 244, 236, 0.78);
+            --eva-glass-white: rgba(255, 255, 255, 0.82);
+            --eva-glass-dark: rgba(17, 19, 17, 0.75);
+            --eva-glass-border: rgba(255, 255, 255, 0.85);
 
-            /* LIGHT */
-            --eva-gold: #D3A95B;
-            --eva-amber: #B1650E;
-            --eva-sunlight: #ECDBA1;
-            --eva-ivory: #F8F0E2;
+            /* Green Accent (8-10%) */
+            --eva-primary-green: #3F6B4F;
+            --eva-deep-green: #294A36;
+            --eva-soft-green: #6F9278;
+            --eva-pale-green: #DDE9DF;
+            --eva-mist-green: #EEF4EF;
+            --eva-green-glow: rgba(63, 107, 79, 0.18);
 
-            /* GREEN */
-            --eva-olive-black: #0C0C08;
-            --eva-moss: #484428;
-            --eva-olive: #6D6333;
-            --eva-sage: #848157;
+            /* Black & Typography (5% Contrast) */
+            --eva-primary-black: #111311;
+            --eva-soft-black: #252824;
+            --eva-muted-text: #626861;
+            --eva-slate: #8C928B;
 
-            /* ROSE */
-            --eva-wine: #510A16;
-            --eva-crimson: #932D44;
-            --eva-mauve: #A7788E;
+            /* Status */
+            --eva-status-good: #3F6B4F;
+            --eva-status-warn: #B46E28;
+            --eva-status-alert: #9E3A3A;
 
-            /* ========================================================= */
-            /* ACTIVE DYNAMIC ATMOSPHERE TOKENS (Default: GROUNDED)      */
-            /* ========================================================= */
-            --atm-foundation: #0C0C08;
-            --atm-night-base: #161411;
-            --atm-accent: #6D6333;
-            --atm-highlight: #B49E45;
-            --atm-surface: rgba(22, 20, 15, 0.72);
-            --atm-surface-elevated: rgba(33, 30, 22, 0.78);
-            --atm-border: rgba(109, 99, 51, 0.32);
-            --atm-border-focus: rgba(180, 158, 69, 0.55);
-            --atm-glow: rgba(180, 158, 69, 0.22);
-            --atm-glow-opacity: 0.22;
-            --atm-motion-scale: 0.85;
-            --atm-transition-ms: 1400ms;
-
-            /* TYPOGRAPHY */
-            --text-pure: #F8F0E2;
-            --text-primary: #ECDBA1;
-            --text-secondary: #848157;
-            --text-muted: #645F45;
-            --text-highlight: #D3A95B;
-
-            --font-display: 'Cinzel', serif;
-            --font-body: 'Inter', -apple-system, sans-serif;
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
 
             --radius-sm: 8px;
             --radius-md: 14px;
-            --radius-lg: 24px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
             --radius-full: 9999px;
 
-            --ease-organic: cubic-bezier(0.16, 1, 0.3, 1);
+            --shadow-subtle: 0 2px 10px rgba(17, 19, 17, 0.03), 0 1px 3px rgba(17, 19, 17, 0.02);
+            --shadow-glass: 0 8px 32px rgba(17, 19, 17, 0.08), 0 2px 8px rgba(17, 19, 17, 0.04);
+            --shadow-elevated: 0 16px 40px rgba(17, 19, 17, 0.10);
+
+            --ease-natural: cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         * {
@@ -97,885 +90,882 @@ def get_dashboard_html() -> str:
             -webkit-font-smoothing: antialiased;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            background-color: var(--atm-foundation);
-            color: var(--text-primary);
+            background-color: var(--eva-ivory);
+            color: var(--eva-soft-black);
             font-family: var(--font-body);
             min-height: 100vh;
             overflow-x: hidden;
             display: flex;
             flex-direction: column;
             position: relative;
-            user-select: none;
-            transition: background-color 1.4s var(--ease-organic), color 1.4s ease;
         }
 
-        /* Living Particle & Depth Canvas */
-        #living-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        /* Atmospheric Header */
-        .eva-header {
+        /* Top Navigation */
+        .eva-nav-header {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: 64px;
-            padding: 0 24px;
+            height: 70px;
+            padding: 0 40px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            z-index: 50;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--atm-border);
-            background: rgba(12, 8, 5, 0.75);
-            transition: background 1.4s var(--ease-organic), border-color 1.4s ease;
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--eva-border-light);
+            background: rgba(247, 244, 236, 0.85);
+            transition: all 0.3s ease;
         }
 
         .eva-brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             cursor: pointer;
+            text-decoration: none;
         }
 
-        .eva-symbol {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: radial-gradient(circle, var(--atm-highlight) 0%, transparent 80%);
-            box-shadow: 0 0 12px var(--atm-highlight);
-            animation: pulseGlow 3.5s ease-in-out infinite alternate;
-            transition: background 1.4s ease, box-shadow 1.4s ease;
-        }
-
-        @keyframes pulseGlow {
-            0% { transform: scale(0.9); opacity: 0.7; }
-            100% { transform: scale(1.2); opacity: 1; }
-        }
-
-        .eva-title {
-            font-family: var(--font-display);
-            font-size: 17px;
-            letter-spacing: 4px;
-            color: var(--text-pure);
+        .eva-brand-title {
+            font-size: 21px;
+            letter-spacing: 3px;
+            color: var(--eva-primary-black);
             font-weight: 700;
         }
 
-        .eva-presence-badge {
-            font-size: 9px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: var(--atm-highlight);
-            border: 1px solid var(--atm-border);
-            padding: 2px 8px;
-            border-radius: var(--radius-full);
-            background: var(--atm-surface);
-            font-family: var(--font-mono);
-            transition: all 1.2s var(--ease-organic);
-        }
-
-        /* Tone Atmosphere Switcher Bar */
-        .eva-atmosphere-switcher {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: var(--atm-surface);
-            padding: 3px 6px;
-            border-radius: var(--radius-full);
-            border: 1px solid var(--atm-border);
-            backdrop-filter: blur(12px);
-            transition: all 1.2s var(--ease-organic);
-        }
-
-        .atm-pill {
-            background: transparent;
-            border: 1px solid transparent;
-            color: var(--text-secondary);
+        .eva-brand-tag {
             font-size: 11px;
             font-weight: 500;
-            padding: 4px 10px;
+            color: var(--eva-deep-green);
+            background: var(--eva-mist-green);
+            border: 1px solid var(--eva-pale-green);
+            padding: 2px 9px;
             border-radius: var(--radius-full);
-            cursor: pointer;
-            transition: all 0.4s var(--ease-organic);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-family: var(--font-body);
-        }
-
-        .atm-pill:hover {
-            color: var(--text-pure);
-            background: rgba(255, 255, 255, 0.04);
-        }
-
-        .atm-pill.active {
-            color: var(--text-pure);
-            background: rgba(255, 255, 255, 0.07);
-            border-color: var(--atm-highlight);
-            box-shadow: 0 0 12px var(--atm-glow);
-        }
-
-        .atm-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 6px currentColor;
-        }
-
-        .eva-nav-modes {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: var(--atm-surface);
-            padding: 3px 6px;
-            border-radius: var(--radius-full);
-            border: 1px solid var(--atm-border);
-            transition: all 1.2s var(--ease-organic);
-        }
-
-        .nav-mode-btn {
-            background: transparent;
-            border: 1px solid transparent;
-            color: var(--text-secondary);
-            font-size: 12px;
-            font-weight: 500;
-            padding: 5px 12px;
-            border-radius: var(--radius-full);
-            cursor: pointer;
-            transition: all 0.3s var(--ease-organic);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .nav-mode-btn:hover {
-            color: var(--text-pure);
-            background: rgba(255, 255, 255, 0.04);
-        }
-
-        .nav-mode-btn.active {
-            color: var(--text-pure);
-            background: rgba(255, 255, 255, 0.08);
-            border-color: var(--atm-border);
-            box-shadow: 0 0 12px var(--atm-glow);
-        }
-
-        .header-meta {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 11px;
-            color: var(--text-muted);
             font-family: var(--font-mono);
         }
 
+        .eva-nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .eva-nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--eva-muted-text);
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .eva-nav-link:hover, .eva-nav-link.active {
+            color: var(--eva-primary-black);
+        }
+
+        .eva-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .btn-console-toggle {
+            background: var(--eva-pure-white);
+            color: var(--eva-deep-green);
+            border: 1px solid var(--eva-border);
+            padding: 8px 18px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .btn-console-toggle:hover {
+            background: var(--eva-primary-green);
+            color: var(--eva-pure-white);
+            border-color: var(--eva-primary-green);
+        }
+
+        .btn-primary {
+            background: var(--eva-primary-green);
+            color: var(--eva-pure-white);
+            border: none;
+            padding: 12px 26px;
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(63, 107, 79, 0.25);
+        }
+
+        .btn-primary:hover {
+            background: var(--eva-deep-green);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.85);
+            color: var(--eva-primary-black);
+            border: 1px solid var(--eva-border);
+            padding: 12px 24px;
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--eva-pure-white);
+            border-color: var(--eva-primary-green);
+            color: var(--eva-deep-green);
+        }
+
+        /* Status Dot */
         .status-dot {
             width: 7px;
             height: 7px;
             border-radius: 50%;
-            background: var(--atm-highlight);
-            box-shadow: 0 0 8px var(--atm-highlight);
-            transition: background 1.4s ease, box-shadow 1.4s ease;
+            background: var(--eva-primary-green);
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
         }
 
-        /* Main Spatial Viewport */
-        .spatial-viewport {
+        /* ========================================================= */
+        /* MAIN CONTAINERS & VIEWS                                   */
+        /* ========================================================= */
+        .main-container {
+            margin-top: 70px;
             flex: 1;
-            padding: 84px 32px 130px 32px;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-            z-index: 10;
-            position: relative;
-        }
-
-        /* Spatial Panels */
-        .spatial-panel {
-            width: 100%;
-            display: none;
-            animation: fadeInLayer 0.4s var(--ease-organic) forwards;
-        }
-
-        .spatial-panel.active {
-            display: block;
-        }
-
-        @keyframes fadeInLayer {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ========================================================= */
-        /* MODE 1: LIVING PRESENCE (Ambient Atmospheric Orb)         */
-        /* ========================================================= */
-        .presence-container {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 30px 0 20px 0;
+        }
+
+        .view-section {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .view-section.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* ========================================================= */
+        /* IMMERSIVE NATURE-FIRST HERO (AUTUMN WALK)                */
+        /* ========================================================= */
+        .nature-hero-section {
             position: relative;
-        }
-
-        .core-presence-orb {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            position: relative;
-            cursor: pointer;
-            transition: all 1.2s var(--ease-organic);
-            margin-bottom: 24px;
-        }
-
-        .orb-halo {
-            position: absolute;
-            inset: -20px;
-            border-radius: 50%;
-            background: radial-gradient(circle, var(--atm-accent) 0%, transparent 70%);
-            opacity: var(--atm-glow-opacity);
-            animation: orbHaloBreath 6s ease-in-out infinite;
-            transition: all 1.4s ease;
-        }
-
-        .orb-ring {
-            position: absolute;
-            inset: -4px;
-            border-radius: 50%;
-            border: 1px solid var(--atm-border);
-            animation: orbRingRotate 22s linear infinite;
-            transition: border-color 1.4s ease;
-        }
-
-        .orb-center {
-            position: absolute;
-            inset: 8px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, var(--atm-highlight) 0%, var(--atm-accent) 45%, var(--atm-foundation) 90%);
-            box-shadow: 0 0 32px var(--atm-glow), inset 0 0 18px rgba(255, 255, 255, 0.15);
-            transition: all 1.4s ease;
-        }
-
-        @keyframes orbHaloBreath {
-            0%, 100% { transform: scale(0.95); opacity: calc(var(--atm-glow-opacity) * 0.8); }
-            50% { transform: scale(1.2); opacity: calc(var(--atm-glow-opacity) * 1.3); }
-        }
-
-        @keyframes orbRingRotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Orb State Color Radiance */
-        .core-presence-orb[data-state="LISTENING"] .orb-center {
-            background: radial-gradient(circle at 35% 35%, var(--eva-sunlight) 0%, var(--eva-amber) 45%, var(--atm-foundation) 90%);
-            box-shadow: 0 0 40px rgba(236, 219, 161, 0.6);
-        }
-        .core-presence-orb[data-state="THINKING"] .orb-center {
-            background: radial-gradient(circle at 35% 35%, var(--eva-mauve) 0%, var(--eva-wine) 45%, var(--atm-foundation) 90%);
-            box-shadow: 0 0 40px rgba(181, 123, 136, 0.6);
-            animation: pulseGlow 1.4s ease-in-out infinite alternate;
-        }
-        .core-presence-orb[data-state="SPEAKING"] .orb-center {
-            background: radial-gradient(circle at 35% 35%, var(--eva-ivory) 0%, var(--eva-gold) 45%, var(--atm-foundation) 90%);
-            box-shadow: 0 0 40px rgba(211, 169, 91, 0.7);
-        }
-
-        .presence-state-text {
-            font-family: var(--font-display);
-            font-size: 14px;
-            letter-spacing: 3px;
-            color: var(--text-pure);
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            transition: color 1.2s ease;
-        }
-
-        .waveform-strip {
+            min-height: 90vh;
             display: flex;
             align-items: center;
-            gap: 4px;
-            height: 24px;
+            padding: 60px 80px;
+            background: url('/static/environments/autumn_walk.jpg') center/cover no-repeat;
+            overflow: hidden;
         }
 
-        .waveform-bar {
-            width: 3px;
-            background: var(--atm-highlight);
+        .nature-hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(17, 19, 17, 0.38) 0%, rgba(17, 19, 17, 0.20) 45%, rgba(247, 244, 236, 0.96) 100%);
+            pointer-events: none;
+        }
+
+        .nature-hero-grid {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 1300px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .hero-text-card {
+            background: rgba(247, 244, 236, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: var(--radius-xl);
+            padding: 48px 52px;
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            box-shadow: var(--shadow-glass);
+            animation: fadeIn 0.8s var(--ease-natural);
+        }
+
+        .hero-eyebrow {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--eva-deep-green);
+            margin-bottom: 16px;
+            display: inline-block;
+            font-family: var(--font-mono);
+        }
+
+        .hero-headline {
+            font-size: 48px;
+            line-height: 1.12;
+            font-weight: 700;
+            letter-spacing: -1.2px;
+            color: var(--eva-primary-black);
+            margin-bottom: 20px;
+        }
+
+        .hero-subheadline {
+            font-size: 16px;
+            line-height: 1.65;
+            color: var(--eva-soft-black);
+            margin-bottom: 34px;
+            font-weight: 400;
+        }
+
+        .hero-cta-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        /* Ambient Glass HUD Layer (Looking through EVA) */
+        .hero-hud-layer {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: floatSlow 6s ease-in-out infinite alternate;
+        }
+
+        .hud-glass-chip {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-lg);
+            padding: 18px 22px;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: var(--shadow-glass);
+            transition: all 0.3s ease;
+        }
+
+        .hud-glass-chip:hover {
+            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.94);
+        }
+
+        .hud-chip-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .hud-chip-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--eva-muted-text);
+            font-family: var(--font-mono);
+        }
+
+        .hud-chip-tag {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--eva-deep-green);
+            background: var(--eva-mist-green);
+            padding: 2px 8px;
             border-radius: var(--radius-full);
-            transition: height 0.15s ease, background-color 1.4s ease;
+            border: 1px solid var(--eva-pale-green);
         }
 
-        /* Active Focus Card in Presence (Clean, focused) */
-        .active-focus-container {
-            max-width: 680px;
-            margin: 20px auto 0 auto;
+        .hud-chip-content {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--eva-primary-black);
+        }
+
+        .hud-chip-sub {
+            font-size: 12px;
+            color: var(--eva-muted-text);
+            margin-top: 3px;
+        }
+
+        /* ========================================================= */
+        /* PHILOSOPHY & STORY: WORLD FIRST, INTERFACE SECOND        */
+        /* ========================================================= */
+        .story-section {
+            padding: 100px 40px 80px 40px;
+            max-width: 1240px;
+            margin: 0 auto;
             width: 100%;
         }
 
-        .active-focus-card {
-            background: var(--atm-surface);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-md);
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px var(--atm-glow);
-            position: relative;
-            transition: all 1.4s var(--ease-organic);
+        .story-header {
+            text-align: center;
+            max-width: 780px;
+            margin: 0 auto 60px auto;
         }
 
-        .focus-header {
+        .story-eyebrow {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--eva-primary-green);
+            font-family: var(--font-mono);
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+
+        .story-title {
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: -0.8px;
+            color: var(--eva-primary-black);
+            line-height: 1.25;
+            margin-bottom: 18px;
+        }
+
+        .story-subtitle {
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--eva-muted-text);
+        }
+
+        /* 5 Pillars Grid */
+        .pillars-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+        }
+
+        .pillar-card {
+            background: var(--eva-pure-white);
+            border: 1px solid var(--eva-border);
+            border-radius: var(--radius-lg);
+            padding: 32px 26px;
+            box-shadow: var(--shadow-subtle);
+            transition: all 0.3s var(--ease-natural);
+            position: relative;
+        }
+
+        .pillar-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--eva-soft-green);
+            box-shadow: var(--shadow-card);
+        }
+
+        .pillar-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            background: var(--eva-mist-green);
+            color: var(--eva-primary-green);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-secondary);
+            justify-content: center;
+            margin-bottom: 20px;
+            border: 1px solid var(--eva-pale-green);
+        }
+
+        .pillar-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--eva-primary-black);
+            margin-bottom: 10px;
+        }
+
+        .pillar-desc {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--eva-muted-text);
+        }
+
+        /* ========================================================= */
+        /* ENVIRONMENTAL TRANSITION BANNERS (IMMERSIVE SECTIONS)    */
+        /* ========================================================= */
+        .env-banner-section {
+            position: relative;
+            min-height: 480px;
+            margin: 40px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            padding: 60px 40px;
+        }
+
+        .env-banner-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(17, 19, 17, 0.28);
+        }
+
+        .env-glass-card {
+            position: relative;
+            z-index: 2;
+            max-width: 680px;
+            background: rgba(247, 244, 236, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.92);
+            border-radius: var(--radius-xl);
+            padding: 40px 48px;
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            box-shadow: var(--shadow-glass);
+            text-align: center;
+        }
+
+        .env-glass-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--eva-primary-black);
             margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .env-glass-desc {
+            font-size: 15px;
+            line-height: 1.65;
+            color: var(--eva-soft-black);
+            margin-bottom: 20px;
+        }
+
+        .env-meta-tags {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .env-meta-pill {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--eva-deep-green);
+            background: var(--eva-pure-white);
+            border: 1px solid var(--eva-border);
+            padding: 5px 14px;
+            border-radius: var(--radius-full);
             font-family: var(--font-mono);
         }
 
-        .focus-text {
-            font-size: 15px;
-            color: var(--text-pure);
-            line-height: 1.6;
-            margin-bottom: 16px;
-        }
-
-        .focus-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-top: 1px solid var(--atm-border);
-            padding-top: 12px;
-            transition: border-color 1.4s ease;
-        }
-
-        .proactive-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 16px;
-            justify-content: center;
-        }
-
-        .meta-chip {
-            font-size: 11px;
-            color: var(--text-secondary);
-            background: var(--atm-surface);
-            border: 1px solid var(--atm-border);
-            padding: 6px 14px;
-            border-radius: var(--radius-full);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: var(--font-body);
-        }
-
-        .meta-chip:hover {
-            color: var(--text-pure);
-            border-color: var(--atm-highlight);
-            background: rgba(255, 255, 255, 0.05);
-            box-shadow: 0 0 10px var(--atm-glow);
-        }
-
         /* ========================================================= */
-        /* MODE 2: ACTIVITY TIMELINE & OPERATIONAL SESSIONS          */
+        /* PERSONAL ACTIVITY JOURNAL SECTION                        */
         /* ========================================================= */
-        .activity-header-bar {
+        .journal-section {
+            padding: 60px 40px;
+            max-width: 1240px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .journal-container {
+            background: var(--eva-pure-white);
+            border: 1px solid var(--eva-border);
+            border-radius: var(--radius-xl);
+            padding: 44px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .journal-header {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            margin-bottom: 24px;
+            margin-bottom: 32px;
             flex-wrap: wrap;
             gap: 16px;
-        }
-
-        .activity-title-group h2 {
-            font-family: var(--font-display);
-            font-size: 20px;
-            letter-spacing: 2px;
-            color: var(--text-pure);
-            margin-bottom: 4px;
-        }
-
-        .activity-title-group p {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .timeline-filter-pills {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .filter-pill {
-            font-size: 11px;
-            color: var(--text-muted);
-            background: var(--atm-surface);
-            border: 1px solid var(--atm-border);
-            padding: 5px 12px;
-            border-radius: var(--radius-full);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: var(--font-mono);
-        }
-
-        .filter-pill.active {
-            color: var(--text-pure);
-            border-color: var(--atm-highlight);
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 10px var(--atm-glow);
-        }
-
-        .sessions-summary-card {
-            background: var(--atm-surface);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-md);
-            padding: 16px 20px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            transition: all 1.4s var(--ease-organic);
-        }
-
-        .session-badge-active {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: var(--atm-highlight);
-            font-family: var(--font-mono);
         }
 
         .timeline-stream {
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 16px;
         }
 
-        .timeline-event-card {
-            background: var(--atm-surface);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-md);
-            padding: 16px 20px;
+        .timeline-entry {
             display: flex;
             align-items: flex-start;
-            gap: 16px;
-            transition: all 0.3s ease;
+            gap: 20px;
+            padding: 16px 20px;
+            background: var(--eva-soft-white);
+            border: 1px solid var(--eva-border-light);
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
         }
 
-        .timeline-event-card:hover {
-            border-color: var(--atm-highlight);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), 0 0 15px var(--atm-glow);
+        .timeline-entry:hover {
+            border-color: var(--eva-pale-green);
+            background: var(--eva-mist-green);
         }
 
-        .event-icon-box {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--atm-border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--atm-highlight);
-            flex-shrink: 0;
-            transition: color 1.4s ease, border-color 1.4s ease;
+        .entry-time {
+            font-size: 12px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--eva-deep-green);
+            min-width: 60px;
+            padding-top: 2px;
         }
 
-        .event-body {
+        .entry-body {
             flex: 1;
         }
 
-        .event-top-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .event-title {
+        .entry-title {
             font-size: 14px;
             font-weight: 600;
-            color: var(--text-pure);
+            color: var(--eva-primary-black);
+            margin-bottom: 3px;
         }
 
-        .event-time {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-family: var(--font-mono);
-        }
-
-        .event-desc {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .event-tag {
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 2px 8px;
-            border-radius: var(--radius-full);
-            background: rgba(255, 255, 255, 0.04);
-            color: var(--text-muted);
-            font-family: var(--font-mono);
-        }
-
-        /* ========================================================= */
-        /* MODE 3: DOCUMENT KNOWLEDGE SYSTEM                         */
-        /* ========================================================= */
-        .documents-header-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .doc-upload-dropzone {
-            border: 1px dashed var(--atm-border);
-            border-radius: var(--radius-md);
-            padding: 32px 20px;
-            text-align: center;
-            background: var(--atm-surface);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 24px;
-        }
-
-        .doc-upload-dropzone:hover, .doc-upload-dropzone.dragover {
-            border-color: var(--atm-highlight);
-            background: rgba(255, 255, 255, 0.03);
-            box-shadow: 0 0 15px var(--atm-glow);
-        }
-
-        .doc-search-bar {
-            width: 100%;
-            background: var(--atm-surface);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-full);
-            padding: 10px 20px;
-            color: var(--text-pure);
-            font-size: 13px;
-            font-family: var(--font-body);
-            margin-bottom: 20px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        .doc-search-bar:focus {
-            border-color: var(--atm-highlight);
-            box-shadow: 0 0 15px var(--atm-glow);
-        }
-
-        .documents-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 18px;
-        }
-
-        .doc-card {
-            background: var(--atm-surface);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-md);
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: all 0.3s ease;
-        }
-
-        .doc-card:hover {
-            border-color: var(--atm-highlight);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px var(--atm-glow);
-        }
-
-        .doc-card-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-pure);
-            margin-bottom: 6px;
-            word-break: break-word;
-        }
-
-        .doc-card-meta {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-family: var(--font-mono);
-            margin-bottom: 12px;
-            display: flex;
-            gap: 12px;
-        }
-
-        .doc-preview-snippet {
+        .entry-desc {
             font-size: 12px;
-            color: var(--text-secondary);
+            color: var(--eva-muted-text);
             line-height: 1.5;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 14px;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            font-family: var(--font-mono);
         }
 
-        .doc-actions {
+        .empty-state-journal {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--eva-muted-text);
+            font-size: 14px;
+        }
+
+        /* ========================================================= */
+        /* APP CONFIGURATION & SETTINGS MODULES                     */
+        /* ========================================================= */
+        .config-section {
+            padding: 40px 40px 80px 40px;
+            max-width: 1240px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .config-card {
+            background: var(--eva-pure-white);
+            border: 1px solid var(--eva-border);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .config-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--eva-primary-black);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-top: 1px solid var(--atm-border);
-            padding-top: 10px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--eva-border-light);
         }
 
-        /* ========================================================= */
-        /* MODE 4: RESEARCH CONSTELLATION & NUMBERED PAPERS          */
-        /* ========================================================= */
-        .constellation-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .constellation-node {
-            background: var(--atm-surface);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-md);
-            padding: 20px;
-            transition: all 0.3s var(--ease-organic);
+        .config-row {
             display: flex;
-            flex-direction: column;
+            align-items: center;
             justify-content: space-between;
+            padding: 10px 0;
+            font-size: 13px;
+        }
+
+        .config-row:not(:last-child) {
+            border-bottom: 1px dashed var(--eva-border-light);
+        }
+
+        .config-label {
+            color: var(--eva-muted-text);
+            font-weight: 500;
+        }
+
+        .config-val {
+            color: var(--eva-primary-black);
+            font-weight: 600;
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+
+        /* ========================================================= */
+        /* USAGE & INSIGHTS (CLEAN GREEN LIGHT CHARTS)              */
+        /* ========================================================= */
+        .insights-section {
+            padding: 40px 40px 80px 40px;
+            max-width: 1240px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+
+        .insight-chart-card {
+            background: var(--eva-pure-white);
+            border: 1px solid var(--eva-border);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .chart-bar-canvas {
+            height: 160px;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            padding-top: 24px;
+            border-bottom: 1px solid var(--eva-border);
+        }
+
+        .chart-bar-item {
+            flex: 1;
+            background: var(--eva-primary-green);
+            border-radius: 4px 4px 0 0;
+            transition: all 0.3s ease;
             position: relative;
         }
 
-        .constellation-node:hover {
-            border-color: var(--atm-highlight);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 20px var(--atm-glow);
+        .chart-bar-item.secondary {
+            background: var(--eva-pale-green);
         }
 
-        .node-ordinal-badge {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--atm-highlight);
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-full);
-            padding: 2px 8px;
-            font-family: var(--font-mono);
-        }
-
-        .node-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-pure);
-            margin-bottom: 8px;
-            line-height: 1.4;
-            padding-right: 32px;
-        }
-
-        .node-meta {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-            display: flex;
-            gap: 10px;
-            font-family: var(--font-mono);
-        }
-
-        .node-abstract {
-            font-size: 12px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 16px;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .node-actions {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            border-top: 1px solid var(--atm-border);
-            padding-top: 12px;
+        .chart-bar-item:hover {
+            background: var(--eva-deep-green);
         }
 
         /* ========================================================= */
-        /* MODE 5: ECOSYSTEM & GOOGLE WORKSPACE OAUTH                */
+        /* GOD'S EYE LIVE TRANSIT RADAR                             */
         /* ========================================================= */
-        .ecosystem-grid {
+        .transit-live-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 20px;
-            margin-top: 20px;
+            margin-top: 24px;
         }
 
-        .eco-card {
-            background: var(--atm-surface);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--atm-border);
+        .transit-live-card {
+            background: var(--eva-pure-white);
+            border: 1px solid var(--eva-border);
             border-radius: var(--radius-md);
-            padding: 20px;
-            transition: all 0.3s ease;
+            padding: 22px;
+            box-shadow: var(--shadow-subtle);
+            transition: all 0.2s ease;
         }
 
-        .btn-google-connect {
-            background: var(--atm-surface-elevated);
-            color: var(--text-pure);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-full);
-            padding: 8px 18px;
-            font-size: 12px;
+        .transit-live-card:hover {
+            border-color: var(--eva-primary-green);
+            box-shadow: var(--shadow-card);
+        }
+
+        .transit-badge {
+            font-size: 11px;
             font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
+            color: var(--eva-deep-green);
+            background: var(--eva-mist-green);
+            border: 1px solid var(--eva-pale-green);
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-family: var(--font-mono);
         }
 
-        .btn-google-connect:hover {
-            border-color: var(--atm-highlight);
-            box-shadow: 0 0 15px var(--atm-glow);
-        }
-
-        /* Modal Overlay for Level 3 Structured Breakdown & Custom Atmosphere */
-        .eva-modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(12, 8, 5, 0.85);
-            backdrop-filter: blur(12px);
-            z-index: 100;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-        }
-
-        .eva-modal-overlay.active {
-            display: flex;
-        }
-
-        .eva-modal-box {
-            background: var(--atm-surface);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-md);
-            max-width: 700px;
+        /* ========================================================= */
+        /* VIEW 2: DEVICE MANAGEMENT CONSOLE (/console)             */
+        /* ========================================================= */
+        .console-container {
+            padding: 40px 60px 120px 60px;
+            max-width: 1300px;
+            margin: 0 auto;
             width: 100%;
-            max-height: 85vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px var(--atm-glow);
-            overflow: hidden;
-            animation: fadeInLayer 0.3s ease;
         }
 
-        .modal-header {
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--atm-border);
+        .console-header-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
-        .modal-body {
-            padding: 24px;
-            overflow-y: auto;
-            color: var(--text-primary);
-            font-size: 13px;
-            line-height: 1.7;
+        .console-title-group h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--eva-primary-black);
+            letter-spacing: -0.5px;
         }
 
-        .modal-body pre {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 16px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--atm-border);
-            overflow-x: auto;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: var(--text-highlight);
-            white-space: pre-wrap;
+        .console-title-group p {
+            font-size: 14px;
+            color: var(--eva-muted-text);
+            margin-top: 4px;
         }
 
-        /* Command Instrument Surface */
-        .command-surface {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: min(720px, calc(100% - 48px));
-            background: var(--atm-surface);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--atm-border);
-            border-radius: var(--radius-full);
-            padding: 6px 8px 6px 20px;
+        .console-status-badge {
             display: flex;
             align-items: center;
-            gap: 12px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 25px var(--atm-glow);
-            z-index: 50;
-            transition: all 0.4s var(--ease-organic);
+            gap: 8px;
+            background: var(--eva-pure-white);
+            border: 1px solid var(--eva-border);
+            padding: 8px 16px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--eva-deep-green);
+            box-shadow: var(--shadow-subtle);
+            font-family: var(--font-mono);
         }
 
-        .command-surface:focus-within {
-            border-color: var(--atm-highlight);
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 35px var(--atm-glow);
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
         }
 
-        .command-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: var(--text-pure);
-            font-size: 14px;
-            font-family: var(--font-body);
+        .overview-chip-card {
+            background: var(--eva-pure-white);
+            border: 1px solid var(--eva-border);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            box-shadow: var(--shadow-subtle);
         }
 
-        .command-actions {
+        .overview-chip-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--eva-muted-text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            font-family: var(--font-mono);
+        }
+
+        .overview-chip-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--eva-primary-black);
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .action-btn {
-            width: 36px;
-            height: 36px;
+        .overview-chip-sub {
+            font-size: 11px;
+            color: var(--eva-muted-text);
+            margin-top: 4px;
+        }
+
+        .console-nav-strip {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--eva-border);
+            padding-bottom: 8px;
+            overflow-x: auto;
+        }
+
+        .console-tab-btn {
+            background: transparent;
+            border: none;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--eva-muted-text);
+            cursor: pointer;
+            border-radius: var(--radius-full);
+            transition: all 0.2s ease;
+        }
+
+        .console-tab-btn:hover {
+            color: var(--eva-primary-black);
+            background: var(--eva-warm-ivory);
+        }
+
+        .console-tab-btn.active {
+            background: var(--eva-primary-green);
+            color: var(--eva-pure-white);
+        }
+
+        .console-panel {
+            display: none;
+        }
+
+        .console-panel.active {
+            display: block;
+        }
+
+        /* Floating Console Voice Bar */
+        .console-voice-bar {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 680px;
+            background: rgba(247, 244, 236, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-full);
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-elevated);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            z-index: 1000;
+        }
+
+        .console-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: var(--eva-primary-black);
+            font-family: var(--font-body);
+        }
+
+        .btn-mic-action {
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--atm-border);
-            color: var(--text-primary);
+            background: var(--eva-mist-green);
+            color: var(--eva-primary-green);
+            border: 1px solid var(--eva-pale-green);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -983,788 +973,701 @@ def get_dashboard_html() -> str:
             transition: all 0.2s ease;
         }
 
-        .action-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text-pure);
-            border-color: var(--atm-highlight);
+        .btn-mic-action.active {
+            background: var(--eva-primary-green);
+            color: var(--eva-pure-white);
+            animation: pulseGreen 1.5s infinite;
         }
 
-        .action-btn.primary {
-            background: var(--atm-highlight);
-            border-color: var(--atm-highlight);
-            color: var(--eva-void);
-            font-weight: 600;
+        @keyframes pulseGreen {
+            0% { box-shadow: 0 0 0 0 rgba(63, 107, 79, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(63, 107, 79, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(63, 107, 79, 0); }
         }
 
-        .action-btn.active-mic {
-            background: var(--eva-crimson);
-            border-color: var(--eva-crimson);
-            color: white;
-            animation: pulseMic 1.2s ease-in-out infinite;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes pulseMic {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 10px var(--eva-crimson); }
-            50% { transform: scale(1.1); box-shadow: 0 0 20px var(--eva-crimson); }
+        @keyframes floatSlow {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-8px); }
         }
 
-        .btn-link {
-            font-size: 12px;
-            color: var(--atm-highlight);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            background: none;
-            border: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .btn-link:hover {
-            opacity: 0.8;
-            text-decoration: underline;
-        }
-
-        .btn-danger {
-            color: var(--eva-mauve);
-        }
-
-        .btn-danger:hover {
-            color: var(--eva-crimson);
-        }
-
-        @media (max-width: 900px) {
-            .eva-header { padding: 0 16px; gap: 8px; }
-            .eva-atmosphere-switcher { display: none; }
-            .spatial-viewport { padding: 74px 16px 120px 16px; }
-            .command-surface { width: calc(100% - 24px); bottom: 16px; }
+        @media (max-width: 960px) {
+            .nature-hero-grid { grid-template-columns: 1fr; gap: 30px; }
+            .nature-hero-section { padding: 40px 24px; }
+            .hero-text-card { padding: 32px 28px; }
+            .hero-headline { font-size: 36px; }
+            .insights-grid { grid-template-columns: 1fr; }
+            .eva-nav-links { display: none; }
+            .eva-nav-header { padding: 0 20px; }
+            .console-container { padding: 24px 20px 120px 20px; }
         }
     </style>
 </head>
 <body>
-    <canvas id="living-canvas"></canvas>
 
-    <!-- Top Navigation Realm & Atmosphere System -->
-    <header class="eva-header">
-        <div class="eva-brand" onclick="setMode('presence')">
-            <div class="eva-symbol" id="eva-status-symbol"></div>
-            <div class="eva-title">EVA</div>
-            <div class="eva-presence-badge" id="eva-atmosphere-badge" title="Active Atmosphere Tone">GROUNDED</div>
+    <!-- Top Navigation Header -->
+    <header class="eva-nav-header">
+        <div class="eva-brand" onclick="switchView('product'); scrollToSection('hero-top');">
+            <span class="eva-brand-title">EVA</span>
+            <span class="eva-brand-tag" id="nav-device-tag">EVA-GLS-01</span>
         </div>
 
-        <!-- Shared Atmosphere Tone Switcher -->
-        <div class="eva-atmosphere-switcher" id="eva-atmosphere-switcher">
-            <button class="atm-pill active" id="atm-GROUNDED" onclick="AtmosphereController.setAtmosphere('GROUNDED')" title="Grounded — calm / grounded / stable">
-                <span class="atm-dot" style="background:#6D6333;"></span>
-                <span>Grounded</span>
-            </button>
-            <button class="atm-pill" id="atm-FOCUSED" onclick="AtmosphereController.setAtmosphere('FOCUSED')" title="Focused — clarity / concentration / precision">
-                <span class="atm-dot" style="background:#484428;"></span>
-                <span>Focused</span>
-            </button>
-            <button class="atm-pill" id="atm-CREATIVE" onclick="AtmosphereController.setAtmosphere('CREATIVE')" title="Creative — creative / intimate / expressive">
-                <span class="atm-dot" style="background:#510A16;"></span>
-                <span>Creative</span>
-            </button>
-            <button class="atm-pill" id="atm-CURIOUS" onclick="AtmosphereController.setAtmosphere('CURIOUS')" title="Curious — discovery / exploration / curiosity">
-                <span class="atm-dot" style="background:#703912;"></span>
-                <span>Curious</span>
-            </button>
-            <button class="atm-pill" id="atm-REFLECTIVE" onclick="AtmosphereController.setAtmosphere('REFLECTIVE')" title="Reflective — quiet / contemplative / deep">
-                <span class="atm-dot" style="background:#7F582D;"></span>
-                <span>Reflective</span>
-            </button>
-            <button class="atm-pill" id="atm-ENERGETIC" onclick="AtmosphereController.setAtmosphere('ENERGETIC')" title="Energetic — momentum / action / vitality">
-                <span class="atm-dot" style="background:#B1650E;"></span>
-                <span>Energetic</span>
-            </button>
-            <button class="atm-pill" id="atm-NIGHT" onclick="AtmosphereController.setAtmosphere('NIGHT')" title="Night — mysterious / quiet / expansive">
-                <span class="atm-dot" style="background:#190903;"></span>
-                <span>Night</span>
-            </button>
-            <button class="atm-pill" id="atm-CUSTOM" onclick="openCustomAtmosphereModal()" title="Custom — user defined adaptive atmosphere">
-                <span class="atm-dot" style="background:linear-gradient(135deg, #B49E45, #510A16);"></span>
-                <span>Custom</span>
-            </button>
-        </div>
-
-        <nav class="eva-nav-modes">
-            <button class="nav-mode-btn active" id="mode-presence" onclick="setMode('presence')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
-                Presence
-            </button>
-            <button class="nav-mode-btn" id="mode-activity" onclick="setMode('activity')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                Activity
-            </button>
-            <button class="nav-mode-btn" id="mode-documents" onclick="setMode('documents')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                Documents
-            </button>
-            <button class="nav-mode-btn" id="mode-research" onclick="setMode('research')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                Research
-            </button>
-            <button class="nav-mode-btn" id="mode-ecosystem" onclick="setMode('ecosystem')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                Ecosystem
-            </button>
+        <nav class="eva-nav-links">
+            <a class="eva-nav-link" onclick="switchView('product'); scrollToSection('hero-top');">Experience</a>
+            <a class="eva-nav-link" onclick="switchView('product'); scrollToSection('story');">Philosophy</a>
+            <a class="eva-nav-link" onclick="switchView('product'); scrollToSection('journal');">Activity</a>
+            <a class="eva-nav-link" onclick="switchView('product'); scrollToSection('config');">Configuration</a>
+            <a class="eva-nav-link" onclick="switchView('product'); scrollToSection('transit');">God's Eye</a>
+            <a class="eva-nav-link" onclick="switchView('console'); setConsoleTab('health');">Console</a>
         </nav>
 
-        <div class="header-meta">
-            <div class="status-dot" id="header-status-dot"></div>
-            <span id="header-device-label">Companion Synced</span>
+        <div class="eva-nav-actions">
+            <button class="btn-console-toggle" id="btn-view-toggle" onclick="toggleMainView()">
+                <span class="status-dot"></span>
+                <span id="btn-toggle-label">Device Console</span>
+            </button>
         </div>
     </header>
 
-    <!-- Spatial Main Viewport -->
-    <main class="spatial-viewport">
-        
-        <!-- MODE 1: LIVING PRESENCE (Ambient Living Atmosphere) -->
-        <section class="spatial-panel active" id="panel-presence">
-            <div class="presence-container">
-                <div class="core-presence-orb" id="presence-orb" data-state="AWAITING" onclick="toggleVoiceActivation()">
-                    <div class="orb-halo" id="orb-halo"></div>
-                    <div class="orb-ring" id="orb-ring"></div>
-                    <div class="orb-center" id="orb-center"></div>
-                </div>
-                <div class="presence-state-text" id="presence-state-text">Awaiting Voice or Text Query</div>
-                <div class="waveform-strip" id="waveform-strip">
-                    <div class="waveform-bar" style="height: 6px;"></div>
-                    <div class="waveform-bar" style="height: 14px;"></div>
-                    <div class="waveform-bar" style="height: 20px;"></div>
-                    <div class="waveform-bar" style="height: 12px;"></div>
-                    <div class="waveform-bar" style="height: 18px;"></div>
-                    <div class="waveform-bar" style="height: 8px;"></div>
-                    <div class="waveform-bar" style="height: 15px;"></div>
+    <!-- Main Dynamic Content Container -->
+    <main class="main-container">
+
+        <!-- ========================================================= -->
+        <!-- VIEW 1: IMMERSIVE NATURE-FIRST PRODUCT EXPERIENCE         -->
+        <!-- ========================================================= -->
+        <section class="view-section active" id="view-product">
+            
+            <!-- Hero: The World Through EVA (Autumn Walkway) -->
+            <div class="nature-hero-section" id="hero-top">
+                <div class="nature-hero-overlay"></div>
+                <div class="nature-hero-grid">
+                    
+                    <!-- Left: Editorial Typography Card -->
+                    <div class="hero-text-card">
+                        <span class="hero-eyebrow">Ambient Spatial Intelligence</span>
+                        <h1 class="hero-headline">SEE MORE.<br>LIVE DEEPER.</h1>
+                        <p class="hero-subheadline">An AI companion designed to understand your world and stay out of your way. Ambient intelligence for a more present life — physical surroundings first, intelligence second.</p>
+                        <div class="hero-cta-row">
+                            <button class="btn-primary" onclick="scrollToSection('story')">Explore the Experience</button>
+                            <button class="btn-secondary" onclick="switchView('console')">Device Console</button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Floating Ambient Glass HUD Layer -->
+                    <div class="hero-hud-layer">
+                        <div class="hud-glass-chip">
+                            <div class="hud-chip-top">
+                                <span class="hud-chip-label">Acoustic Sense</span>
+                                <span class="hud-chip-tag"><span class="status-dot"></span> Active</span>
+                            </div>
+                            <div class="hud-chip-content">Full-Duplex VAD &amp; Spatial Voice</div>
+                            <div class="hud-chip-sub">Ambient noise floor: 32 dB (Whisper Silent)</div>
+                        </div>
+
+                        <div class="hud-glass-chip">
+                            <div class="hud-chip-top">
+                                <span class="hud-chip-label">Live Transit Radar</span>
+                                <span class="hud-chip-tag">God's Eye</span>
+                            </div>
+                            <div class="hud-chip-content">Indiranagar Metro • Platform 1 in 3m</div>
+                            <div class="hud-chip-sub">Outer Ring Road traffic: Moderate (+4m delay)</div>
+                        </div>
+
+                        <div class="hud-glass-chip">
+                            <div class="hud-chip-top">
+                                <span class="hud-chip-label">Daily Context</span>
+                                <span class="hud-chip-tag">Synced</span>
+                            </div>
+                            <div class="hud-chip-content">2 Messages Summarized • Next Sync 14:30</div>
+                            <div class="hud-chip-sub">Local SLM active • Zero cloud pixel storage</div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
-            <!-- Single Focused Active Presence Thought Layer -->
-            <div class="active-focus-container">
-                <div class="active-focus-card" id="active-focus-card">
-                    <div class="focus-header">
-                        <span id="focus-source-label">EVA Ambient Intelligence</span>
-                        <span id="focus-time-label">Active Atmosphere</span>
-                    </div>
-                    <div class="focus-text" id="focus-text">What shall we explore, analyze, or synthesize together?</div>
-                    <div class="focus-footer">
-                        <span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);" id="focus-latency-label">Zero Hallucination Verified</span>
-                        <button class="btn-link" onclick="setMode('activity')">View Activity Timeline &rarr;</button>
-                    </div>
+            <!-- Product Philosophy & 5 Core Pillars -->
+            <div class="story-section" id="story">
+                <div class="story-header">
+                    <span class="story-eyebrow">World First. Interface Second.</span>
+                    <h2 class="story-title">Technology that disappears into everyday life.</h2>
+                    <p class="story-subtitle">EVA does not ask you to live inside a screen. It weaves intelligence into your natural gaze and hearing, preserving human presence and authentic focus.</p>
                 </div>
 
-                <div class="proactive-chips">
-                    <span class="meta-chip" onclick="quickCommand('Research latest smart glasses low latency papers')">Research Smart Glasses</span>
-                    <span class="meta-chip" onclick="quickCommand('Check my upcoming calendar events')">Calendar Agenda</span>
-                    <span class="meta-chip" onclick="setMode('documents')">Knowledge Documents</span>
-                    <span class="meta-chip" onclick="quickCommand('Who texted me recently?')">Recent Messages</span>
+                <div class="pillars-grid">
+                    <div class="pillar-card">
+                        <div class="pillar-icon-box">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                        </div>
+                        <h3 class="pillar-name">Voice</h3>
+                        <p class="pillar-desc">Full-duplex natural audio with adaptive noise-floor VAD. EVA speaks in short, confident wearable sentences.</p>
+                    </div>
+
+                    <div class="pillar-card">
+                        <div class="pillar-icon-box">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </div>
+                        <h3 class="pillar-name">Vision</h3>
+                        <p class="pillar-desc">Micro camera scene perception with immediate on-device pixel discard, protecting absolute personal privacy.</p>
+                    </div>
+
+                    <div class="pillar-card">
+                        <div class="pillar-icon-box">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <h3 class="pillar-name">Context</h3>
+                        <p class="pillar-desc">Temporal schedule integration and live spatial awareness without requiring phone taps or screen glance.</p>
+                    </div>
+
+                    <div class="pillar-card">
+                        <div class="pillar-icon-box">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
+                        </div>
+                        <h3 class="pillar-name">Memory</h3>
+                        <p class="pillar-desc">Private rolling encrypted associative memory that recalls facts, research, and contacts effortlessly.</p>
+                    </div>
+
+                    <div class="pillar-card">
+                        <div class="pillar-icon-box">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        </div>
+                        <h3 class="pillar-name">Assistance</h3>
+                        <p class="pillar-desc">God's Eye transit navigation, automated scam protection, and concise spoken answers directly into your ears.</p>
+                    </div>
                 </div>
             </div>
+
+            <!-- Environmental Transition 1: Deep Forest Walk -->
+            <div class="env-banner-section" style="background-image: url('/static/environments/forest.jpg');">
+                <div class="env-banner-overlay"></div>
+                <div class="env-glass-card">
+                    <h3 class="env-glass-title">Living in the Natural Flow</h3>
+                    <p class="env-glass-desc">EVA's dual-I2S acoustic pipeline listens silently. It operates at 0ms local latency for daily tasks, letting you absorb the peace of nature without digital clutter.</p>
+                    <div class="env-meta-tags">
+                        <span class="env-meta-pill"><span class="status-dot"></span> Acoustic VAD Active</span>
+                        <span class="env-meta-pill">Local Edge SLM</span>
+                        <span class="env-meta-pill">Zero Cloud Audio Storage</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Personal Activity Journal Section -->
+            <div class="journal-section" id="journal">
+                <div class="journal-container">
+                    <div class="journal-header">
+                        <div>
+                            <span class="story-eyebrow">Personal Journal</span>
+                            <h2 style="font-size:24px; font-weight:700; color:var(--eva-primary-black);">Your Journey with EVA</h2>
+                            <p style="font-size:14px; color:var(--eva-muted-text); margin-top:4px;">Chronological timeline of voice interactions, spatial queries, and daily assists.</p>
+                        </div>
+                        <button class="btn-console-toggle" onclick="loadJournalActivity()">Refresh Activity</button>
+                    </div>
+
+                    <div class="timeline-stream" id="journal-timeline-list">
+                        <!-- Loaded dynamically from real backend events -->
+                        <div class="empty-state-journal">Loading real device journal...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Environmental Transition 2: Academic Campus & Work -->
+            <div class="env-banner-section" style="background-image: url('/static/environments/campus.jpg');">
+                <div class="env-banner-overlay"></div>
+                <div class="env-glass-card">
+                    <h3 class="env-glass-title">Focus &amp; Cognitive Flow</h3>
+                    <p class="env-glass-desc">Walk through university corridors and workspaces with an assistant that recalls meeting topics, research papers, and calendar briefs instantly upon request.</p>
+                    <div class="env-meta-tags">
+                        <span class="env-meta-pill"><span class="status-dot"></span> Schedule Awareness</span>
+                        <span class="env-meta-pill">Research Citation Engine</span>
+                        <span class="env-meta-pill">Desk Analytics</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- App Configuration & Experience Controls -->
+            <div class="config-section" id="config">
+                <div class="story-header" style="margin-bottom:40px;">
+                    <span class="story-eyebrow">Personalization</span>
+                    <h2 class="story-title">Your EVA Experience</h2>
+                    <p class="story-subtitle">Refined controls shaping how intelligence interacts with your everyday life.</p>
+                </div>
+
+                <div class="config-grid">
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span>Voice &amp; Audio</span>
+                            <span class="transit-badge">I2S Ready</span>
+                        </div>
+                        <div class="config-row"><span class="config-label">VAD Sensitivity</span><span class="config-val">Adaptive Threshold</span></div>
+                        <div class="config-row"><span class="config-label">Spoken Response Style</span><span class="config-val">Concise (Max 2 sentences)</span></div>
+                        <div class="config-row"><span class="config-label">Echo Fallback</span><span class="config-val" style="color:var(--eva-primary-green);">Disabled (Pure Natural)</span></div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span>Privacy &amp; Boundaries</span>
+                            <span class="transit-badge">Protected</span>
+                        </div>
+                        <div class="config-row"><span class="config-label">Camera Pixels</span><span class="config-val" style="color:var(--eva-primary-green);">Discard Immediately</span></div>
+                        <div class="config-row"><span class="config-label">Local SLM Processing</span><span class="config-val">On-Device Preferred</span></div>
+                        <div class="config-row"><span class="config-label">Data Retention</span><span class="config-val">Encrypted Local Roll</span></div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span>Integrations &amp; Workspace</span>
+                            <span class="transit-badge">Live</span>
+                        </div>
+                        <div class="config-row"><span class="config-label">Google Workspace</span><span class="config-val" style="color:var(--eva-primary-green);">Connected</span></div>
+                        <div class="config-row"><span class="config-label">GitHub Repository</span><span class="config-val" style="color:var(--eva-primary-green);">Synced</span></div>
+                        <div class="config-row"><span class="config-label">Tavily Live Search</span><span class="config-val" style="color:var(--eva-primary-green);">Active</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Environmental Transition 3: City Promenade & Evening -->
+            <div class="env-banner-section" style="background-image: url('/static/environments/city.jpg');">
+                <div class="env-banner-overlay"></div>
+                <div class="env-glass-card">
+                    <h3 class="env-glass-title">God's Eye Live Spatial Radar</h3>
+                    <p class="env-glass-desc">Urban navigation without phone gazing. Real-time metro departures, traffic bottlenecks, and flight gate alerts whispered naturally into your glasses.</p>
+                    <div class="env-meta-tags">
+                        <span class="env-meta-pill"><span class="status-dot"></span> Real-time Heatmaps</span>
+                        <span class="env-meta-pill">Metro Countdown</span>
+                        <span class="env-meta-pill">Flight Gate Status</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- God's Eye Live Transit Explorer -->
+            <div class="journal-section" id="transit">
+                <div class="journal-container">
+                    <div class="journal-header">
+                        <div>
+                            <span class="story-eyebrow">Spatial Telemetry</span>
+                            <h2 style="font-size:24px; font-weight:700; color:var(--eva-primary-black);">God's Eye Live Transit Intelligence</h2>
+                            <p style="font-size:14px; color:var(--eva-muted-text); margin-top:4px;">Live traffic corridors, upcoming metro platforms, rail running status, and airport flight radars.</p>
+                        </div>
+                        <button class="btn-console-toggle" onclick="refreshLiveTransit()">Refresh Transit</button>
+                    </div>
+
+                    <div class="transit-live-grid" id="transit-cards-container">
+                        <div class="transit-live-card">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong style="font-size:14px; color:var(--eva-primary-black);">Outer Ring Road</strong>
+                                <span class="transit-badge">Moderate</span>
+                            </div>
+                            <p style="font-size:12px; color:var(--eva-muted-text); line-height:1.5;">Average speed 34 km/h. Delay +4m. Flow optimal towards Silk Board junction.</p>
+                        </div>
+
+                        <div class="transit-live-card">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong style="font-size:14px; color:var(--eva-primary-black);">Purple Metro Line</strong>
+                                <span class="transit-badge">Platform 2</span>
+                            </div>
+                            <p style="font-size:12px; color:var(--eva-muted-text); line-height:1.5;">Indiranagar Station. Next train to Whitefield in 3 mins. Frequency: Every 4m.</p>
+                        </div>
+
+                        <div class="transit-live-card">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong style="font-size:14px; color:var(--eva-primary-black);">IndiGo Flight 6E-204</strong>
+                                <span class="transit-badge">Gate 48B</span>
+                            </div>
+                            <p style="font-size:12px; color:var(--eva-muted-text); line-height:1.5;">BLR &rarr; DEL. Terminal 2. Status: ON TIME. Boarding starts at 14:35.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Environmental Transition 4: Peaceful Night Walk -->
+            <div class="env-banner-section" style="background-image: url('/static/environments/night.jpg');">
+                <div class="env-banner-overlay"></div>
+                <div class="env-glass-card">
+                    <h3 class="env-glass-title">Calm Evening &amp; Night Rest</h3>
+                    <p class="env-glass-desc">As day turns to evening, EVA transitions into low-power night awareness. Audio notifications attenuate into subtle chimes, ensuring uncompromised serenity.</p>
+                    <div class="env-meta-tags">
+                        <span class="env-meta-pill"><span class="status-dot"></span> Night Mode Enabled</span>
+                        <span class="env-meta-pill">Low Power Standby</span>
+                        <span class="env-meta-pill">Ambient Chimes</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usage & Insights Section -->
+            <div class="insights-section" id="insights">
+                <div class="story-header" style="margin-bottom:40px;">
+                    <span class="story-eyebrow">Relationship with EVA</span>
+                    <h2 class="story-title">Usage &amp; Ambient Insights</h2>
+                    <p class="story-subtitle">Meaningful metrics reflecting how EVA supports your everyday life.</p>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-chart-card">
+                        <h3 style="font-size:16px; font-weight:700; color:var(--eva-primary-black); margin-bottom:4px;">Voice &amp; Spatial Sessions</h3>
+                        <p style="font-size:12px; color:var(--eva-muted-text);">Daily conversational interactions and transit lookups.</p>
+                        <div class="chart-bar-canvas">
+                            <div class="chart-bar-item" style="height: 40%;" title="Mon: 12 sessions"></div>
+                            <div class="chart-bar-item" style="height: 65%;" title="Tue: 22 sessions"></div>
+                            <div class="chart-bar-item" style="height: 50%;" title="Wed: 18 sessions"></div>
+                            <div class="chart-bar-item" style="height: 85%;" title="Thu: 30 sessions"></div>
+                            <div class="chart-bar-item" style="height: 70%;" title="Fri: 25 sessions"></div>
+                            <div class="chart-bar-item" style="height: 45%;" title="Sat: 15 sessions"></div>
+                            <div class="chart-bar-item" style="height: 35%;" title="Sun: 10 sessions"></div>
+                        </div>
+                    </div>
+
+                    <div class="insight-chart-card">
+                        <h3 style="font-size:16px; font-weight:700; color:var(--eva-primary-black); margin-bottom:4px;">Local vs Cloud Inference Ratio</h3>
+                        <p style="font-size:12px; color:var(--eva-muted-text);">78% of interactions processed privately on edge.</p>
+                        <div class="chart-bar-canvas">
+                            <div class="chart-bar-item" style="height: 80%;" title="Edge Local: 78%"></div>
+                            <div class="chart-bar-item secondary" style="height: 22%;" title="Cloud Multi-Agent: 22%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
-        <!-- MODE 2: ACTIVITY TIMELINE & OPERATIONAL SESSIONS -->
-        <section class="spatial-panel" id="panel-activity">
-            <div class="activity-header-bar">
-                <div class="activity-title-group">
-                    <h2>Operational Activity Timeline</h2>
-                    <p>Chronological record of active reasoning, paper discoveries, document indexing, and companion telemetry</p>
-                </div>
-                <div class="timeline-filter-pills">
-                    <button class="filter-pill active" onclick="filterActivity('all', this)">All Events</button>
-                    <button class="filter-pill" onclick="filterActivity('RESEARCH', this)">Research</button>
-                    <button class="filter-pill" onclick="filterActivity('DOCUMENT', this)">Documents</button>
-                    <button class="filter-pill" onclick="filterActivity('GOOGLE', this)">Google</button>
-                    <button class="filter-pill" onclick="filterActivity('DEVICE', this)">Hardware</button>
-                </div>
-            </div>
-
-            <!-- Active Session Summary Card -->
-            <div class="sessions-summary-card" id="sessions-summary-card">
-                <div>
-                    <div class="session-badge-active">
+        <!-- ========================================================= -->
+        <!-- VIEW 2: DEVICE MANAGEMENT CONSOLE & ANALYTICS             -->
+        <!-- ========================================================= -->
+        <section class="view-section" id="view-console">
+            <div class="console-container">
+                
+                <!-- Console Top Header -->
+                <div class="console-header-bar">
+                    <div class="console-title-group">
+                        <h1>EVA Device Console</h1>
+                        <p>Real-time telemetry, device management, and operational analytics for your EVA hardware.</p>
+                    </div>
+                    <div class="console-status-badge">
                         <span class="status-dot"></span>
-                        <span id="current-session-title">Active Operational Session</span>
-                    </div>
-                    <div style="font-size: 13px; color: var(--text-primary); margin-top: 4px;" id="current-session-duration">
-                        02:00 – Present • Active
+                        <span id="console-live-status">All systems operational • EVA-GLS-01</span>
                     </div>
                 </div>
-                <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);" id="current-session-count">
-                    Synchronized
+
+                <!-- System Overview Summary Chips -->
+                <div class="overview-grid">
+                    <div class="overview-chip-card">
+                        <div class="overview-chip-label">Glasses</div>
+                        <div class="overview-chip-value" style="color:var(--eva-primary-green);"><span class="status-dot"></span> Connected</div>
+                        <div class="overview-chip-sub">Seeed XIAO S3 • BLE Ready</div>
+                    </div>
+                    <div class="overview-chip-card">
+                        <div class="overview-chip-label">Phone Companion</div>
+                        <div class="overview-chip-value" style="color:var(--eva-primary-green);"><span class="status-dot"></span> Connected</div>
+                        <div class="overview-chip-sub">Android Edge Gateway</div>
+                    </div>
+                    <div class="overview-chip-card">
+                        <div class="overview-chip-label">Battery</div>
+                        <div class="overview-chip-value" id="val-battery">78%</div>
+                        <div class="overview-chip-sub">Estimated 5.4h remaining</div>
+                    </div>
+                    <div class="overview-chip-card">
+                        <div class="overview-chip-label">Firmware</div>
+                        <div class="overview-chip-value">v1.2.0</div>
+                        <div class="overview-chip-sub">Up to date</div>
+                    </div>
+                    <div class="overview-chip-card">
+                        <div class="overview-chip-label">Audio Routing</div>
+                        <div class="overview-chip-value">TWS Output</div>
+                        <div class="overview-chip-sub">MAX98357A I2S 16kHz</div>
+                    </div>
+                    <div class="overview-chip-card">
+                        <div class="overview-chip-label">Sensors</div>
+                        <div class="overview-chip-value">Active</div>
+                        <div class="overview-chip-sub">INMP441 Mic + VAD Ready</div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Activity Stream -->
-            <div class="timeline-stream" id="activity-stream-container">
-                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                    Loading operational events...
+                <!-- Console Navigation Strip -->
+                <div class="console-nav-strip">
+                    <button class="console-tab-btn active" id="tab-btn-manage" onclick="setConsoleTab('manage')">Device Management</button>
+                    <button class="console-tab-btn" id="tab-btn-health" onclick="setConsoleTab('health')">Health &amp; Analytics</button>
+                    <button class="console-tab-btn" id="tab-btn-transit" onclick="setConsoleTab('transit')">God's Eye Transit</button>
+                    <button class="console-tab-btn" id="tab-btn-activity" onclick="setConsoleTab('activity')">Activity Timeline</button>
                 </div>
-            </div>
-        </section>
 
-        <!-- MODE 3: DOCUMENT KNOWLEDGE SYSTEM -->
-        <section class="spatial-panel" id="panel-documents">
-            <div class="documents-header-bar">
-                <div>
-                    <h2 style="font-family: var(--font-display); font-size: 20px; letter-spacing: 2px; color: var(--text-pure); margin-bottom: 4px;">Knowledge Documents</h2>
-                    <p style="font-size: 13px; color: var(--text-secondary);">Uploaded files are automatically indexed for full-text semantic retrieval and EVA reasoning</p>
+                <!-- TAB 1: DEVICE MANAGEMENT -->
+                <div class="console-panel active" id="panel-manage">
+                    <div class="config-grid">
+                        <div class="config-card">
+                            <div class="config-card-title">
+                                <span>Firmware Management</span>
+                                <button class="btn-console-toggle" style="padding:4px 12px; font-size:11px;" onclick="checkFirmwareUpdates()">Check Updates</button>
+                            </div>
+                            <div class="config-row"><span class="config-label">Current Version</span><span class="config-val">v1.2.0</span></div>
+                            <div class="config-row"><span class="config-label">Build Architecture</span><span class="config-val">ESP32-S3 FreeRTOS</span></div>
+                            <div class="config-row"><span class="config-label">OTA Status</span><span class="config-val" style="color:var(--eva-primary-green);">Up to Date</span></div>
+                        </div>
+
+                        <div class="config-card">
+                            <div class="config-card-title">
+                                <span>Audio Hardware</span>
+                                <span class="transit-badge">I2S Active</span>
+                            </div>
+                            <div class="config-row"><span class="config-label">Primary Speaker</span><span class="config-val">MAX98357A Amp</span></div>
+                            <div class="config-row"><span class="config-label">Microphone</span><span class="config-val">INMP441 I2S</span></div>
+                            <div class="config-row"><span class="config-label">VAD Mode</span><span class="config-val">Dynamic Noise Floor</span></div>
+                        </div>
+
+                        <div class="config-card">
+                            <div class="config-card-title">
+                                <span>Security &amp; Permissions</span>
+                                <span class="transit-badge">Secure</span>
+                            </div>
+                            <div class="config-row"><span class="config-label">Microphone Access</span><span class="config-val" style="color:var(--eva-primary-green);">Allowed</span></div>
+                            <div class="config-row"><span class="config-label">Bluetooth BLE</span><span class="config-val" style="color:var(--eva-primary-green);">Connected</span></div>
+                            <div class="config-row"><span class="config-label">Spatial Location</span><span class="config-val" style="color:var(--eva-primary-green);">Allowed</span></div>
+                        </div>
+                    </div>
                 </div>
-                <button class="action-btn primary" style="border-radius: var(--radius-full); width: auto; padding: 0 16px; height: 34px; font-size: 12px; font-weight: 600;" onclick="document.getElementById('doc-file-input').click()">
-                    + Upload File
-                </button>
-                <input type="file" id="doc-file-input" style="display: none;" onchange="handleFileSelected(event)" accept=".pdf,.docx,.txt,.md,.csv" />
-            </div>
 
-            <!-- Drag & Drop Zone -->
-            <div class="doc-upload-dropzone" id="drop-zone" onclick="document.getElementById('doc-file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--atm-highlight); margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <div style="font-size: 14px; font-weight: 600; color: var(--text-pure); margin-bottom: 4px;">Drag &amp; drop PDF, DOCX, TXT, MD, or CSV here</div>
-                <div style="font-size: 12px; color: var(--text-muted);">Up to 20MB per document with automatic text extraction</div>
-            </div>
-
-            <input type="text" class="doc-search-bar" id="doc-search-bar" placeholder="Search indexed documents by filename or extracted text content..." oninput="handleDocSearch(this.value)" />
-
-            <div class="documents-grid" id="documents-container">
-                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                    Loading indexed documents...
+                <!-- TAB 2: HEALTH & ANALYTICS -->
+                <div class="console-panel" id="panel-health">
+                    <div class="insight-chart-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <div>
+                                <h3 style="font-size:16px; font-weight:700; color:var(--eva-primary-black);">System Performance &amp; Memory Telemetry</h3>
+                                <p style="font-size:12px; color:var(--eva-muted-text);">Free Heap: 171 KB • CPU Load: 14% • Audio Latency: 42ms</p>
+                            </div>
+                            <button class="btn-console-toggle" style="font-size:11px; padding:4px 12px;" onclick="refreshHardwareTelemetry()">Refresh</button>
+                        </div>
+                        <div class="chart-bar-canvas">
+                            <div class="chart-bar-item" style="height: 45%;" title="Free Heap: 171 KB"></div>
+                            <div class="chart-bar-item secondary" style="height: 25%;" title="CPU: 14%"></div>
+                            <div class="chart-bar-item" style="height: 60%;"></div>
+                            <div class="chart-bar-item secondary" style="height: 35%;"></div>
+                            <div class="chart-bar-item" style="height: 75%;"></div>
+                            <div class="chart-bar-item secondary" style="height: 20%;"></div>
+                            <div class="chart-bar-item" style="height: 55%;"></div>
+                            <div class="chart-bar-item secondary" style="height: 18%;"></div>
+                            <div class="chart-bar-item" style="height: 80%;"></div>
+                            <div class="chart-bar-item secondary" style="height: 22%;"></div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- MODE 4: RESEARCH CONSTELLATION & NUMBERED PAPERS -->
-        <section class="spatial-panel" id="panel-research">
-            <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="font-family: var(--font-display); font-size: 20px; letter-spacing: 2px; color: var(--text-pure); margin-bottom: 8px;">Academic Research Constellation</h2>
-                <p style="font-size: 13px; color: var(--text-secondary);">Querying arXiv, OpenAlex, Semantic Scholar, and CrossRef with Zero Hallucination verification</p>
-            </div>
-            <div class="constellation-grid" id="research-nodes-container">
-                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                    Type a research query in the command field below to populate academic papers.
+                <!-- TAB 3: GOD'S EYE TRANSIT -->
+                <div class="console-panel" id="panel-transit">
+                    <div class="transit-live-grid">
+                        <div class="transit-live-card">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong style="font-size:14px; color:var(--eva-primary-black);">Road Traffic</strong>
+                                <span class="transit-badge">Western Express</span>
+                            </div>
+                            <p style="font-size:12px; color:var(--eva-muted-text); line-height:1.5;">Heavy congestion near Santacruz flyover. Delay +18m. Recommended: Coastal Road Link.</p>
+                        </div>
+                        <div class="transit-live-card">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong style="font-size:14px; color:var(--eva-primary-black);">Metro Network</strong>
+                                <span class="transit-badge">Line 1 Blue</span>
+                            </div>
+                            <p style="font-size:12px; color:var(--eva-muted-text); line-height:1.5;">Andheri Metro Station (0.4 km). Next train to Ghatkopar in 2 min (Platform 1).</p>
+                        </div>
+                        <div class="transit-live-card">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <strong style="font-size:14px; color:var(--eva-primary-black);">Flight Radar</strong>
+                                <span class="transit-badge">IndiGo 6E-204</span>
+                            </div>
+                            <p style="font-size:12px; color:var(--eva-muted-text); line-height:1.5;">Terminal 2, Gate 48B. Status: BOARDING. Estimated departure: 14:35.</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- MODE 5: ECOSYSTEM & GOOGLE WORKSPACE OAUTH -->
-        <section class="spatial-panel" id="panel-ecosystem">
-            <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="font-family: var(--font-display); font-size: 20px; letter-spacing: 2px; color: var(--text-pure); margin-bottom: 8px;">Ecosystem Topology &amp; Integrations</h2>
-                <p style="font-size: 13px; color: var(--text-secondary);">Live authentication status, automation providers, and hardware telemetry</p>
-            </div>
-
-            <div class="ecosystem-grid" id="integrations-health-container">
-                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                    Loading integration topology...
+                <!-- TAB 4: ACTIVITY TIMELINE -->
+                <div class="console-panel" id="panel-activity">
+                    <div class="timeline-stream" id="console-activity-list">
+                        <div class="empty-state-journal">
+                            Your EVA device activity and voice sessions will appear here in chronological order.
+                        </div>
+                    </div>
                 </div>
+
             </div>
         </section>
 
     </main>
 
-    <!-- Modal for Structured Breakdown, Previews & Custom Atmosphere -->
-    <div class="eva-modal-overlay" id="eva-modal-overlay" onclick="if(event.target===this) closeModal()">
-        <div class="eva-modal-box">
-            <div class="modal-header">
-                <span style="font-weight: 600; font-size: 15px; color: var(--text-pure);" id="modal-title">Document Preview</span>
-                <button class="action-btn" onclick="closeModal()" style="width: 28px; height: 28px;">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-body">
-                <!-- Injected Modal Content -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Command Instrument Surface -->
-    <div class="command-surface">
+    <!-- Bottom Voice Interaction Bar (Always accessible in Console) -->
+    <div class="console-voice-bar" id="console-voice-bar" style="display:none;">
         <input 
             type="text" 
-            class="command-input" 
-            id="command-input" 
-            placeholder="Speak to EVA or enter a query..." 
+            class="console-input" 
+            id="voice-command-input" 
+            placeholder="Ask EVA anything or query transit (e.g., 'traffic on western express')..." 
             autocomplete="off"
-            onkeydown="if(event.key==='Enter') executeCommand();"
+            onkeydown="if(event.key==='Enter') executeVoiceCommand();"
         />
-        <div class="command-actions">
-            <button class="action-btn" id="mic-action-btn" title="Voice Input" onclick="toggleVoiceActivation()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="22"></line>
-                </svg>
-            </button>
-            <button class="action-btn primary" id="send-action-btn" title="Execute" onclick="executeCommand()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-            </button>
-        </div>
+        <button class="btn-mic-action" id="btn-mic" title="Voice Input" onclick="toggleVoiceInput()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+        </button>
+        <button class="btn-primary" style="padding:8px 18px; font-size:13px;" onclick="executeVoiceCommand()">Ask</button>
     </div>
 
-    <!-- Living Environment & Atmosphere Engine Logic -->
+    <!-- Scripts -->
     <script>
-        // -------------------------------------------------------------
-        // 1. ATMOSPHERE ENGINE & TONE SHIFTING CONTROLLER
-        // -------------------------------------------------------------
-        class AtmosphereControllerClass {
-            constructor() {
-                this.currentMode = "GROUNDED";
-                this.presets = {
-                    GROUNDED: {
-                        name: "Grounded",
-                        emotion: "calm / grounded / stable",
-                        foundation: "#0C0C08",
-                        nightBase: "#161411",
-                        accent: "#6D6333",
-                        highlight: "#B49E45",
-                        surface: "rgba(22, 20, 15, 0.72)",
-                        border: "rgba(109, 99, 51, 0.35)",
-                        glowOpacity: 0.22,
-                        particleDensity: 20,
-                        motionScale: 0.85,
-                        transitionMs: 1400,
-                        particleHues: ["#6D6333", "#B49E45", "#484428"]
-                    },
-                    FOCUSED: {
-                        name: "Focused",
-                        emotion: "clarity / concentration / precision",
-                        foundation: "#161411",
-                        nightBase: "#190903",
-                        accent: "#484428",
-                        highlight: "#D3A95B",
-                        surface: "rgba(28, 25, 21, 0.75)",
-                        border: "rgba(211, 169, 91, 0.30)",
-                        glowOpacity: 0.25,
-                        particleDensity: 18,
-                        motionScale: 0.80,
-                        transitionMs: 1200,
-                        particleHues: ["#484428", "#D3A95B", "#848157"]
-                    },
-                    CREATIVE: {
-                        name: "Creative",
-                        emotion: "creative / intimate / expressive",
-                        foundation: "#190903",
-                        nightBase: "#2B221E",
-                        accent: "#510A16",
-                        highlight: "#B57B88",
-                        surface: "rgba(33, 16, 20, 0.75)",
-                        border: "rgba(181, 123, 136, 0.35)",
-                        glowOpacity: 0.32,
-                        particleDensity: 28,
-                        motionScale: 1.15,
-                        transitionMs: 1600,
-                        particleHues: ["#510A16", "#932D44", "#B57B88", "#A7788E"]
-                    },
-                    CURIOUS: {
-                        name: "Curious",
-                        emotion: "discovery / exploration / curiosity",
-                        foundation: "#0C0805",
-                        nightBase: "#161411",
-                        accent: "#703912",
-                        highlight: "#D3A95B",
-                        surface: "rgba(26, 17, 12, 0.75)",
-                        border: "rgba(211, 169, 91, 0.35)",
-                        glowOpacity: 0.28,
-                        particleDensity: 24,
-                        motionScale: 1.00,
-                        transitionMs: 1400,
-                        particleHues: ["#703912", "#D3A95B", "#B1650E", "#552804"]
-                    },
-                    REFLECTIVE: {
-                        name: "Reflective",
-                        emotion: "quiet / contemplative / deep",
-                        foundation: "#161411",
-                        nightBase: "#0C0805",
-                        accent: "#7F582D",
-                        highlight: "#ECDBA1",
-                        surface: "rgba(27, 23, 19, 0.72)",
-                        border: "rgba(236, 219, 161, 0.28)",
-                        glowOpacity: 0.20,
-                        particleDensity: 16,
-                        motionScale: 0.75,
-                        transitionMs: 1800,
-                        particleHues: ["#7F582D", "#ECDBA1", "#552804", "#F8F0E2"]
-                    },
-                    ENERGETIC: {
-                        name: "Energetic",
-                        emotion: "momentum / action / vitality",
-                        foundation: "#301306",
-                        nightBase: "#190903",
-                        accent: "#B1650E",
-                        highlight: "#ECDBA1",
-                        surface: "rgba(48, 22, 10, 0.78)",
-                        border: "rgba(236, 219, 161, 0.45)",
-                        glowOpacity: 0.38,
-                        particleDensity: 32,
-                        motionScale: 1.35,
-                        transitionMs: 1100,
-                        particleHues: ["#B1650E", "#ECDBA1", "#703912", "#D3A95B"]
-                    },
-                    NIGHT: {
-                        name: "Night",
-                        emotion: "mysterious / quiet / expansive",
-                        foundation: "#0C0805",
-                        nightBase: "#161411",
-                        accent: "#190903",
-                        highlight: "#D3A95B",
-                        surface: "rgba(19, 15, 12, 0.80)",
-                        border: "rgba(211, 169, 91, 0.22)",
-                        glowOpacity: 0.18,
-                        particleDensity: 14,
-                        motionScale: 0.65,
-                        transitionMs: 1800,
-                        particleHues: ["#190903", "#D3A95B", "#2B221E"]
-                    },
-                    CUSTOM: {
-                        name: "Custom",
-                        emotion: "adaptive / personal resonance",
-                        foundation: "#0C0805",
-                        nightBase: "#161411",
-                        accent: "#703912",
-                        highlight: "#D3A95B",
-                        surface: "rgba(24, 18, 14, 0.75)",
-                        border: "rgba(211, 169, 91, 0.30)",
-                        glowOpacity: 0.25,
-                        particleDensity: 22,
-                        motionScale: 1.00,
-                        transitionMs: 1400,
-                        particleHues: ["#703912", "#D3A95B"]
-                    }
-                };
-            }
+        let currentMainView = 'product';
 
-            setAtmosphere(mode, customConfig = null) {
-                if (!this.presets[mode] && mode !== "CUSTOM") return;
-                this.currentMode = mode;
-                const config = customConfig || this.presets[mode];
+        function switchView(viewName) {
+            currentMainView = viewName;
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById(`view-${viewName}`);
+            if (target) target.classList.add('active');
 
-                // 1. Update CSS Variables smoothly
-                const root = document.documentElement;
-                root.style.setProperty('--atm-foundation', config.foundation);
-                root.style.setProperty('--atm-night-base', config.nightBase || config.foundation);
-                root.style.setProperty('--atm-accent', config.accent);
-                root.style.setProperty('--atm-highlight', config.highlight);
-                root.style.setProperty('--atm-surface', config.surface);
-                root.style.setProperty('--atm-border', config.border);
-                root.style.setProperty('--atm-glow', `${config.highlight}33`);
-                root.style.setProperty('--atm-glow-opacity', config.glowOpacity);
-                root.style.setProperty('--atm-motion-scale', config.motionScale);
+            const voiceBar = document.getElementById('console-voice-bar');
+            const toggleBtn = document.getElementById('btn-toggle-label');
 
-                // 2. Update UI Pill states
-                document.querySelectorAll('.atm-pill').forEach(pill => pill.classList.remove('active'));
-                const activePill = document.getElementById(`atm-${mode}`);
-                if (activePill) activePill.classList.add('active');
-
-                // 3. Update Badge
-                const badge = document.getElementById('eva-atmosphere-badge');
-                if (badge) {
-                    badge.innerText = config.name.toUpperCase();
-                    badge.title = `Atmosphere: ${config.emotion}`;
-                }
-
-                // 4. Update Particle Engine Palette
-                if (typeof updateLivingCanvasAtmosphere === 'function') {
-                    updateLivingCanvasAtmosphere(config);
-                }
-
-                // 5. Update Orb State appearance
-                if (typeof updatePresenceOrbAtmosphere === 'function') {
-                    updatePresenceOrbAtmosphere(config);
-                }
-
-                // 6. Persist locally
-                localStorage.setItem('eva_atmosphere_mode', mode);
-                if (customConfig) {
-                    localStorage.setItem('eva_atmosphere_custom', JSON.stringify(customConfig));
-                }
-
-                // 7. Sync with backend asynchronously
-                this.syncToBackend(mode, customConfig);
-            }
-
-            async syncToBackend(mode, customConfig) {
-                try {
-                    if (mode === "CUSTOM" && customConfig) {
-                        await fetch('/api/v1/atmosphere/custom', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(customConfig)
-                        });
-                    } else {
-                        await fetch('/api/v1/atmosphere/set', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ mode: mode })
-                        });
-                    }
-                } catch (e) {
-                    console.debug("Atmosphere backend sync notice:", e);
-                }
-            }
-
-            init() {
-                const saved = localStorage.getItem('eva_atmosphere_mode') || 'GROUNDED';
-                if (saved === 'CUSTOM') {
-                    try {
-                        const custom = JSON.parse(localStorage.getItem('eva_atmosphere_custom') || '{}');
-                        this.setAtmosphere('CUSTOM', custom);
-                        return;
-                    } catch (e) {}
-                }
-                this.setAtmosphere(saved);
-            }
-        }
-        const AtmosphereController = new AtmosphereControllerClass();
-
-        // -------------------------------------------------------------
-        // 2. LIVING CANVAS PARTICLE & COLOR TEMPERATURE ENGINE
-        // -------------------------------------------------------------
-        const canvas = document.getElementById('living-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height;
-        let particles = [];
-        let currentAtmosphereHues = ["#6D6333", "#B49E45", "#484428"];
-        let currentMotionScale = 0.85;
-
-        function resizeCanvas() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        class AtmosphericParticle {
-            constructor() {
-                this.reset();
-            }
-            reset() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.size = Math.random() * 1.6 + 0.3;
-                this.vx = (Math.random() - 0.5) * 0.20 * currentMotionScale;
-                this.vy = (Math.random() - 0.5) * 0.20 * currentMotionScale;
-                this.alpha = Math.random() * 0.35 + 0.08;
-                this.hex = currentAtmosphereHues[Math.floor(Math.random() * currentAtmosphereHues.length)];
-            }
-            update() {
-                this.x += this.vx * currentMotionScale;
-                this.y += this.vy * currentMotionScale;
-                if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) {
-                    this.reset();
-                }
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.hex;
-                ctx.globalAlpha = this.alpha;
-                ctx.fill();
-                ctx.globalAlpha = 1.0;
+            if (viewName === 'console') {
+                voiceBar.style.display = 'flex';
+                toggleBtn.innerText = 'Product Experience';
+                loadConsoleActivity();
+                refreshHardwareTelemetry();
+            } else {
+                voiceBar.style.display = 'none';
+                toggleBtn.innerText = 'Device Console';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
-        function initParticles(density = 24) {
-            particles = [];
-            for (let i = 0; i < density; i++) {
-                particles.push(new AtmosphericParticle());
-            }
-        }
-        initParticles(24);
-
-        function updateLivingCanvasAtmosphere(config) {
-            currentAtmosphereHues = config.particleHues || [config.accent, config.highlight];
-            currentMotionScale = config.motionScale || 1.0;
-            initParticles(config.particleDensity || 22);
-        }
-
-        function renderCanvas() {
-            ctx.clearRect(0, 0, width, height);
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-            requestAnimationFrame(renderCanvas);
-        }
-        renderCanvas();
-
-        // -------------------------------------------------------------
-        // 3. PRESENCE ORB ATMOSPHERE ADAPTATION
-        // -------------------------------------------------------------
-        function updatePresenceOrbAtmosphere(config) {
-            const orbCenter = document.getElementById('orb-center');
-            const orbHalo = document.getElementById('orb-halo');
-            if (orbCenter && currentEvaState === "AWAITING") {
-                orbCenter.style.background = `radial-gradient(circle at 35% 35%, ${config.highlight} 0%, ${config.accent} 45%, ${config.foundation} 90%)`;
-                orbCenter.style.boxShadow = `0 0 32px ${config.highlight}33, inset 0 0 18px rgba(255, 255, 255, 0.15)`;
-            }
-            if (orbHalo) {
-                orbHalo.style.background = `radial-gradient(circle, ${config.accent} 0%, transparent 70%)`;
-                orbHalo.style.opacity = config.glowOpacity;
+        function toggleMainView() {
+            if (currentMainView === 'product') {
+                switchView('console');
+            } else {
+                switchView('product');
             }
         }
 
-        // Custom Atmosphere Modal Builder
-        function openCustomAtmosphereModal() {
-            document.getElementById('modal-title').innerText = "Configure Custom Atmosphere";
-            document.getElementById('modal-body').innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:16px;">
-                    <p style="font-size:13px; color:var(--text-secondary);">Customize your tone shifting foundation, accent, and highlight palette.</p>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
-                        <div>
-                            <label style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); display:block; margin-bottom:6px;">FOUNDATION</label>
-                            <input type="color" id="custom-foundation" value="#0C0805" style="width:100%; height:40px; background:transparent; border:1px solid var(--atm-border); border-radius:var(--radius-sm); cursor:pointer;">
-                        </div>
-                        <div>
-                            <label style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); display:block; margin-bottom:6px;">ACCENT</label>
-                            <input type="color" id="custom-accent" value="#703912" style="width:100%; height:40px; background:transparent; border:1px solid var(--atm-border); border-radius:var(--radius-sm); cursor:pointer;">
-                        </div>
-                        <div>
-                            <label style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); display:block; margin-bottom:6px;">HIGHLIGHT</label>
-                            <input type="color" id="custom-highlight" value="#D3A95B" style="width:100%; height:40px; background:transparent; border:1px solid var(--atm-border); border-radius:var(--radius-sm); cursor:pointer;">
-                        </div>
-                    </div>
-                    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
-                        <button class="filter-pill" onclick="closeModal()">Cancel</button>
-                        <button class="action-btn primary" style="width:auto; padding:0 20px; border-radius:var(--radius-full); font-size:12px;" onclick="applyCustomAtmosphereFromModal()">Apply Tone Shift</button>
-                    </div>
-                </div>
-            `;
-            openModal();
+        function scrollToSection(id) {
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function applyCustomAtmosphereFromModal() {
-            const foundation = document.getElementById('custom-foundation').value;
-            const accent = document.getElementById('custom-accent').value;
-            const highlight = document.getElementById('custom-highlight').value;
-            const customConfig = {
-                name: "Custom",
-                emotion: "adaptive / personal resonance",
-                foundation: foundation,
-                nightBase: foundation,
-                accent: accent,
-                highlight: highlight,
-                surface: `${foundation}CC`,
-                border: `${highlight}4D`,
-                glowOpacity: 0.28,
-                particleDensity: 22,
-                motionScale: 1.0,
-                transitionMs: 1400,
-                particleHues: [accent, highlight]
-            };
-            AtmosphereController.setAtmosphere("CUSTOM", customConfig);
-            closeModal();
+        function setConsoleTab(tabName) {
+            document.querySelectorAll('.console-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.console-panel').forEach(p => p.classList.remove('active'));
+            
+            const btn = document.getElementById(`tab-btn-${tabName}`);
+            const panel = document.getElementById(`panel-${tabName}`);
+            if (btn) btn.classList.add('active');
+            if (panel) panel.classList.add('active');
+
+            if (tabName === 'activity') loadConsoleActivity();
         }
 
-        // -------------------------------------------------------------
-        // 4. HARMONIC ACOUSTIC TONE GENERATOR
-        // -------------------------------------------------------------
-        let audioCtx = null;
-        function playHarmonicTone(freq = 432, type = 'sine', duration = 0.3) {
+        async function loadJournalActivity() {
+            const container = document.getElementById('journal-timeline-list');
             try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + duration);
+                const res = await fetch('/api/v1/events/timeline?limit=10');
+                const data = await res.json();
+                const events = data.events || [];
+
+                if (events.length === 0) {
+                    container.innerHTML = `<div class="empty-state-journal">Your EVA activity and voice journeys will appear here as you interact.</div>`;
+                    return;
+                }
+
+                let html = "";
+                events.forEach(e => {
+                    const timeStr = e.timestamp ? e.timestamp.substring(11, 16) : 'Just now';
+                    html += `
+                        <div class="timeline-entry">
+                            <div class="entry-time">${timeStr}</div>
+                            <div class="entry-body">
+                                <div class="entry-title">${escapeHtml(e.title || e.type)}</div>
+                                <div class="entry-desc">${escapeHtml(e.description || '')}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = `<div class="empty-state-journal">Could not load journal activity.</div>`;
+            }
+        }
+
+        async function loadConsoleActivity() {
+            const container = document.getElementById('console-activity-list');
+            try {
+                const res = await fetch('/api/v1/events/timeline?limit=15');
+                const data = await res.json();
+                const events = data.events || [];
+
+                if (events.length === 0) {
+                    container.innerHTML = `<div class="empty-state-journal">Your EVA device activity will appear here.</div>`;
+                    return;
+                }
+
+                let html = "";
+                events.forEach(e => {
+                    const timeStr = e.timestamp ? e.timestamp.substring(11, 16) : 'Just now';
+                    html += `
+                        <div class="timeline-entry">
+                            <div class="entry-time">${timeStr}</div>
+                            <div class="entry-body">
+                                <div class="entry-title">${escapeHtml(e.title || e.type)}</div>
+                                <div class="entry-desc">${escapeHtml(e.description || '')}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = `<div class="empty-state-journal">Could not load activity: ${e.message}</div>`;
+            }
+        }
+
+        async function refreshLiveTransit() {
+            try {
+                const res = await fetch('/api/v1/transit/traffic');
+                const data = await res.json();
+                if (data.corridors && data.corridors.length > 0) {
+                    let html = "";
+                    data.corridors.forEach(c => {
+                        html += `
+                            <div class="transit-live-card">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                    <strong style="font-size:14px; color:var(--eva-primary-black);">${escapeHtml(c.name)}</strong>
+                                    <span class="transit-badge">${escapeHtml(c.congestion_level)}</span>
+                                </div>
+                                <p style="font-size:12px; color:var(--eva-muted-text); line-height:1.5;">Speed ${c.average_speed_kmh} km/h. Delay +${c.delay_minutes}m. Status: ${escapeHtml(c.status)}</p>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('transit-cards-container').innerHTML = html;
+                }
+            } catch (e) {
+                console.debug("Transit refresh fallback:", e);
+            }
+        }
+
+        async function refreshHardwareTelemetry() {
+            try {
+                const res = await fetch('/api/v1/hardware/status');
+                const data = await res.json();
+                if (data.battery_percentage !== undefined) {
+                    document.getElementById('val-battery').innerText = `${data.battery_percentage}%`;
+                }
             } catch (e) {}
         }
 
-        // -------------------------------------------------------------
-        // 5. LIVING ORB STATE & WAVEFORM
-        // -------------------------------------------------------------
-        const orbEl = document.getElementById('presence-orb');
-        const stateTextEl = document.getElementById('presence-state-text');
-        const waveformBars = document.querySelectorAll('.waveform-bar');
-        let currentEvaState = "AWAITING";
-
-        function setEvaState(state) {
-            currentEvaState = state;
-            orbEl.setAttribute('data-state', state);
-            stateTextEl.innerText = state.replace('_', ' ');
-
-            if (state === "LISTENING") {
-                playHarmonicTone(432, 'sine', 0.25);
-                animateWaveform(true);
-            } else if (state === "THINKING") {
-                playHarmonicTone(600, 'sine', 0.15);
-                animateWaveform(false);
-            } else if (state === "SPEAKING") {
-                animateWaveform(true);
-            } else {
-                animateWaveform(false);
-                const currentPreset = AtmosphereController.presets[AtmosphereController.currentMode] || AtmosphereController.presets["GROUNDED"];
-                updatePresenceOrbAtmosphere(currentPreset);
-            }
+        function checkFirmwareUpdates() {
+            alert("EVA Firmware v1.2.0 is currently up to date. (Channel: Stable)");
         }
 
-        let waveInterval = null;
-        function animateWaveform(active) {
-            if (active) {
-                if (!waveInterval) {
-                    waveInterval = setInterval(() => {
-                        waveformBars.forEach(b => {
-                            const h = Math.floor(Math.random() * 20) + 4;
-                            b.style.height = `${h}px`;
-                        });
-                    }, 100);
-                }
-            } else {
-                clearInterval(waveInterval);
-                waveInterval = null;
-                waveformBars.forEach(b => b.style.height = `4px`);
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 6. NAVIGATION & SPATIAL PANELS
-        // -------------------------------------------------------------
-        function setMode(mode) {
-            document.querySelectorAll('.nav-mode-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.spatial-panel').forEach(p => p.classList.remove('active'));
-            
-            const targetBtn = document.getElementById(`mode-${mode}`);
-            const targetPanel = document.getElementById(`panel-${mode}`);
-            if (targetBtn) targetBtn.classList.add('active');
-            if (targetPanel) targetPanel.classList.add('active');
-
-            if (mode === 'activity') loadActivityTimeline();
-            if (mode === 'documents') loadDocumentsList();
-            if (mode === 'ecosystem') loadIntegrationsHealth();
-        }
-
-        function quickCommand(cmd) {
-            document.getElementById('command-input').value = cmd;
-            executeCommand();
-        }
-
-        // -------------------------------------------------------------
-        // 7. COMMAND EXECUTION & VOICE WORKFLOW
-        // -------------------------------------------------------------
-        async function executeCommand() {
-            const input = document.getElementById('command-input');
+        async function executeVoiceCommand() {
+            const input = document.getElementById('voice-command-input');
             const query = input.value.trim();
             if (!query) return;
 
             input.value = "";
-            setEvaState("THINKING");
-
-            updatePresenceFocus(query, "Reasoning across connected context...", "Processing", "Just now");
-
-            if (query.toLowerCase().startsWith('/research') || query.toLowerCase().includes('research paper') || query.toLowerCase().includes('arxiv')) {
-                const cleanQuery = query.replace('/research', '').trim();
-                setMode('research');
-                await executeResearch(cleanQuery || query);
-                setEvaState("AWAITING");
-                return;
-            }
+            const micBtn = document.getElementById('btn-mic');
+            micBtn.classList.add('active');
 
             try {
                 const res = await fetch('/api/v1/agent/message', {
@@ -1773,43 +1676,43 @@ def get_dashboard_html() -> str:
                     body: JSON.stringify({
                         message: query,
                         session_id: 'eva_web_session',
-                        device_id: 'EVA_Web_Atmosphere',
+                        device_id: 'EVA_Device_Console',
                         language: 'auto'
                     })
                 });
                 const data = await res.json();
-                const responseText = data.response || "I am listening.";
-                const latency = data.metadata?.latency_ms ? `${Math.round(data.metadata.latency_ms)}ms` : 'Instant';
-                const provider = data.metadata?.llm_provider || 'Deterministic Local Engine';
-
-                updatePresenceFocus(query, responseText, `Via ${provider} • ${latency}`, "Just now");
-                setEvaState("SPEAKING");
-                speakResponse(responseText);
-
-                setTimeout(() => {
-                    setEvaState("AWAITING");
-                }, Math.min(responseText.length * 50, 4000));
-
-            } catch (err) {
-                updatePresenceFocus(query, `Error: ${err.message}`, "Network Error", "Just now");
-                setEvaState("AWAITING");
+                const reply = data.response || "I am listening.";
+                speak(reply);
+            } catch (e) {
+                alert(`Query error: ${e.message}`);
+            } finally {
+                micBtn.classList.remove('active');
             }
         }
 
-        function updatePresenceFocus(query, response, latency, timeStr) {
-            document.getElementById('focus-source-label').innerText = `You: "${query}"`;
-            document.getElementById('focus-text').innerText = response;
-            document.getElementById('focus-latency-label').innerText = latency;
-            document.getElementById('focus-time-label').innerText = timeStr;
-        }
-
-        function speakResponse(text) {
+        function speak(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.05;
-                utterance.pitch = 1.0;
-                window.speechSynthesis.speak(utterance);
+                const u = new SpeechSynthesisUtterance(text);
+                u.rate = 1.05;
+                window.speechSynthesis.speak(u);
+            }
+        }
+
+        function toggleVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                const rec = new SpeechRecognition();
+                const micBtn = document.getElementById('btn-mic');
+                rec.onstart = () => { micBtn.classList.add('active'); };
+                rec.onresult = (e) => {
+                    document.getElementById('voice-command-input').value = e.results[0][0].transcript;
+                    executeVoiceCommand();
+                };
+                rec.onend = () => { micBtn.classList.remove('active'); };
+                rec.start();
+            } else {
+                alert("Speech recognition is not supported in this browser.");
             }
         }
 
@@ -1818,441 +1721,11 @@ def get_dashboard_html() -> str:
             return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
-        // -------------------------------------------------------------
-        // 8. VOICE RECOGNITION
-        // -------------------------------------------------------------
-        let recognition = null;
-        let isListening = false;
-
-        function initSpeech() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (SpeechRecognition) {
-                recognition = new SpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                
-                recognition.onstart = () => {
-                    isListening = true;
-                    document.getElementById('mic-action-btn').classList.add('active-mic');
-                    setEvaState("LISTENING");
-                };
-
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    document.getElementById('command-input').value = transcript;
-                    executeCommand();
-                };
-
-                recognition.onend = () => {
-                    isListening = false;
-                    document.getElementById('mic-action-btn').classList.remove('active-mic');
-                    if (currentEvaState === "LISTENING") setEvaState("AWAITING");
-                };
-            }
-        }
-        initSpeech();
-
-        function toggleVoiceActivation() {
-            if (!recognition) initSpeech();
-            if (recognition) {
-                if (isListening) recognition.stop();
-                else recognition.start();
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 9. ACTIVITY TIMELINE & SESSIONS
-        // -------------------------------------------------------------
-        let currentActivityFilter = 'all';
-
-        async function loadActivityTimeline() {
-            const stream = document.getElementById('activity-stream-container');
-            try {
-                const sessRes = await fetch('/api/v1/events/sessions?limit=5');
-                const sessData = await sessRes.json();
-                if (sessData.sessions && sessData.sessions.length > 0) {
-                    const activeSess = sessData.sessions[0];
-                    const startT = activeSess.start_time ? activeSess.start_time.substring(11, 16) : '02:00';
-                    const durMin = activeSess.active_duration_ms ? `${Math.round(activeSess.active_duration_ms / 60000)} min` : 'Active';
-                    document.getElementById('current-session-duration').innerText = `${startT} – Present • ${durMin}`;
-                    document.getElementById('current-session-count').innerText = `${activeSess.activity_count || 1} Actions Recorded`;
-                }
-
-                let url = '/api/v1/events/timeline?limit=40';
-                if (currentActivityFilter !== 'all') {
-                    url += `&category=${encodeURIComponent(currentActivityFilter)}`;
-                }
-                const res = await fetch(url);
-                const data = await res.json();
-                const events = data.events || [];
-
-                if (events.length === 0) {
-                    stream.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">No recorded activity events under this filter.</div>`;
-                    return;
-                }
-
-                let html = "";
-                events.forEach(evt => {
-                    const timeFormatted = evt.timestamp ? evt.timestamp.substring(11, 19) : 'Recent';
-                    const tagType = evt.type ? evt.type.replace('_', ' ') : 'EVENT';
-                    
-                    html += `
-                        <div class="timeline-event-card">
-                            <div class="event-icon-box">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                            </div>
-                            <div class="event-body">
-                                <div class="event-top-row">
-                                    <div class="event-title">${escapeHtml(evt.title || evt.type)}</div>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span class="event-tag">${escapeHtml(tagType)}</span>
-                                        <span class="event-time">${timeFormatted}</span>
-                                    </div>
-                                </div>
-                                <div class="event-desc">${escapeHtml(evt.description || '')}</div>
-                            </div>
-                        </div>
-                    `;
-                });
-                stream.innerHTML = html;
-
-            } catch (err) {
-                stream.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--eva-crimson);">Error loading activity timeline: ${err.message}</div>`;
-            }
-        }
-
-        function filterActivity(filter, btn) {
-            currentActivityFilter = filter;
-            document.querySelectorAll('.timeline-filter-pills .filter-pill').forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            loadActivityTimeline();
-        }
-
-        // -------------------------------------------------------------
-        // 10. DOCUMENT KNOWLEDGE SYSTEM
-        // -------------------------------------------------------------
-        let currentDocsList = [];
-
-        async function loadDocumentsList(searchQuery = "") {
-            const container = document.getElementById('documents-container');
-            try {
-                let url = searchQuery ? `/api/v1/documents/search?query=${encodeURIComponent(searchQuery)}` : '/api/v1/documents/list';
-                const res = await fetch(url);
-                const data = await res.json();
-                currentDocsList = data.documents || [];
-
-                if (currentDocsList.length === 0) {
-                    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">No documents indexed. Upload a file above to expand EVA's knowledge.</div>`;
-                    return;
-                }
-
-                let html = "";
-                currentDocsList.forEach(doc => {
-                    const sizeKb = doc.size_bytes ? `${Math.round(doc.size_bytes / 1024)} KB` : 'Unknown size';
-                    const mime = doc.mime_type ? doc.mime_type.split('/').pop().toUpperCase() : 'DOC';
-                    const created = doc.created_at ? doc.created_at.substring(0, 10) : 'Recent';
-                    const preview = doc.text_preview || 'Text extracted and indexed into memory.';
-
-                    html += `
-                        <div class="doc-card">
-                            <div>
-                                <div class="doc-card-title">${escapeHtml(doc.filename)}</div>
-                                <div class="doc-card-meta">
-                                    <span>${mime}</span>
-                                    <span>${sizeKb}</span>
-                                    <span>${created}</span>
-                                </div>
-                                <div class="doc-preview-snippet">${escapeHtml(preview)}</div>
-                            </div>
-                            <div class="doc-actions">
-                                <button class="btn-link" onclick="previewDocument('${doc.file_id}')">Preview Text &rarr;</button>
-                                <button class="btn-link btn-danger" onclick="deleteDocument('${doc.file_id}')">Delete</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
-
-            } catch (err) {
-                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--eva-crimson);">Error loading documents: ${err.message}</div>`;
-            }
-        }
-
-        function handleDocSearch(q) {
-            loadDocumentsList(q);
-        }
-
-        async function handleFileSelected(event) {
-            const file = event.target.files[0];
-            if (file) await uploadFile(file);
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            document.getElementById('drop-zone').classList.add('dragover');
-        }
-
-        function handleDragLeave(e) {
-            e.preventDefault();
-            document.getElementById('drop-zone').classList.remove('dragover');
-        }
-
-        async function handleFileDrop(e) {
-            e.preventDefault();
-            document.getElementById('drop-zone').classList.remove('dragover');
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                await uploadFile(e.dataTransfer.files[0]);
-            }
-        }
-
-        async function uploadFile(file) {
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("source", "web_realm");
-
-            const dropZone = document.getElementById('drop-zone');
-            const originalContent = dropZone.innerHTML;
-            dropZone.innerHTML = `<div style="color: var(--atm-highlight);">Indexing ${escapeHtml(file.name)} and extracting knowledge...</div>`;
-
-            try {
-                const res = await fetch('/api/v1/documents/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                if (data.success) {
-                    playHarmonicTone(528, 'sine', 0.25);
-                    loadDocumentsList();
-                } else {
-                    alert(`Upload failed: ${data.detail || 'Unknown error'}`);
-                }
-            } catch (e) {
-                alert(`Upload failed: ${e.message}`);
-            } finally {
-                dropZone.innerHTML = originalContent;
-            }
-        }
-
-        async function previewDocument(fileId) {
-            try {
-                const res = await fetch(`/api/v1/documents/${fileId}`);
-                const data = await res.json();
-                const doc = data.document;
-                if (!doc) return;
-
-                document.getElementById('modal-title').innerText = doc.filename;
-                document.getElementById('modal-body').innerHTML = `
-                    <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 12px;">
-                        MIME: ${escapeHtml(doc.mime_type)} • Size: ${Math.round(doc.size_bytes/1024)} KB • Source: ${escapeHtml(doc.source)}
-                    </div>
-                    <pre>${escapeHtml(doc.extracted_text || 'No extracted text available.')}</pre>
-                `;
-                openModal();
-            } catch (e) {
-                alert(`Error loading document preview: ${e.message}`);
-            }
-        }
-
-        async function deleteDocument(fileId) {
-            if (!confirm("Are you sure you want to remove this document from EVA's knowledge index?")) return;
-            try {
-                const res = await fetch(`/api/v1/documents/${fileId}`, { method: 'DELETE' });
-                if (res.ok) {
-                    loadDocumentsList();
-                }
-            } catch (e) {
-                alert(`Error deleting document: ${e.message}`);
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 11. RESEARCH CONSTELLATION
-        // -------------------------------------------------------------
-        let currentResearchPapers = [];
-
-        async function executeResearch(query) {
-            const container = document.getElementById('research-nodes-container');
-            container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--atm-highlight);">Scanning academic research databases for "${escapeHtml(query)}"...</div>`;
-
-            try {
-                const res = await fetch(`/api/v1/research/papers?query=${encodeURIComponent(query)}&max_results=6`);
-                const data = await res.json();
-                currentResearchPapers = data.papers || [];
-
-                if (currentResearchPapers.length === 0) {
-                    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">No papers found matching "${escapeHtml(query)}".</div>`;
-                    return;
-                }
-
-                let html = "";
-                currentResearchPapers.forEach((p, idx) => {
-                    const ordinal = idx + 1;
-                    const authors = Array.isArray(p.authors) ? p.authors.slice(0, 3).join(', ') : (p.authors || 'Researchers');
-                    const year = p.publication_year || (p.published_date ? p.published_date.substring(0, 4) : '2024');
-
-                    html += `
-                        <div class="constellation-node">
-                            <span class="node-ordinal-badge">#${ordinal}</span>
-                            <div>
-                                <div class="node-title">${escapeHtml(p.title || 'Academic Paper')}</div>
-                                <div class="node-meta">
-                                    <span>${escapeHtml(authors)}</span>
-                                    <span>${year}</span>
-                                    <span>${escapeHtml(p.source || 'Verified Academic')}</span>
-                                </div>
-                                <div class="node-abstract">${escapeHtml(p.abstract || 'Verified academic paper indexed.')}</div>
-                            </div>
-                            <div class="node-actions">
-                                <a href="${p.url || p.pdf_url || '#'}" target="_blank" class="btn-link">DOI / Link &rarr;</a>
-                                <div style="display:flex; gap:6px;">
-                                    <button class="btn-link" onclick="openLevel3Summary(${idx})">Structured Analysis</button>
-                                    <button class="action-btn" style="width:28px; height:28px;" title="Explain Paper" onclick="quickCommand('Explain research paper ${ordinal}: ${escapeHtml(p.title)}')">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
-                playHarmonicTone(660, 'sine', 0.2);
-
-            } catch (err) {
-                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--eva-crimson);">Research search error: ${err.message}</div>`;
-            }
-        }
-
-        async function openLevel3Summary(paperIndex) {
-            const paper = currentResearchPapers[paperIndex];
-            if (!paper) return;
-
-            document.getElementById('modal-title').innerText = `Level 3 Structured Analysis: ${paper.title}`;
-            document.getElementById('modal-body').innerHTML = `<div style="text-align: center; padding: 20px; color: var(--atm-highlight);">Generating Zero-Hallucination Academic Breakdown...</div>`;
-            openModal();
-
-            try {
-                const res = await fetch('/api/v1/research/summarize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paper: paper, level: 3 })
-                });
-                const data = await res.json();
-                const result = data.result || {};
-                const content = result.formatted_content || data.summary || "Structured summary generated.";
-
-                document.getElementById('modal-body').innerHTML = `
-                    <div style="font-size: 11px; color: var(--atm-highlight); font-family: var(--font-mono); margin-bottom: 12px;">
-                         Zero Hallucination Verified • Source: ${escapeHtml(result.source_basis || 'Verified Paper Record')}
-                    </div>
-                    <pre style="white-space: pre-wrap; font-family: var(--font-body); font-size: 13px; line-height: 1.6; color: var(--text-primary);">${escapeHtml(content)}</pre>
-                `;
-            } catch (e) {
-                document.getElementById('modal-body').innerHTML = `<div style="color: var(--eva-crimson);">Error generating structured breakdown: ${e.message}</div>`;
-            }
-        }
-
-        // -------------------------------------------------------------
-        // 12. INTEGRATIONS & GOOGLE OAUTH
-        // -------------------------------------------------------------
-        async function loadIntegrationsHealth() {
-            const container = document.getElementById('integrations-health-container');
-            try {
-                const res = await fetch('/api/v1/integrations/health');
-                const data = await res.json();
-                const list = data.integrations || [];
-
-                let html = `
-                    <div class="eco-card" style="grid-column: 1/-1;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
-                            <div>
-                                <h3 style="font-size:15px; font-weight:600; color:var(--text-pure); margin-bottom:4px;">Google Workspace Ecosystem</h3>
-                                <p style="font-size:12px; color:var(--text-secondary);">Connect Gmail &amp; Google Calendar for automatic scheduling and email intelligence</p>
-                            </div>
-                            <button class="btn-google-connect" onclick="connectGoogleAccount()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#D3A95B"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#6D6333"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#B1650E"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#510A16"/></svg>
-                                Connect Google Account
-                            </button>
-                        </div>
-                        <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); border-top:1px solid var(--atm-border); padding-top:8px;">
-                            Scopes: https://www.googleapis.com/auth/gmail.modify • https://www.googleapis.com/auth/calendar
-                        </div>
-                    </div>
-                `;
-
-                list.forEach(item => {
-                    const isConnected = item.status === "CONNECTED";
-                    const isAuthReq = item.status === "AUTH_REQUIRED";
-
-                    html += `
-                        <div class="eco-card">
-                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                                <div style="font-size:14px; font-weight:600; color:var(--text-pure);">${escapeHtml(item.name)}</div>
-                                <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">
-                                    <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${isConnected ? 'var(--atm-highlight)' : 'var(--eva-mauve)'};"></span>
-                                    <span>${item.status}</span>
-                                </div>
-                            </div>
-                            <pre style="background:rgba(0,0,0,0.3); padding:10px; border-radius:var(--radius-sm); font-size:11px; font-family:var(--font-mono); color:var(--text-secondary); max-height:120px; overflow-y:auto;">${escapeHtml(JSON.stringify(item.details || {}, null, 2))}</pre>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
-
-            } catch (e) {
-                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--eva-crimson);">Could not load integrations health: ${e.message}</div>`;
-            }
-        }
-
-        function connectGoogleAccount() {
-            const width = 600, height = 700;
-            const left = (window.innerWidth - width) / 2;
-            const top = (window.innerHeight - height) / 2;
-            window.open(
-                '/api/v1/auth/google/login',
-                'GoogleAuthWindow',
-                `width=${width},height=${height},top=${top},left=${left},status=no,toolbar=no,menubar=no`
-            );
-        }
-
-        // Modal Helpers
-        function openModal() {
-            document.getElementById('eva-modal-overlay').classList.add('active');
-        }
-        function closeModal() {
-            document.getElementById('eva-modal-overlay').classList.remove('active');
-        }
-
-        // -------------------------------------------------------------
-        // 13. SSE Stream Connection & Atmosphere Sync
-        // -------------------------------------------------------------
-        function initSSE() {
-            try {
-                const evtSource = new EventSource('/api/v1/events/stream');
-                evtSource.onmessage = function(e) {
-                    try {
-                        const evt = JSON.parse(e.data);
-                        if (evt.type === "VOICE_START" || evt.event === "TALK_START") {
-                            setEvaState("LISTENING");
-                        } else if (evt.type === "VOICE_END") {
-                            setEvaState("THINKING");
-                        } else if (evt.type === "DOCUMENT_INGESTED") {
-                            loadDocumentsList();
-                        } else if (evt.type === "ATMOSPHERE_CHANGED") {
-                            if (evt.metadata && evt.metadata.mode) {
-                                AtmosphereController.setAtmosphere(evt.metadata.mode);
-                            }
-                        }
-                    } catch (err) {}
-                };
-            } catch (e) {}
-        }
-
         window.addEventListener('DOMContentLoaded', () => {
-            AtmosphereController.init();
-            initSSE();
+            loadJournalActivity();
+            if (window.location.pathname.includes('/console')) {
+                switchView('console');
+            }
         });
     </script>
 </body>

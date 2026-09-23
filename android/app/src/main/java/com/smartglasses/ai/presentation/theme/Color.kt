@@ -3,119 +3,129 @@ package com.smartglasses.ai.presentation.theme
 import androidx.compose.ui.graphics.Color
 
 // =========================================================================
-// EVA Atmosphere System — Color Existing Inside Darkness
+// EVA Premium Natural Ecosystem — Ivory + White + Soft Green + Black
 // =========================================================================
 
-// FOUNDATION
-val EvaVoid = Color(0xFF0C0805)
-val EvaNight = Color(0xFF161411)
-val EvaEarthBlack = Color(0xFF190903)
-val EvaCharcoal = Color(0xFF2B221E)
+// 1. FOUNDATION (65%)
+val EvaIvory = Color(0xFFF7F4EC)              // Primary background
+val EvaWarmIvory = Color(0xFFF1EEE4)          // Secondary surface
+val EvaPureWhite = Color(0xFFFFFFFF)          // Primary card surface
+val EvaSoftWhite = Color(0xFFFCFBF8)          // Elevated soft surface
+val EvaLightStone = Color(0xFFE8E5DC)         // Subtle tactile background
+val EvaBorderSubtle = Color(0xFFE2E0D8)       // Crisp subtle border
+val EvaBorderFocus = Color(0xFF3F6B4F)        // Green active focus boundary
 
-// EARTH
-val EvaUmber = Color(0xFF301306)
-val EvaCopper = Color(0xFF552804)
-val EvaAmberBrown = Color(0xFF703912)
-val EvaBronze = Color(0xFF7F582D)
+// 2. GREEN ACCENT (10% - Brand Accent & Connection)
+val EvaPrimaryGreen = Color(0xFF3F6B4F)       // Brand Primary Accent
+val EvaDeepGreen = Color(0xFF294A36)          // High-contrast green
+val EvaSoftGreen = Color(0xFF6F9278)          // Muted sage green
+val EvaPaleGreen = Color(0xFFDDE9DF)          // Light green tint
+val EvaMistGreen = Color(0xFFEEF4EF)          // Softest atmospheric green surface
+val EvaGreenGlow = Color(0x263F6B4F)          // Subtle green aura
 
-// LIGHT
-val EvaGold = Color(0xFFD3A95B)
-val EvaAmber = Color(0xFFB1650E)
-val EvaSunlight = Color(0xFFECDBA1)
-val EvaIvory = Color(0xFFF8F0E2)
+// 3. BLACK / CONTRAST & TYPOGRAPHY (5% - Crisp Contrast)
+val EvaPrimaryBlack = Color(0xFF111311)       // Primary headings & bold typography
+val EvaSoftBlack = Color(0xFF252824)          // Body text
+val EvaMutedText = Color(0xFF626861)          // Secondary labels & metadata
+val EvaSlate = Color(0xFF8C928B)              // Inactive indicators
 
-// GREEN
-val EvaOliveBlack = Color(0xFF0C0C08)
-val EvaMoss = Color(0xFF484428)
-val EvaOlive = Color(0xFF6D6333)
-val EvaSage = Color(0xFF848157)
-
-// ROSE
-val EvaWine = Color(0xFF510A16)
-val EvaCrimson = Color(0xFF932D44)
-val EvaMauve = Color(0xFFA7788E)
-
-// Active / Presence Accents
-val EvaGlowGold = Color(0x38D3A95B)
-val EvaGlowAmber = Color(0x38B1650E)
-val EvaGlowOlive = Color(0x386D6333)
-val EvaGlowWine = Color(0x38510A16)
-
-// Borders & Atmosphere
-val EvaBorderSubtle = Color(0x24D3A95B)       // Restrained subtle boundary
-val EvaBorderRadiant = Color(0x59D3A95B)      // Active boundary
-val EvaBorderGlass = Color(0x1AFFFFFF)
-
-// Typography & Chromatic Readability
-val EvaTextPure = EvaIvory                   // #F8F0E2
-val EvaTextPrimary = EvaSunlight             // #ECDBA1
-val EvaTextSecondary = EvaSage               // #848157
-val EvaTextMuted = EvaMoss                   // #484428
+// 4. SEMANTIC STATUS
+val EvaStatusGood = EvaPrimaryGreen
+val EvaStatusWarning = Color(0xFFB46E28)
+val EvaStatusAlert = Color(0xFF9E3A3A)
 
 // =========================================================================
-// Backward Compatibility Aliases for Legacy Screens & Themes
+// Compatibility Aliases for Existing Screens & Themes (Mapped to Ivory/Green)
 // =========================================================================
-val EvaIndigo = EvaEarthBlack
-val EvaSurfaceVelvet = EvaCharcoal
-val EvaSurfaceElevated = EvaUmber
-val EvaSurfaceGlass = Color(0xB3161411)
-val EvaTeal = EvaOlive
-val EvaTealGlow = EvaGlowOlive
-val EvaCyan = EvaSunlight
-val EvaViolet = EvaMauve
-val EvaRose = EvaCrimson
-val EvaEmerald = EvaSage
-val EvaSlate = EvaMoss
+val EvaVoid = EvaIvory
+val EvaNight = EvaWarmIvory
+val EvaEarthBlack = EvaLightStone
+val EvaCharcoal = EvaPrimaryBlack
 
-val LaraCharcoal = EvaNight
-val LaraGraphite = EvaEarthBlack
-val LaraSurfaceDark = EvaVoid
-val LaraSurfaceCard = EvaNight
-val LaraIvory = EvaNight
-val LaraWarmWhite = EvaTextPure
-val LaraSurfaceSubtle = EvaNight
+val EvaUmber = EvaWarmIvory
+val EvaCopper = EvaSoftGreen
+val EvaAmberBrown = EvaPrimaryGreen
+val EvaBronze = EvaMutedText
 
-val LaraMutedOrange = EvaAmber
-val LaraOrangeLight = EvaGlowAmber
-val LaraEmerald = EvaSage
-val LaraEmeraldBg = Color(0x1A6D6333)
-val LaraAmber = EvaGold
-val LaraAmberBg = Color(0x1AD3A95B)
-val LaraMutedRed = EvaCrimson
-val LaraMutedRedBg = Color(0x1A932D44)
-val LaraSand = EvaSunlight
+val EvaGold = EvaPrimaryGreen
+val EvaAmber = EvaPrimaryGreen
+val EvaSunlight = EvaPrimaryBlack
+val EvaIvoryLegacy = EvaIvory
+
+val EvaOliveBlack = EvaPrimaryBlack
+val EvaMoss = EvaMutedText
+val EvaOlive = EvaPrimaryGreen
+val EvaSage = EvaSoftGreen
+
+val EvaWine = EvaDeepGreen
+val EvaCrimson = EvaStatusAlert
+val EvaMauve = EvaSoftGreen
+
+val EvaIndigo = EvaWarmIvory
+val EvaSurfaceVelvet = EvaPureWhite
+val EvaSurfaceElevated = EvaSoftWhite
+val EvaSurfaceGlass = EvaPureWhite
+val EvaTeal = EvaPrimaryGreen
+val EvaTealGlow = EvaPaleGreen
+val EvaCyan = EvaSoftGreen
+val EvaViolet = EvaPrimaryGreen
+val EvaRose = EvaStatusAlert
+val EvaEmerald = EvaPrimaryGreen
+
+val EvaTextPure = EvaPrimaryBlack
+val EvaTextPrimary = EvaPrimaryBlack
+val EvaTextSecondary = EvaMutedText
+val EvaTextMuted = EvaMutedText
+
+val LaraCharcoal = EvaPrimaryBlack
+val LaraGraphite = EvaSoftBlack
+val LaraSurfaceDark = EvaPureWhite
+val LaraSurfaceCard = EvaPureWhite
+val LaraIvory = EvaIvory
+val LaraWarmWhite = EvaPureWhite
+val LaraSurfaceSubtle = EvaWarmIvory
+
+val LaraMutedOrange = EvaPrimaryGreen
+val LaraOrangeLight = EvaPaleGreen
+val LaraEmerald = EvaPrimaryGreen
+val LaraEmeraldBg = EvaMistGreen
+val LaraAmber = EvaPrimaryGreen
+val LaraAmberBg = EvaMistGreen
+val LaraMutedRed = EvaStatusAlert
+val LaraMutedRedBg = Color(0x1A9E3A3A)
+val LaraSand = EvaWarmIvory
 
 val LaraBorderDark = EvaBorderSubtle
 val LaraBorderLight = EvaBorderSubtle
 
-val LaraTextPrimaryDark = EvaTextPure
-val LaraTextSecondaryDark = EvaTextSecondary
-val LaraTextPrimaryLight = EvaTextPure
-val LaraTextSecondaryLight = EvaTextSecondary
+val LaraTextPrimaryDark = EvaPrimaryBlack
+val LaraTextSecondaryDark = EvaMutedText
+val LaraTextPrimaryLight = EvaPrimaryBlack
+val LaraTextSecondaryLight = EvaMutedText
 
-val LuxuryNavy = EvaNight
-val LuxuryIvory = EvaNight
-val LuxuryWarmWhite = EvaTextPure
-val LuxurySurfaceSubtle = EvaVoid
+val LuxuryNavy = EvaPrimaryBlack
+val LuxuryIvory = EvaIvory
+val LuxuryWarmWhite = EvaPureWhite
+val LuxurySurfaceSubtle = EvaWarmIvory
 val LuxuryBorder = EvaBorderSubtle
-val LuxuryBorderFocus = EvaGold
-val LuxuryGold = EvaGold
-val LuxuryChampagneGold = EvaSunlight
-val LuxuryGoldLight = EvaGlowGold
-val LuxuryGoldHover = EvaGold
-val LuxuryEspresso = EvaVoid
-val LuxuryCharcoal = EvaNight
-val LuxuryTextMuted = EvaTextMuted
-val LuxuryTextLight = EvaTextSecondary
-val LuxurySage = EvaSage
-val LuxurySageBg = Color(0x1A6D6333)
-val LuxuryTerracotta = EvaCrimson
-val LuxuryTerracottaBg = Color(0x1A932D44)
+val LuxuryBorderFocus = EvaPrimaryGreen
+val LuxuryGold = EvaPrimaryGreen
+val LuxuryChampagneGold = EvaPrimaryGreen
+val LuxuryGoldLight = EvaPaleGreen
+val LuxuryGoldHover = EvaDeepGreen
+val LuxuryEspresso = EvaPrimaryBlack
+val LuxuryCharcoal = EvaSoftBlack
+val LuxuryTextMuted = EvaMutedText
+val LuxuryTextLight = EvaMutedText
+val LuxurySage = EvaSoftGreen
+val LuxurySageBg = EvaMistGreen
+val LuxuryTerracotta = EvaStatusAlert
+val LuxuryTerracottaBg = Color(0x1A9E3A3A)
 
-val WearableDarkBackground = EvaVoid
-val WearableDarkSurface = EvaNight
-val WearableDarkSurfaceVariant = EvaCharcoal
+val WearableDarkBackground = EvaIvory
+val WearableDarkSurface = EvaPureWhite
+val WearableDarkSurfaceVariant = EvaWarmIvory
 val WearableCardBorder = EvaBorderSubtle
-val TextPrimary = EvaTextPure
-val TextSecondary = EvaTextSecondary
-val TextMuted = EvaTextMuted
+val TextPrimary = EvaPrimaryBlack
+val TextSecondary = EvaMutedText
+val TextMuted = EvaMutedText
