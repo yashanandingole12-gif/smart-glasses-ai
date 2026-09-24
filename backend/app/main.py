@@ -239,6 +239,23 @@ async def health_check():
         llm_provider=settings.LLM_PROVIDER
     )
 
+@app.get("/api/v1/usage/stats")
+async def get_usage_stats():
+    """Retrieve live API usage, token counts, and quota status."""
+    from backend.app.services.usage_governor import usage_governor
+    return usage_governor.get_stats()
+
+@app.post("/api/v1/usage/limits")
+async def update_usage_limits(req: Request):
+    """Adjust daily/hourly request caps and limits."""
+    from backend.app.services.usage_governor import usage_governor
+    body = await req.json()
+    return usage_governor.update_limits(
+        daily_limit=body.get("daily_limit"),
+        hourly_limit=body.get("hourly_limit"),
+        vision_limit=body.get("vision_limit")
+    )
+
 @app.post("/api/v1/session", response_model=SessionResponse)
 async def create_session(req: SessionCreateRequest = SessionCreateRequest()):
     """Create a new interaction session."""
@@ -1702,6 +1719,20 @@ async def process_agent_message(req: AgentMessageRequest):
             formatted_messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
         formatted_messages.append({"role": "user", "content": msg_raw})
 
+        # Check usage quota & budget governor
+        from backend.app.services.usage_governor import usage_governor
+        allowed, limit_reason = usage_governor.check_allow_request()
+        if not allowed:
+            return _deliver_response(AgentMessageResponse(
+                session_id=req.session_id,
+                response=f"Quota Limit: {limit_reason} Running in grounded memory mode.",
+                actions=[],
+                requires_confirmation=False,
+                confirmation_prompt=None,
+                sources=["usage_governor"],
+                metadata={"quota_exceeded": True}
+            ))
+
         router_resp = await llm_router.generate_with_budget(
             messages=formatted_messages,
             tools=None,
@@ -1712,6 +1743,10 @@ async def process_agent_message(req: AgentMessageRequest):
         )
 
         final_text = (router_resp.content or "").strip()
+        usage_governor.record_usage(
+            input_tokens=len(system_prompt) // 4 + len(msg_raw) // 4,
+            output_tokens=len(final_text) // 4
+        )
         
         # Grounded offline fallback if LLM returned generic unreachable message
         if not final_text or "couldn't reach the service" in final_text.lower():
