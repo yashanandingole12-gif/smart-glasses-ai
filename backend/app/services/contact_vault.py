@@ -367,5 +367,32 @@ class PersonalContactVault:
                     return c
         return None
 
+    def get_contact_by_name(self, name: str, user_id: str = "default_user") -> Optional[VaultContact]:
+        """Resolves contact by name or alias and returns VaultContact or None."""
+        res = self.resolve_contact(name, user_id=user_id)
+        if res.status == "RESOLVED" and res.contact:
+            return res.contact
+        elif res.candidates:
+            return res.candidates[0]
+        return None
+
+    def search_contacts(self, query: str = "", user_id: str = "default_user") -> List[VaultContact]:
+        """Search contacts by name, alias, email, phone, or company."""
+        all_c = self.list_contacts(user_id)
+        if not query:
+            return all_c
+        q_clean = query.strip().lower()
+        matched = []
+        for c in all_c:
+            if (
+                q_clean in c.name.lower()
+                or any(q_clean in a.lower() for a in c.aliases)
+                or any(q_clean in em.lower() for em in c.email_addresses)
+                or any(q_clean in ph for ph in c.phone_numbers)
+                or (c.company and q_clean in c.company.lower())
+            ):
+                matched.append(c)
+        return matched
+
 contact_vault = PersonalContactVault()
 

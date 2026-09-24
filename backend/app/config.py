@@ -81,6 +81,8 @@ class Settings(BaseSettings):
         "https://www.googleapis.com/auth/gmail.compose",
         "https://www.googleapis.com/auth/calendar.readonly",
         "https://www.googleapis.com/auth/contacts.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/documents",
         "https://www.googleapis.com/auth/userinfo.email"
     ]
 

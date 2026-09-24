@@ -308,6 +308,25 @@ COMMUNICATION PRINCIPLES:
             return "emotional"
         return None
 
+    def build_eva_context_prompt(
+        self,
+        user_message: str,
+        session_id: str = "default_session",
+        client_context: Optional[Dict[str, Any]] = None,
+        max_memory_tokens: int = 450,
+        max_memories: int = 5,
+        max_turns: int = 10,
+        max_sensitivity: str = "S3"
+    ) -> ContextPayload:
+        """Alias for build_context that accepts user_message, session_id, and client context."""
+        return self.build_context(
+            session_id=session_id,
+            user_message=user_message,
+            max_memories=max_memories,
+            max_turns=max_turns,
+            max_sensitivity=max_sensitivity
+        )
+
 
 # Global Singleton
 context_builder = ContextBuilder()

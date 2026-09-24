@@ -1518,6 +1518,78 @@ async def process_agent_message(req: AgentMessageRequest):
             }
         ))
 
+    # 8.15 Google Docs, Cloud File Sharing & Contacts Fast-Track
+    if any(k in msg_low for k in ["share doc", "share file", "share pdf", "create doc", "google doc", "search docs", "my drive", "find contact", "share my", "accessible link"]):
+        from backend.app.services.google_docs_drive_service import google_docs_drive_service
+        from backend.app.services.contact_vault import contact_vault
+
+        if any(k in msg_low for k in ["share", "accessible"]):
+            # Extract possible document/contact references
+            search_res = await google_docs_drive_service.search_files(limit=1)
+            target_files = search_res.get("files", [])
+            if target_files:
+                top_f = target_files[0]
+                share_res = await google_docs_drive_service.share_file(
+                    file_id=top_f["file_id"],
+                    role="reader",
+                    make_public=True
+                )
+                ws_reply = f"Generated all-accessible sharing link for '{top_f['name']}': {share_res.get('shareable_url')}. Anyone with this link can view."
+                ws_data = share_res
+            else:
+                ws_reply = "No documents found in storage to share. You can upload a PDF or create a Google Doc first."
+                ws_data = {"status": "NO_DOCS"}
+        elif any(k in msg_low for k in ["create doc", "new doc"]):
+            doc_title = "EVA Collaboration Document"
+            create_res = await google_docs_drive_service.create_google_doc(
+                title=doc_title,
+                content=f"Document initialized via EVA Smart Glasses assistant on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}.\n\n",
+                share_accessible=True
+            )
+            ws_reply = f"Created Google Doc '{doc_title}' with all-accessible permissions. Link: {create_res.get('shareable_url')}"
+            ws_data = create_res
+        elif any(k in msg_low for k in ["contact", "contacts"]):
+            contacts = contact_vault.list_contacts()
+            if contacts:
+                c_names = [f"{c.name} ({c.email_addresses[0] if c.email_addresses else 'Phone only'})" for c in contacts[:3]]
+                ws_reply = f"Here are your contacts: {', '.join(c_names)}. Total {len(contacts)} contacts synced."
+            else:
+                ws_reply = "No contacts synced yet. Click 'Sync Contacts' in Settings to pull from Google People API."
+            ws_data = {"contacts_count": len(contacts)}
+        else:
+            files_res = await google_docs_drive_service.search_files(limit=3)
+            f_list = files_res.get("files", [])
+            if f_list:
+                f_names = [f"'{f['name']}'" for f in f_list]
+                ws_reply = f"Found {len(f_list)} Google Drive & cloud files: {', '.join(f_names)}."
+            else:
+                ws_reply = "No documents found in Google Drive or local storage."
+            ws_data = files_res
+
+        memory_repository.add_message(req.session_id, "user", msg_raw)
+        memory_repository.add_message(req.session_id, "assistant", ws_reply)
+        metrics.fast_path_ms = (time.time() - t_fp_start) * 1000.0
+        metrics.finish()
+        log_request_metrics(metrics)
+
+        return _deliver_response(AgentMessageResponse(
+            session_id=req.session_id,
+            response=ws_reply,
+            actions=[],
+            requires_confirmation=False,
+            confirmation_prompt=None,
+            sources=["google_docs_drive_service", "contact_vault"],
+            metadata={
+                "latency_ms": metrics.total_ms,
+                "fast_path": True,
+                "workspace": ws_data,
+                "llm_provider": "google_docs_drive",
+                "request_id": req.request_id,
+                "language": req.language or "auto",
+                "locale": req.locale or "en-IN"
+            }
+        ))
+
     # 8.2 Staff Uploaded Dataset Analysis Fast-Track
     if any(k in msg_low for k in ["staff upload", "uploaded dataset", "what did staff upload", "analyze staff data", "analyze uploaded data", "uploaded by staff", "findings from uploaded data"]):
         data_info = _latest_uploaded_dataset
@@ -3373,6 +3445,97 @@ async def get_github_prs_endpoint(repo: str = "smart-glasses-ai", state: str = "
 async def get_github_commits_endpoint(repo: str = "smart-glasses-ai", limit: int = 5):
     """Fetch recent commits for a specified GitHub repository."""
     return await github_agent_instance.get_recent_commits(repo=repo, limit=limit)
+
+
+# ==============================================================================
+# GOOGLE DOCS, CLOUD DRIVE & CONTACTS ENDPOINTS
+# ==============================================================================
+from backend.app.services.google_docs_drive_service import google_docs_drive_service
+from backend.app.services.google_contacts_service import google_contacts_service
+from backend.app.services.contact_vault import contact_vault
+
+@app.post("/api/v1/workspace/docs/create")
+async def create_google_doc_endpoint(payload: Dict[str, Any]):
+    """Create a new Google Doc with optional content and accessible sharing."""
+    title = payload.get("title", "New Document")
+    content = payload.get("content", "")
+    share_accessible = payload.get("share_accessible", True)
+    user_id = payload.get("user_id", "default_user")
+    return await google_docs_drive_service.create_google_doc(
+        title=title,
+        content=content,
+        share_accessible=share_accessible,
+        user_id=user_id
+    )
+
+@app.get("/api/v1/workspace/docs/search")
+async def search_drive_docs_endpoint(query: str = "", mime_type: Optional[str] = None, limit: int = 15):
+    """Search Google Drive and cloud files for Docs, PDFs, and spreadsheets."""
+    return await google_docs_drive_service.search_files(query=query, mime_type=mime_type, limit=limit)
+
+@app.post("/api/v1/workspace/docs/share")
+async def share_drive_doc_endpoint(payload: Dict[str, Any]):
+    """
+    Share any Google Doc, Drive PDF, or local file with all-accessible link
+    or directly with a contact's email.
+    """
+    file_id = payload.get("file_id")
+    if not file_id:
+        raise HTTPException(status_code=400, detail="file_id is required.")
+    
+    role = payload.get("role", "reader")
+    make_public = payload.get("make_public", True)
+    recipient_email = payload.get("recipient_email")
+    recipient_name = payload.get("recipient_name")
+    user_id = payload.get("user_id", "default_user")
+
+    return await google_docs_drive_service.share_file(
+        file_id=file_id,
+        role=role,
+        make_public=make_public,
+        recipient_email=recipient_email,
+        recipient_name=recipient_name,
+        user_id=user_id
+    )
+
+@app.get("/api/v1/contacts")
+@app.get("/api/v1/contacts/search")
+async def search_contacts_endpoint(query: str = ""):
+    """Search Google Contacts by name, alias, or email."""
+    contacts = contact_vault.search_contacts(query=query)
+    return {
+        "success": True,
+        "query": query,
+        "count": len(contacts),
+        "contacts": [c.model_dump() for c in contacts]
+    }
+
+@app.post("/api/v1/contacts/sync")
+async def sync_google_contacts_endpoint(user_id: str = "default_user"):
+    """Fetch and sync Google Contacts from Google People API into Contact Vault."""
+    return await google_contacts_service.fetch_and_sync_contacts(user_id=user_id)
+
+@app.post("/api/v1/contacts")
+async def add_or_update_contact_endpoint(payload: Dict[str, Any]):
+    """Add or update a contact in the vault."""
+    name = payload.get("name")
+    if not name:
+        raise HTTPException(status_code=400, detail="Contact name is required.")
+    
+    contact = contact_vault.add_contact(
+        name=name,
+        aliases=payload.get("aliases", []),
+        phone_numbers=payload.get("phone_numbers", []),
+        email_addresses=payload.get("email_addresses", []),
+        organization=payload.get("organization"),
+        job_title=payload.get("job_title"),
+        notes=payload.get("notes")
+    )
+    return {
+        "success": True,
+        "contact": contact.model_dump()
+    }
+
 
 
 

@@ -2106,6 +2106,14 @@ def get_dashboard_html() -> str:
                         <svg class="eva-icon" viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         God's Eye Transit
                     </div>
+                    <div class="console-nav-item" onclick="switchConsoleTab('docs', this)">
+                        <svg class="eva-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2" fill="none"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+                        Docs & Drive
+                    </div>
+                    <div class="console-nav-item" onclick="switchConsoleTab('contacts', this)">
+                        <svg class="eva-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        Contacts
+                    </div>
                     <div class="console-nav-item" onclick="switchConsoleTab('health', this)">
                         <svg class="eva-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
                         Device Health
@@ -2577,8 +2585,8 @@ def get_dashboard_html() -> str:
                         if (cardPill) cardPill.innerHTML = '<span class="status-dot-pulse"></span> Active';
                         if (modalPill) modalPill.innerHTML = '<span class="status-dot-pulse"></span> Connected';
                     } else {
-                        if (cardPill) cardPill.innerHTML = '<span style="color:#B38F00;">●</span> Fallback Ready';
-                        if (modalPill) modalPill.innerHTML = '<span style="color:#B38F00;">●</span> Not Configured';
+                        if (cardPill) cardPill.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#B38F00;margin-right:4px;"></span> Fallback Ready';
+                        if (modalPill) modalPill.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#B38F00;margin-right:4px;"></span> Not Configured';
                     }
 
                     if (cardModel && data.primary_model) cardModel.value = data.primary_model;
@@ -2755,7 +2763,7 @@ def get_dashboard_html() -> str:
                         <div class="memory-content-text">${m.content}</div>
                         <div class="memory-footer-row">
                             <span>Triggers: ${triggersStr || 'general'}</span>
-                            <span>Importance: ${'★'.repeat(m.importance || 3)}</span>
+                            <span>Importance: ${m.importance || 3}/5</span>
                         </div>
                     </div>
                 `;
@@ -2853,7 +2861,7 @@ def get_dashboard_html() -> str:
                         <p style="font-size:12px; color:var(--eva-text-muted); margin-top:4px; line-height:1.4;">${r.description || 'EVA companion ecosystem repository'}</p>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--eva-text-light); border-top:1px solid var(--eva-border-subtle); padding-top:8px;">
-                        <span>★ ${r.stars || 0} · ⑂ ${r.forks || 0}</span>
+                        <span>Stars: ${r.stars || 0} | Forks: ${r.forks || 0}</span>
                         <a href="${r.url}" target="_blank" style="color:var(--eva-primary-green); font-weight:600; text-decoration:none;">View on GitHub →</a>
                     </div>
                 </div>
