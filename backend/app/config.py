@@ -92,6 +92,7 @@ class Settings(BaseSettings):
     GOOGLE_CALENDAR_CLIENT_SECRET: Optional[str] = None
     TAVILY_API_KEY: Optional[str] = None
     SERPAPI_API_KEY: Optional[str] = None
+    GITHUB_TOKEN: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE) if ENV_FILE.exists() else ".env",

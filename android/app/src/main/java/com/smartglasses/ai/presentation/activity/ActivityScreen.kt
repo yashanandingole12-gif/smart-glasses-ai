@@ -1,5 +1,6 @@
 package com.smartglasses.ai.presentation.activity
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,7 +17,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,16 +29,18 @@ import androidx.compose.ui.unit.sp
 import com.smartglasses.ai.presentation.home.WearableHomeViewModel
 import com.smartglasses.ai.presentation.theme.*
 
-data class ActivityItem(
-    val id: String = "",
+data class ActivityTimelineItem(
     val time: String,
     val title: String,
-    val detail: String? = null,
-    val category: String = "Action",
-    val status: String = "SUCCESS",
-    val icon: ImageVector = Icons.Default.CheckCircle
+    val detail: String,
+    val category: String,
+    val icon: ImageVector
 )
 
+/**
+ * ActivityScreen: Matches Screen 3 (Activity & Insights) from the reference design.
+ * Features category filter pills, vertical connected timeline entries, and the Usage & Insights chart card.
+ */
 @Composable
 fun ActivityScreen(
     viewModel: WearableHomeViewModel,
@@ -42,260 +49,416 @@ fun ActivityScreen(
     val state by viewModel.uiState.collectAsState()
     var selectedFilter by remember { mutableStateOf("All") }
 
-    val filterCategories = listOf("All", "Research", "Documents", "Google", "Hardware")
+    val filterCategories = listOf("All", "Voice", "Vision", "Context", "System")
 
-    // Dynamic activities reconstructed from state messages and companion events
-    val dynamicActivities = remember(state.messages, selectedFilter) {
-        val list = mutableListOf<ActivityItem>()
-        state.messages.filter { it.sender == "USER" || it.sender == "ASSISTANT" }.forEach { msg ->
-            if (msg.sender == "USER") {
-                val cat = when {
-                    msg.text.contains("paper", ignoreCase = true) || msg.text.contains("research", ignoreCase = true) -> "Research"
-                    msg.text.contains("doc", ignoreCase = true) || msg.text.contains("file", ignoreCase = true) -> "Documents"
-                    msg.text.contains("mail", ignoreCase = true) || msg.text.contains("calendar", ignoreCase = true) -> "Google"
-                    else -> "Action"
-                }
-                list.add(
-                    ActivityItem(
-                        time = state.currentTime,
-                        title = "Spoken Query: \"${msg.text}\"",
-                        detail = null,
-                        category = cat,
-                        icon = Icons.Default.Mic
-                    )
+    // Default timeline records matching the reference design + dynamic session additions
+    val timelineEvents = remember(state.messages, selectedFilter) {
+        val baseList = mutableListOf(
+            ActivityTimelineItem("09:12", "Voice session", "Asked about \"robotics research\"", "Voice", Icons.Default.Mic),
+            ActivityTimelineItem("09:08", "Document opened", "Robotics architecture.pdf", "Context", Icons.Default.Description),
+            ActivityTimelineItem("08:54", "Location captured", "University area", "Context", Icons.Default.LocationOn),
+            ActivityTimelineItem("08:41", "Camera query", "Identified building · Confidence 92%", "Vision", Icons.Default.CameraAlt),
+            ActivityTimelineItem("08:32", "System update", "EVA synced with your phone", "System", Icons.Default.Sync)
+        )
+
+        // Inject live user conversation if available
+        state.messages.filter { it.sender == "USER" }.forEach { msg ->
+            baseList.add(
+                0,
+                ActivityTimelineItem(
+                    time = state.currentTime,
+                    title = "Voice query",
+                    detail = msg.text,
+                    category = "Voice",
+                    icon = Icons.Default.Mic
                 )
-            } else if (msg.sender == "ASSISTANT" && !msg.text.contains("Ready on your smart glasses")) {
-                list.add(
-                    ActivityItem(
-                        time = state.currentTime,
-                        title = "Intelligence Synthesis Delivered",
-                        detail = if (msg.text.length > 140) msg.text.take(140) + "..." else msg.text,
-                        category = "Intelligence",
-                        icon = Icons.Default.AutoAwesome
-                    )
-                )
-            }
+            )
         }
-        val reversed = list.reversed()
-        if (selectedFilter == "All") reversed
-        else reversed.filter { it.category.equals(selectedFilter, ignoreCase = true) }
+
+        if (selectedFilter == "All") baseList
+        else baseList.filter { it.category.equals(selectedFilter, ignoreCase = true) }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(EvaVoid)
-    ) {
+    Scaffold(
+        containerColor = EvaIvory
+    ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .padding(padding)
+                .padding(horizontal = 22.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header Title
+            // =============================================================
+            // 1. TOP BAR: BACK ARROW + TITLE + CALENDAR + MORE
+            // =============================================================
             item {
-                Column(modifier = Modifier.padding(top = 4.dp)) {
-                    Text(
-                        text = "Activity Timeline",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = EvaTextPure
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Chronological record of operational sessions, discoveries, and companion executions.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = EvaTextSecondary,
-                        lineHeight = 16.sp
-                    )
-                }
-            }
-
-            // Active Session Card
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = EvaSurfaceVelvet),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderRadiant)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = EvaPrimaryBlack,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(EvaEmerald)
-                                )
-                                Text(
-                                    text = "ACTIVE SESSION",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.sp,
-                                    color = EvaEmerald
-                                )
-                            }
-                            Text(
-                                text = "${dynamicActivities.size} Actions",
-                                fontSize = 11.sp,
-                                color = EvaTextMuted
-                            )
-                        }
+                            .size(22.dp)
+                            .clickable { onNavigateToHome() }
+                    )
 
-                        Text(
-                            text = "02:00 – Present • Active Wearable Intelligence",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = EvaTextPure
+                    Text(
+                        text = "Activity",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = EvaPrimaryBlack
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = "Calendar",
+                            tint = EvaPrimaryBlack,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Icon(
+                            imageVector = Icons.Default.MoreHoriz,
+                            contentDescription = "Options",
+                            tint = EvaPrimaryBlack,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
             }
 
-            // Filter Chips Row
+            // =============================================================
+            // 2. FILTER PILLS: ALL, VOICE, VISION, CONTEXT, SYSTEM
+            // =============================================================
             item {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(filterCategories) { cat ->
-                        val isSelected = selectedFilter == cat
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isSelected) EvaTealGlow else EvaSurfaceVelvet,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isSelected) EvaTeal else EvaBorderSubtle
-                            ),
-                            modifier = Modifier.clickable { selectedFilter = cat }
+                    items(filterCategories) { category ->
+                        val isSelected = selectedFilter == category
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(if (isSelected) EvaDeepGreen else EvaPureWhite)
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) EvaDeepGreen else EvaBorderSubtle,
+                                    shape = RoundedCornerShape(50)
+                                )
+                                .clickable { selectedFilter = category }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = cat,
+                                text = category,
                                 fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) EvaTeal else EvaTextSecondary,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else EvaSoftBlack
                             )
                         }
                     }
                 }
             }
 
-            // Activities List
-            if (dynamicActivities.isNotEmpty()) {
-                items(dynamicActivities) { act ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = EvaNight),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
+            // =============================================================
+            // 3. TIMELINE SECTION: TODAY
+            // =============================================================
+            item {
+                Text(
+                    text = "Today",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = EvaPrimaryBlack,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                )
+            }
+
+            items(timelineEvents.size) { index ->
+                val item = timelineEvents[index]
+                val isLast = index == timelineEvents.size - 1
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // Time
+                    Text(
+                        text = item.time,
+                        fontSize = 11.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = EvaMutedText,
+                        modifier = Modifier
+                            .width(42.dp)
+                            .padding(top = 2.dp)
+                    )
+
+                    // Vertical Connected Line & Icon Node
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(28.dp)
                     ) {
-                        Row(
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            verticalAlignment = Alignment.Top
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(EvaMistGreen)
+                                .border(1.dp, EvaPaleGreen, CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.title,
+                                tint = EvaPrimaryGreen,
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+
+                        if (!isLast) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(EvaSurfaceVelvet)
-                                    .border(1.dp, EvaBorderSubtle, RoundedCornerShape(10.dp)),
+                                    .width(1.5.dp)
+                                    .height(34.dp)
+                                    .background(EvaBorderSubtle)
+                            )
+                        }
+                    }
+
+                    // Content
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(bottom = if (!isLast) 12.dp else 0.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = item.title,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = EvaPrimaryBlack
+                        )
+                        Text(
+                            text = item.detail,
+                            fontSize = 12.sp,
+                            color = EvaMutedText,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+
+            // =============================================================
+            // 4. USAGE & INSIGHTS CARD WITH SMOOTH WAVE CHART
+            // =============================================================
+            item {
+                Spacer(modifier = Modifier.height(6.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = EvaPureWhite),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Title + Dropdown
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Usage & Insights",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = EvaPrimaryBlack
+                            )
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Last 7 days",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = EvaMutedText
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Select",
+                                    tint = EvaMutedText,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        // 4 Metrics Grid
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            MetricColumn("23", "Voice sessions", "+15%")
+                            MetricColumn("12", "Documents", "+8%")
+                            MetricColumn("48", "Queries", "+22%")
+                            MetricColumn("3.4h", "Active time", "+27%")
+                        }
+
+                        // Tooltip & Wave Chart Canvas
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Active Point Tooltip
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 40.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = act.icon,
-                                    contentDescription = null,
-                                    tint = EvaCyan,
-                                    modifier = Modifier.size(18.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .background(EvaPureWhite, RoundedCornerShape(8.dp))
+                                        .border(1.dp, EvaBorderSubtle, RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = "1h 42m",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = EvaPrimaryBlack
+                                        )
+                                        Text(
+                                            text = "Thu, 12 Oct",
+                                            fontSize = 10.sp,
+                                            color = EvaMutedText
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Smooth Wave Canvas
+                            Canvas(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(90.dp)
+                            ) {
+                                val width = size.width
+                                val height = size.height
+
+                                val points = listOf(
+                                    Offset(0f, height * 0.85f),
+                                    Offset(width * 0.16f, height * 0.70f),
+                                    Offset(width * 0.33f, height * 0.80f),
+                                    Offset(width * 0.50f, height * 0.35f), // Peak
+                                    Offset(width * 0.66f, height * 0.55f),
+                                    Offset(width * 0.83f, height * 0.75f),
+                                    Offset(width, height * 0.65f)
+                                )
+
+                                val path = Path().apply {
+                                    moveTo(points[0].x, points[0].y)
+                                    for (i in 1 until points.size) {
+                                        val p0 = points[i - 1]
+                                        val p1 = points[i]
+                                        val cx = (p0.x + p1.x) / 2
+                                        cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+                                    }
+                                }
+
+                                val fillPath = Path().apply {
+                                    addPath(path)
+                                    lineTo(width, height)
+                                    lineTo(0f, height)
+                                    close()
+                                }
+
+                                // Draw Gradient Fill
+                                drawPath(
+                                    path = fillPath,
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            EvaPrimaryGreen.copy(alpha = 0.25f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+
+                                // Draw Wave Line
+                                drawPath(
+                                    path = path,
+                                    color = EvaPrimaryGreen,
+                                    style = Stroke(width = 2.5.dp.toPx())
+                                )
+
+                                // Draw Peak Circle Node
+                                val peak = points[3]
+                                drawCircle(
+                                    color = EvaPrimaryGreen,
+                                    radius = 5.dp.toPx(),
+                                    center = peak
+                                )
+                                drawCircle(
+                                    color = Color.White,
+                                    radius = 2.5.dp.toPx(),
+                                    center = peak
                                 )
                             }
 
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            // Days Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { day ->
                                     Text(
-                                        text = act.title,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = EvaTextPure,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Text(
-                                        text = act.time,
-                                        fontSize = 11.sp,
-                                        color = EvaTextMuted
-                                    )
-                                }
-
-                                if (!act.detail.isNullOrBlank()) {
-                                    Text(
-                                        text = act.detail,
-                                        fontSize = 12.sp,
-                                        color = EvaTextSecondary,
-                                        lineHeight = 16.sp
+                                        text = day,
+                                        fontSize = 10.sp,
+                                        color = EvaMutedText,
+                                        fontWeight = FontWeight.Medium
                                     )
                                 }
                             }
                         }
                     }
                 }
-            } else {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = EvaNight),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "No Activity Recorded",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = EvaTextPure
-                            )
-                            Text(
-                                text = "Your spoken commands, research queries, and document queries will appear here in chronological order.",
-                                fontSize = 13.sp,
-                                color = EvaTextSecondary,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                lineHeight = 18.sp
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun MetricColumn(
+    value: String,
+    label: String,
+    delta: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = value,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = EvaPrimaryBlack
+        )
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = EvaMutedText
+        )
+        Text(
+            text = delta,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = EvaPrimaryGreen
+        )
     }
 }

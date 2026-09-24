@@ -29,10 +29,12 @@ val EvaSoftBlack = Color(0xFF252824)          // Body text
 val EvaMutedText = Color(0xFF626861)          // Secondary labels & metadata
 val EvaSlate = Color(0xFF8C928B)              // Inactive indicators
 
-// 4. SEMANTIC STATUS
+// 4. SEMANTIC STATUS & WEATHER ACCENTS
 val EvaStatusGood = EvaPrimaryGreen
 val EvaStatusWarning = Color(0xFFB46E28)
 val EvaStatusAlert = Color(0xFF9E3A3A)
+val EvaAmberSun = Color(0xFFD4A038)
+val EvaAmberSunBg = Color(0xFFFFF9EE)
 
 // =========================================================================
 // Compatibility Aliases for Existing Screens & Themes (Mapped to Ivory/Green)

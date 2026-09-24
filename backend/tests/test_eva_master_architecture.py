@@ -67,6 +67,29 @@ async def test_github_agent_repository_search():
     assert "url" in first_repo
 
 @pytest.mark.asyncio
+async def test_github_agent_user_and_repos():
+    agent = GitHubAgent()
+    user_res = await agent.get_authenticated_user()
+    assert user_res["status"] in ["SUCCESS", "ERROR"]
+    if user_res["status"] == "SUCCESS":
+        assert user_res["login"] == "yashanandingole12-gif"
+
+    repos_res = await agent.get_user_repositories(per_page=5)
+    assert repos_res["status"] == "SUCCESS"
+    assert len(repos_res["repositories"]) >= 1
+
+@pytest.mark.asyncio
+async def test_github_agent_repo_inspection_and_commits():
+    agent = GitHubAgent()
+    repo_res = await agent.inspect_repository(repo="smart-glasses-ai")
+    assert repo_res["status"] == "SUCCESS"
+    assert "smart-glasses-ai" in repo_res["name"] or "smart-glasses-ai" in repo_res["full_name"]
+
+    commits_res = await agent.get_recent_commits(repo="smart-glasses-ai", limit=3)
+    assert commits_res["status"] == "SUCCESS"
+    assert len(commits_res["commits"]) >= 1
+
+@pytest.mark.asyncio
 async def test_workspace_agent_schedule_and_drive():
     agent = WorkspaceAgent()
     overview = await agent.get_overview()

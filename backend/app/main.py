@@ -52,6 +52,10 @@ from backend.app.services.perception.event_encoder import TinyEventEncoder
 from backend.app.services.memory.salience_gate import SalienceGate
 from backend.app.services.memory.working_memory_engine import WorkingMemoryEngine
 from backend.app.services.memory.temporal_graph_store import TemporalGraphStore
+from backend.app.services.memory.eva_memory_store import eva_memory_store, MemoryItem
+from backend.app.services.memory.context_builder import context_builder
+from backend.app.services.memory.contradiction_engine import contradiction_engine
+from backend.app.services.memory.conversation_compressor import conversation_compressor
 from backend.app.services.memory.sleep_consolidation import SleepConsolidationEngine
 from backend.app.services.emotion.affect_engine import AffectEngine, AffectVector
 from backend.app.services.emotion.social_affect_separator import SocialAffectSeparator
@@ -262,6 +266,246 @@ async def get_integrations_diagnostics(user_id: str = "default_user"):
         "gmail": "available" if is_google_connected else "unavailable",
         "calendar": "available" if is_google_connected else "unavailable"
     }
+
+# =====================================================================
+# EVA PERSONAL INTELLIGENCE & BOOK OF YASH MEMORY ENDPOINTS
+# =====================================================================
+@app.get("/api/v1/memory/core-identity")
+async def get_core_identity():
+    """Returns the <=300 token deterministic Core Identity Card."""
+    card = eva_memory_store.get_core_identity_card()
+    return {"success": True, "core_identity_card": card, "token_estimate": len(card) // 4}
+
+@app.get("/api/v1/memory/search")
+async def search_memories(
+    query: str,
+    category: Optional[str] = None,
+    max_sensitivity: str = "S3",
+    min_confidence: float = 0.40,
+    limit: int = 10
+):
+    """Hybrid FTS5 + Keyword search across EVA's personal memory bank."""
+    results = eva_memory_store.search_memories(
+        query=query,
+        category=category,
+        max_sensitivity=max_sensitivity,
+        min_confidence=min_confidence,
+        limit=limit
+    )
+    return {"success": True, "query": query, "count": len(results), "memories": results}
+
+@app.get("/api/v1/memory/export")
+async def export_memories():
+    """Exports all personal memories for user transparency and auditability."""
+    memories = eva_memory_store.export_all_memories()
+    return {"success": True, "count": len(memories), "memories": memories}
+
+@app.post("/api/v1/memory/create")
+async def create_memory(item: Dict[str, Any]):
+    """Allows user or agent to create a new structured memory item."""
+    mem_obj = MemoryItem(**item)
+    mem_id = eva_memory_store.insert_memory(mem_obj)
+    return {"success": True, "memory_id": mem_id}
+
+@app.post("/api/v1/memory/evolve")
+async def evolve_memory_endpoint(req: Dict[str, Any]):
+    """Processes a statement and evolves existing conflicting memories if detected."""
+    statement = req.get("statement", "")
+    category = req.get("category", "preference")
+    confidence = float(req.get("confidence", 0.85))
+    importance = int(req.get("importance", 3))
+    new_id, old_id = contradiction_engine.process_and_evolve_memory(
+        new_content=statement,
+        category=category,
+        confidence=confidence,
+        importance=importance
+    )
+    return {
+        "success": True,
+        "new_memory_id": new_id,
+        "evolved_old_memory_id": old_id,
+        "status": "evolved" if old_id else "created"
+    }
+
+@app.put("/api/v1/memory/{memory_id}")
+async def update_memory_endpoint(memory_id: str, updates: Dict[str, Any]):
+    """Allows Yash to inspect, correct, promote, or downgrade a memory."""
+    ok = eva_memory_store.update_memory(memory_id, updates)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Memory not found or no valid fields to update")
+    return {"success": True, "memory_id": memory_id, "updated": True}
+
+@app.delete("/api/v1/memory/{memory_id}")
+async def delete_memory_endpoint(memory_id: str):
+    """Deletes a memory item upon explicit user request."""
+    ok = eva_memory_store.delete_memory(memory_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Memory not found")
+    return {"success": True, "memory_id": memory_id, "deleted": True}
+
+@app.get("/api/v1/memory/context-debug")
+async def get_context_debug(session_id: str, query: str = "What should I work on today?"):
+    """Inspects deterministic context synthesis, tokens, and retrieval trace."""
+    ctx = context_builder.build_context(session_id, query)
+    return {
+        "success": True,
+        "session_id": session_id,
+        "query": query,
+        "active_topic": ctx.active_topic,
+        "token_estimate": ctx.token_estimate,
+        "relevant_memories_count": len(ctx.relevant_memories),
+        "debug_trace": ctx.debug_trace,
+        "system_prompt_preview": ctx.system_prompt[:500] + "... [truncated]"
+    }
+
+# =====================================================================
+# CLOUD & GEMINI AI CONFIGURATION ENDPOINTS
+# =====================================================================
+@app.get("/api/v1/config/llm")
+async def get_llm_configuration():
+    """Returns the current LLM cloud providers, active models, and connectivity status."""
+    from backend.app.services.llm_service import gemini_circuit_breaker
+    
+    gemini_key = settings.GEMINI_API_KEY or settings.LLM_API_KEY or ""
+    deepseek_key = settings.DEEPSEEK_API_KEY or settings.SECONDARY_LLM_API_KEY or ""
+    
+    masked_gemini = f"{gemini_key[:6]}...{gemini_key[-4:]}" if len(gemini_key) > 10 else ("Configured" if gemini_key else "Not Set")
+    masked_deepseek = f"{deepseek_key[:6]}...{deepseek_key[-4:]}" if len(deepseek_key) > 10 else ("Configured" if deepseek_key else "Not Set")
+
+    cloud_status = "CONNECTED" if (gemini_key or deepseek_key) else "FALLBACK_READY"
+
+    return {
+        "success": True,
+        "primary_provider": settings.PRIMARY_LLM_PROVIDER,
+        "primary_model": settings.PRIMARY_LLM_MODEL,
+        "fast_model": settings.FAST_LLM_MODEL,
+        "gemini_configured": bool(gemini_key),
+        "gemini_key_preview": masked_gemini,
+        "gemini_model": settings.GEMINI_MODEL,
+        "secondary_provider": settings.SECONDARY_LLM_PROVIDER,
+        "secondary_model": settings.SECONDARY_LLM_MODEL,
+        "deepseek_configured": bool(deepseek_key),
+        "deepseek_key_preview": masked_deepseek,
+        "circuit_state": gemini_circuit_breaker.state.value,
+        "cloud_status": cloud_status
+    }
+
+
+@app.post("/api/v1/config/llm")
+async def update_llm_configuration(req: Dict[str, Any]):
+    """
+    Updates Gemini & Cloud AI API keys, validates against Google AI endpoint,
+    and updates runtime settings and .env file.
+    """
+    import httpx
+    from backend.app.services.llm_service import discover_valid_gemini_model, gemini_circuit_breaker
+
+    gemini_key = req.get("gemini_api_key", "").strip()
+    gemini_model = req.get("gemini_model", "").strip()
+    deepseek_key = req.get("deepseek_api_key", "").strip()
+    primary_provider = req.get("primary_provider", "").strip()
+    primary_model = req.get("primary_model", "").strip()
+    secondary_provider = req.get("secondary_provider", "").strip()
+
+    validation_result = {"valid": True, "message": "Configuration updated successfully."}
+
+    # 1. Validate Gemini API Key if provided
+    if gemini_key:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                probe_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={gemini_key}"
+                resp = await client.get(probe_url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    discovered = [m.get("name", "").replace("models/", "") for m in data.get("models", [])]
+                    validation_result["valid"] = True
+                    validation_result["models_count"] = len(discovered)
+                    validation_result["message"] = f"Gemini API key verified successfully ({len(discovered)} models available)."
+                    settings.GEMINI_API_KEY = gemini_key
+                    settings.LLM_API_KEY = gemini_key
+                    settings.LLM_PROVIDER = "gemini"
+                    settings.PRIMARY_LLM_PROVIDER = "gemini"
+                    gemini_circuit_breaker.record_success(gemini_model or "gemini-2.5-flash")
+                else:
+                    validation_result["valid"] = False
+                    validation_result["message"] = f"Gemini API probe returned HTTP {resp.status_code}: {resp.text[:150]}"
+        except Exception as e:
+            validation_result["valid"] = False
+            validation_result["message"] = f"Could not reach Google Gemini API endpoint: {str(e)}"
+
+    # 2. Update model and provider preferences
+    if gemini_model:
+        settings.GEMINI_MODEL = gemini_model
+        settings.PRIMARY_LLM_MODEL = gemini_model
+        settings.FAST_LLM_MODEL = gemini_model
+    if primary_provider:
+        settings.PRIMARY_LLM_PROVIDER = primary_provider
+        settings.LLM_PROVIDER = primary_provider
+    if primary_model:
+        settings.PRIMARY_LLM_MODEL = primary_model
+    if deepseek_key:
+        settings.DEEPSEEK_API_KEY = deepseek_key
+        settings.SECONDARY_LLM_API_KEY = deepseek_key
+    if secondary_provider:
+        settings.SECONDARY_LLM_PROVIDER = secondary_provider
+
+    # 3. Update .env file on disk
+    env_path = PROJECT_ROOT / ".env"
+    if env_path.exists():
+        try:
+            lines = env_path.read_text(encoding="utf-8").splitlines()
+            new_lines = []
+            updated_keys = set()
+            updates = {}
+            if gemini_key:
+                updates["GEMINI_API_KEY"] = gemini_key
+                updates["LLM_API_KEY"] = gemini_key
+            if gemini_model:
+                updates["GEMINI_MODEL"] = gemini_model
+                updates["LLM_MODEL"] = gemini_model
+            if deepseek_key:
+                updates["DEEPSEEK_API_KEY"] = deepseek_key
+                updates["SECONDARY_LLM_API_KEY"] = deepseek_key
+            if primary_provider:
+                updates["LLM_PROVIDER"] = primary_provider
+                updates["PRIMARY_LLM_PROVIDER"] = primary_provider
+
+            for line in lines:
+                if "=" in line and not line.strip().startswith("#"):
+                    k = line.split("=", 1)[0].strip()
+                    if k in updates:
+                        new_lines.append(f"{k}={updates[k]}")
+                        updated_keys.add(k)
+                        continue
+                new_lines.append(line)
+
+            for k, v in updates.items():
+                if k not in updated_keys:
+                    new_lines.append(f"{k}={v}")
+
+            env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+        except Exception as e:
+            logger.warning(f"Could not persist settings to .env: {e}")
+
+    # Broadcast event
+    broadcast_live_event("CLOUD_CONFIG_UPDATED", {
+        "provider": settings.PRIMARY_LLM_PROVIDER,
+        "model": settings.PRIMARY_LLM_MODEL,
+        "validation": validation_result
+    })
+
+    return {
+        "success": True,
+        "validation": validation_result,
+        "current_config": {
+            "primary_provider": settings.PRIMARY_LLM_PROVIDER,
+            "primary_model": settings.PRIMARY_LLM_MODEL,
+            "gemini_model": settings.GEMINI_MODEL,
+            "gemini_configured": bool(settings.GEMINI_API_KEY),
+            "deepseek_configured": bool(settings.DEEPSEEK_API_KEY)
+        }
+    }
+
 
 @app.get("/api/v1/hardware/camera/capture")
 async def hardware_camera_capture():
@@ -1223,10 +1467,32 @@ async def process_agent_message(req: AgentMessageRequest):
         ))
 
     # 8.1 External Automation Tools (GitHub, LinkedIn) Fast-Track
-    if any(k in msg_low for k in ["github status", "check github", "github updates", "github prs", "pull requests on github", "github repo"]):
-        from backend.app.services.external_connectors_service import external_connectors
-        gh_data = await external_connectors.get_github_status()
-        gh_reply = gh_data.get("summary", f"GitHub repository {gh_data.get('repository')} is operational with all checks passing.")
+    if any(k in msg_low for k in ["github status", "check github", "github updates", "github prs", "pull requests on github", "github repo", "my github", "my repositories", "github repos", "recent commits"]):
+        from backend.app.services.agents.github_agent import GitHubAgent
+        gh_agent = GitHubAgent()
+        
+        if any(k in msg_low for k in ["my repos", "my repositories", "list repos", "github repos"]):
+            repos_res = await gh_agent.get_user_repositories(per_page=5)
+            r_list = repos_res.get("repositories", [])
+            if r_list:
+                names = [f"**{r['name']}** ({r['language']})" for r in r_list[:4]]
+                gh_reply = f"Here are your latest GitHub repositories: {', '.join(names)}. Total {repos_res.get('total_found', len(r_list))} found."
+            else:
+                gh_reply = "No GitHub repositories found or token lacks repository scope."
+            gh_data = repos_res
+        elif any(k in msg_low for k in ["recent commit", "commits", "commit history"]):
+            commits_res = await gh_agent.get_recent_commits(repo="yashanandingole12-gif/smart-glasses-ai", limit=3)
+            c_list = commits_res.get("commits", [])
+            if c_list:
+                c_msgs = [f"'{c['message']}' by {c['author']}" for c in c_list]
+                gh_reply = f"Recent commits on {commits_res.get('repository')}: " + "; ".join(c_msgs) + "."
+            else:
+                gh_reply = "No recent commits found."
+            gh_data = commits_res
+        else:
+            from backend.app.services.external_connectors_service import external_connectors
+            gh_data = await external_connectors.get_github_status()
+            gh_reply = gh_data.get("summary", f"GitHub repository {gh_data.get('repository')} is operational with all checks passing.")
 
         memory_repository.add_message(req.session_id, "user", msg_raw)
         memory_repository.add_message(req.session_id, "assistant", gh_reply)
@@ -1240,12 +1506,12 @@ async def process_agent_message(req: AgentMessageRequest):
             actions=[],
             requires_confirmation=False,
             confirmation_prompt=None,
-            sources=["github_connector"],
+            sources=["github_agent"],
             metadata={
                 "latency_ms": metrics.total_ms,
                 "fast_path": True,
                 "github": gh_data,
-                "llm_provider": "github_connector",
+                "llm_provider": "github_agent",
                 "request_id": req.request_id,
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
@@ -3051,6 +3317,50 @@ async def post_transit_query_endpoint(payload: Dict[str, Any]):
     """Unified God's Eye transit query across traffic, metro, train, and flights."""
     query = payload.get("query", "")
     return transit_service.query_god_eye(message=query)
+
+
+# ==============================================================================
+# GITHUB AGENT REST ENDPOINTS
+# ==============================================================================
+from backend.app.services.agents.github_agent import GitHubAgent
+
+github_agent_instance = GitHubAgent()
+
+@app.get("/api/v1/agent/github/user")
+async def get_github_user_endpoint():
+    """Returns authenticated GitHub user profile information."""
+    return await github_agent_instance.get_authenticated_user()
+
+@app.get("/api/v1/agent/github/repos")
+async def get_github_repos_endpoint(per_page: int = 15, sort: str = "updated"):
+    """Returns repositories for the authenticated GitHub user."""
+    return await github_agent_instance.get_user_repositories(per_page=per_page, sort=sort)
+
+@app.get("/api/v1/agent/github/search")
+async def search_github_repos_endpoint(query: str, max_results: int = 5):
+    """Search repositories across GitHub."""
+    return await github_agent_instance.search_repositories(query=query, max_results=max_results)
+
+@app.get("/api/v1/agent/github/repo")
+async def inspect_github_repo_endpoint(repo: str = "smart-glasses-ai"):
+    """Fetch detailed information about a GitHub repository."""
+    return await github_agent_instance.inspect_repository(repo=repo)
+
+@app.get("/api/v1/agent/github/issues")
+async def get_github_issues_endpoint(repo: str = "smart-glasses-ai", state: str = "open", per_page: int = 5):
+    """Fetch issues for a specified GitHub repository."""
+    return await github_agent_instance.inspect_issues(repo=repo, state=state, per_page=per_page)
+
+@app.get("/api/v1/agent/github/prs")
+async def get_github_prs_endpoint(repo: str = "smart-glasses-ai", state: str = "open", per_page: int = 5):
+    """Fetch pull requests for a specified GitHub repository."""
+    return await github_agent_instance.inspect_pull_requests(repo=repo, state=state, per_page=per_page)
+
+@app.get("/api/v1/agent/github/commits")
+async def get_github_commits_endpoint(repo: str = "smart-glasses-ai", limit: int = 5):
+    """Fetch recent commits for a specified GitHub repository."""
+    return await github_agent_instance.get_recent_commits(repo=repo, limit=limit)
+
 
 
 
