@@ -147,6 +147,89 @@ async def google_auth_status(
     return token_service.get_status(user_id=user_id, provider="google")
 
 
+@router.post("/google/mobile-token")
+async def google_auth_mobile_token(payload: Dict[str, Any]):
+    """
+    Direct in-app mobile token registration (for Android Google Sign-In / Credential Manager).
+    Accepts access_token, refresh_token, and user_email directly without web redirect loops.
+    """
+    user_id = payload.get("user_id", "default_user")
+    access_token = payload.get("access_token")
+    refresh_token = payload.get("refresh_token")
+    user_email = payload.get("user_email")
+    expires_in = int(payload.get("expires_in", 3600))
+    scopes = payload.get("scopes", settings.GOOGLE_OAUTH_SCOPES)
+
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Missing access_token in payload.")
+
+    if not user_email:
+        user_email = await token_service.fetch_user_email(access_token)
+
+    token_service.save_tokens(
+        user_id=user_id,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=expires_in,
+        scopes=scopes if isinstance(scopes, list) else scopes.split(),
+        user_email=user_email,
+        provider="google"
+    )
+    logger.info("Mobile Google OAuth tokens registered for user=%s (email=%s)", user_id, user_email)
+    return {
+        "success": True,
+        "connected": True,
+        "user_email": user_email,
+        "user_id": user_id
+    }
+
+
+@router.post("/google/exchange-code")
+async def google_auth_exchange_code(payload: Dict[str, Any]):
+    """
+    Exchange Google OAuth Server Authorization Code directly for mobile/desktop client.
+    """
+    user_id = payload.get("user_id", "default_user")
+    code = payload.get("code")
+    redirect_uri = payload.get("redirect_uri", settings.GOOGLE_REDIRECT_URI)
+
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing authorization code.")
+
+    try:
+        token_data = await token_service.exchange_code_for_tokens(
+            code=code,
+            redirect_uri=redirect_uri
+        )
+    except Exception as e:
+        logger.error("Mobile OAuth token exchange failed: %s", e)
+        raise HTTPException(status_code=400, detail=f"Google token exchange failed: {e}")
+
+    access_token = token_data.get("access_token")
+    refresh_token = token_data.get("refresh_token")
+    expires_in = token_data.get("expires_in", 3600)
+    scopes = token_data.get("scope", "").split() or settings.GOOGLE_OAUTH_SCOPES
+
+    user_email = await token_service.fetch_user_email(access_token)
+
+    token_service.save_tokens(
+        user_id=user_id,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=expires_in,
+        scopes=scopes,
+        user_email=user_email,
+        provider="google"
+    )
+
+    return {
+        "success": True,
+        "connected": True,
+        "user_email": user_email,
+        "user_id": user_id
+    }
+
+
 @router.post("/google/disconnect")
 async def google_auth_disconnect(
     user_id: str = Query("default_user", description="Identifier of the user")

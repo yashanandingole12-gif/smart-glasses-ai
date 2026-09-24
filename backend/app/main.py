@@ -1614,11 +1614,15 @@ async def process_agent_message(req: AgentMessageRequest):
         loc_str = local_ctx.location.city if (local_ctx.location and local_ctx.location.city != "Unknown") else "Local"
         bat_str = f"{local_ctx.device.battery}%" if (local_ctx.device and local_ctx.device.battery is not None) else "85%"
 
-        core_prompt = personality_engine.build_system_prompt(msg_raw)
-        system_prompt = (
-            f"{core_prompt} "
-            f"Context: Time is {time_str}, Location is {loc_str}, Battery is {bat_str}."
+        # Build Full EVA Personal Context (Book of Yash + Core Identity Card + Epistemic Memories)
+        from backend.app.services.memory.context_builder import context_builder
+        eva_ctx_payload = context_builder.build_eva_context_prompt(
+            user_message=msg_raw,
+            session_id=req.session_id,
+            client_context=req.context.model_dump() if req.context else {},
+            max_memory_tokens=450
         )
+        system_prompt = eva_ctx_payload.system_prompt + f"\nEnvironment: Local time is {time_str}, Location is {loc_str}, Battery is {bat_str}."
 
         history_msgs = memory_repository.get_session_history(req.session_id, limit=4)
         formatted_messages = [{"role": "system", "content": system_prompt}]
@@ -1629,13 +1633,22 @@ async def process_agent_message(req: AgentMessageRequest):
         router_resp = await llm_router.generate_with_budget(
             messages=formatted_messages,
             tools=None,
-            context_payload=local_ctx.model_dump(),
+            context_payload={**local_ctx.model_dump(), "eva_context": eva_ctx_payload.model_dump()},
             starting_tier=RoutingTier.FAST,
             per_attempt_timeout=settings.LLM_TIMEOUT_SECONDS,
             global_deadline_seconds=settings.REQUEST_DEADLINE_SECONDS
         )
 
         final_text = (router_resp.content or "").strip()
+        
+        # Grounded offline fallback if LLM returned generic unreachable message
+        if not final_text or "couldn't reach the service" in final_text.lower():
+            if eva_ctx_payload.relevant_memories:
+                m_snippets = [m.get("content", "") for m in eva_ctx_payload.relevant_memories[:2]]
+                final_text = " ".join(m_snippets)
+            else:
+                final_text = "I'm with you, Yash. How can I help you right now?"
+
         if final_text:
             memory_repository.add_message(req.session_id, "user", msg_raw)
             memory_repository.add_message(req.session_id, "assistant", final_text)
@@ -1650,7 +1663,7 @@ async def process_agent_message(req: AgentMessageRequest):
                 actions=[],
                 requires_confirmation=False,
                 confirmation_prompt=None,
-                sources=["llm_router", router_resp.tier_used.value],
+                sources=["eva_context_builder", "book_of_yash", router_resp.tier_used.value],
                 metadata={
                     "latency_ms": metrics.total_ms,
                     "fast_path": False,
