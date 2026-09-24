@@ -1863,6 +1863,52 @@ def get_dashboard_html() -> str:
                     </div>
                 </div>
 
+                <!-- GitHub Autonomous Developer Agent -->
+                <div class="config-glass-card">
+                    <div class="config-card-header">
+                        <div class="config-title-group">
+                            <div class="config-icon-badge" style="background: rgba(17, 19, 17, 0.08); color: var(--eva-primary-black);">
+                                <svg class="eva-icon" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                            </div>
+                            <div>
+                                <div class="config-title">GitHub Autonomous Agent</div>
+                                <div class="config-subtitle">Repo exploration & commit timeline</div>
+                            </div>
+                        </div>
+                        <button class="eva-btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="openConsole('github')">
+                            Studio
+                        </button>
+                    </div>
+                    <div class="config-options-list">
+                        <div class="config-option-row"><span>Authenticated Account</span><span class="config-option-val">yashanandingole12-gif</span></div>
+                        <div class="config-option-row"><span>Repository Scope</span><span class="config-option-val">All Repos + Commits</span></div>
+                        <div class="config-option-row"><span>API Rate Limit</span><span class="config-option-val">5,000 / hr (PAT)</span></div>
+                    </div>
+                </div>
+
+                <!-- God's Eye Transit & Spatial Map -->
+                <div class="config-glass-card">
+                    <div class="config-card-header">
+                        <div class="config-title-group">
+                            <div class="config-icon-badge" style="background: var(--eva-pale-green); color: var(--eva-deep-green);">
+                                <svg class="eva-icon" viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            </div>
+                            <div>
+                                <div class="config-title">God's Eye Transit Core</div>
+                                <div class="config-subtitle">Real-time multimodal mobility</div>
+                            </div>
+                        </div>
+                        <button class="eva-btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="openConsole('transit')">
+                            Explore
+                        </button>
+                    </div>
+                    <div class="config-options-list">
+                        <div class="config-option-row"><span>Traffic Congestion Engine</span><span class="config-option-val">Live Real-time</span></div>
+                        <div class="config-option-row"><span>Metro & Rail Schedules</span><span class="config-option-val">Indian Transit</span></div>
+                        <div class="config-option-row"><span>Flight Corridor Radar</span><span class="config-option-val">Terminal & Gate</span></div>
+                    </div>
+                </div>
+
                 <!-- Context & Integrations -->
                 <div class="config-glass-card">
                     <div class="config-card-header">
@@ -2044,13 +2090,9 @@ def get_dashboard_html() -> str:
                         <svg class="eva-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" fill="none"/><rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" fill="none"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" fill="none"/><rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         Overview
                     </div>
-                    <div class="console-nav-item" onclick="switchConsoleTab('health', this)">
-                        <svg class="eva-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
-                        Device Health
-                    </div>
-                    <div class="console-nav-item" onclick="switchConsoleTab('firmware', this)">
-                        <svg class="eva-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="2 17 12 22 22 17" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        Firmware & OTA
+                    <div class="console-nav-item" onclick="switchConsoleTab('github', this)">
+                        <svg class="eva-icon" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                        GitHub Agent
                     </div>
                     <div class="console-nav-item" onclick="switchConsoleTab('memory', this)">
                         <svg class="eva-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
@@ -2059,6 +2101,18 @@ def get_dashboard_html() -> str:
                     <div class="console-nav-item" onclick="switchConsoleTab('cloud', this)">
                         <svg class="eva-icon" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         Cloud & Gemini AI
+                    </div>
+                    <div class="console-nav-item" onclick="switchConsoleTab('transit', this)">
+                        <svg class="eva-icon" viewBox="0 0 24 24"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        God's Eye Transit
+                    </div>
+                    <div class="console-nav-item" onclick="switchConsoleTab('health', this)">
+                        <svg class="eva-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+                        Device Health
+                    </div>
+                    <div class="console-nav-item" onclick="switchConsoleTab('firmware', this)">
+                        <svg class="eva-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="2 17 12 22 22 17" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        Firmware & OTA
                     </div>
                     <div class="console-nav-item" onclick="switchConsoleTab('audio', this)">
                         <svg class="eva-icon" viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" fill="currentColor"/></svg>
@@ -2232,6 +2286,103 @@ def get_dashboard_html() -> str:
                         </div>
                     </div>
 
+                    <!-- GitHub Agent Studio Tab -->
+                    <div class="console-panel" id="tab-github">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                            <div>
+                                <h4 style="font-size:18px; font-weight:700; color:var(--eva-primary-black);">GitHub Agent Studio</h4>
+                                <p style="font-size:13px; color:var(--eva-text-muted);">Autonomous repository explorer, commit timeline, issue inspector, and pull request tracker.</p>
+                            </div>
+                            <button class="cloud-btn-action" style="font-size:12px; padding:6px 14px;" onclick="loadGitHubData()">
+                                Sync Repositories
+                            </button>
+                        </div>
+
+                        <!-- Authenticated User Profile Summary -->
+                        <div id="github-user-profile-card" style="background:var(--eva-pure-white); border:1px solid var(--eva-primary-green); border-radius:var(--radius-md); padding:18px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+                            <div style="display:flex; align-items:center; gap:16px;">
+                                <img id="gh-user-avatar" src="https://avatars.githubusercontent.com/u/227339293?v=4" style="width:48px; height:48px; border-radius:50%; border:2px solid var(--eva-primary-green);" alt="Avatar">
+                                <div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <strong id="gh-user-login" style="font-size:15px; color:var(--eva-primary-black);">yashanandingole12-gif</strong>
+                                        <span class="eva-brand-tag" style="background:var(--eva-pale-green); color:var(--eva-deep-green);">PAT Authenticated</span>
+                                    </div>
+                                    <div id="gh-user-bio" style="font-size:12px; color:var(--eva-text-muted);">EVA Smart Glasses Personal AI Developer</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:16px; font-size:12px; text-align:right;">
+                                <div><strong id="gh-public-repos-count" style="font-size:16px; color:var(--eva-deep-green);">7+</strong><div style="color:var(--eva-text-muted);">Repositories</div></div>
+                                <div><strong id="gh-rate-limit" style="font-size:16px; color:var(--eva-deep-green);">5,000</strong><div style="color:var(--eva-text-muted);">Req/Hour</div></div>
+                            </div>
+                        </div>
+
+                        <!-- Repository Search and Quick Inspect -->
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="github-search-input" class="cloud-input-field" placeholder="Search GitHub repos (e.g. 'smart-glasses-ai', 'robotics', 'FashionMNIST')..." onkeyup="if(event.key==='Enter') searchGitHubRepos()" style="flex:1;">
+                            <button class="cloud-btn-action" onclick="searchGitHubRepos()">Search</button>
+                        </div>
+
+                        <!-- Repositories Grid Container -->
+                        <div id="github-repos-container" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px;">
+                            <div style="text-align:center; padding:24px; color:var(--eva-text-muted); font-size:13px;">Loading repositories...</div>
+                        </div>
+
+                        <!-- Recent Commits Inspector -->
+                        <div style="background:var(--eva-pure-white); border:1px solid var(--eva-border-subtle); border-radius:var(--radius-md); padding:18px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                <h5 style="font-size:14px; font-weight:700; color:var(--eva-primary-black);">Recent Commits on <code>smart-glasses-ai</code></h5>
+                                <button class="eva-btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="loadGitHubCommits('smart-glasses-ai')">Refresh Commits</button>
+                            </div>
+                            <div id="github-commits-container" style="display:flex; flex-direction:column; gap:8px;">
+                                <div style="color:var(--eva-text-muted); font-size:12px;">Loading recent commits...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- God's Eye Live Transit Tab -->
+                    <div class="console-panel" id="tab-transit">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <h4 style="font-size:18px; font-weight:700; color:var(--eva-primary-black);">God's Eye Spatial & Live Transit Intelligence</h4>
+                                <p style="font-size:13px; color:var(--eva-text-muted);">Real-time multimodal navigation across road traffic, suburban metro, intercity trains, and flight corridors.</p>
+                            </div>
+                            <span class="eva-status-pill"><span class="status-dot-pulse"></span> Orbit Active</span>
+                        </div>
+
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="transit-query-input" class="cloud-input-field" placeholder="Ask transit (e.g. 'flight 6E204 status', 'traffic to Airport', 'metro to Central', 'trains to Mumbai')..." onkeyup="if(event.key==='Enter') queryTransitGodEye()" style="flex:1;">
+                            <button class="cloud-btn-action" onclick="queryTransitGodEye()">Ask God's Eye</button>
+                        </div>
+
+                        <div id="transit-result-card" style="display:none; background:var(--eva-pure-white); border:1px solid var(--eva-primary-green); border-radius:var(--radius-md); padding:18px;">
+                            <div id="transit-result-summary" style="font-size:14px; font-weight:600; color:var(--eva-primary-black); margin-bottom:10px;"></div>
+                            <pre id="transit-result-raw" style="font-family:var(--font-mono); font-size:11px; background:var(--eva-ivory); padding:12px; border-radius:var(--radius-xs); max-height:160px; overflow-y:auto; color:var(--eva-text-body);"></pre>
+                        </div>
+
+                        <div class="device-status-grid">
+                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('traffic to airport')">
+                                <span class="tile-name">Live Traffic</span>
+                                <span class="tile-value">Nominal</span>
+                                <span class="tile-sub">Wardha Road 18 min</span>
+                            </div>
+                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('nearest metro station')">
+                                <span class="tile-name">Metro Transit</span>
+                                <span class="tile-value">Sitabuldi</span>
+                                <span class="tile-sub">Aqua Line · 4 min arr</span>
+                            </div>
+                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('train schedule to Mumbai')">
+                                <span class="tile-name">Indian Railways</span>
+                                <span class="tile-value">Vande Bharat</span>
+                                <span class="tile-sub">Plat 1 · On Time</span>
+                            </div>
+                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('flight 6E204 status')">
+                                <span class="tile-name">Flight Status</span>
+                                <span class="tile-value">6E 204</span>
+                                <span class="tile-sub">Gate 4 · Baggage Belt 2</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Health Tab -->
                     <div class="console-panel" id="tab-health">
                         <h4 style="font-size:18px; font-weight:700; color:var(--eva-primary-black);">Subsystem Diagnostics</h4>
@@ -2393,6 +2544,8 @@ def get_dashboard_html() -> str:
                 loadMemoriesFromStore();
             } else if (tabId === 'cloud') {
                 loadLlmConfig();
+            } else if (tabId === 'github') {
+                loadGitHubData();
             }
         }
 
@@ -2649,6 +2802,147 @@ def get_dashboard_html() -> str:
                     resultBox.innerHTML = `Error evolving memory: ${err}`;
                 }
             }
+        }
+
+        // =====================================================================
+        // GITHUB AGENT & REPOSITORY STUDIO CONTROLS
+        // =====================================================================
+        async function loadGitHubData() {
+            try {
+                const userRes = await fetch('/api/v1/agent/github/user');
+                if (userRes.ok) {
+                    const u = await userRes.json();
+                    if (u.status === 'SUCCESS' || u.login) {
+                        const loginEl = document.getElementById('gh-user-login');
+                        const bioEl = document.getElementById('gh-user-bio');
+                        const avatarEl = document.getElementById('gh-user-avatar');
+                        const countEl = document.getElementById('gh-public-repos-count');
+                        if (loginEl && u.login) loginEl.textContent = u.login;
+                        if (bioEl && u.bio) bioEl.textContent = u.bio;
+                        if (avatarEl && u.avatar_url) avatarEl.src = u.avatar_url;
+                        if (countEl && u.public_repos !== undefined) countEl.textContent = u.public_repos;
+                    }
+                }
+                
+                const reposRes = await fetch('/api/v1/agent/github/repos?per_page=12');
+                if (reposRes.ok) {
+                    const data = await reposRes.json();
+                    renderGitHubRepos(data.repositories || []);
+                }
+                
+                loadGitHubCommits('smart-glasses-ai');
+            } catch (e) {
+                console.debug('GitHub data load error:', e);
+            }
+        }
+
+        function renderGitHubRepos(repos) {
+            const cont = document.getElementById('github-repos-container');
+            if (!cont) return;
+            if (repos.length === 0) {
+                cont.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--eva-text-muted);">No repositories found.</div>';
+                return;
+            }
+            cont.innerHTML = repos.map(r => `
+                <div style="background:var(--eva-pure-white); border:1px solid var(--eva-border-subtle); border-radius:var(--radius-sm); padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                            <strong style="font-size:13px; color:var(--eva-primary-black);">${r.name}</strong>
+                            <span style="font-size:11px; font-weight:700; color:var(--eva-deep-green);">${r.language}</span>
+                        </div>
+                        <p style="font-size:12px; color:var(--eva-text-muted); margin-top:4px; line-height:1.4;">${r.description || 'EVA companion ecosystem repository'}</p>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--eva-text-light); border-top:1px solid var(--eva-border-subtle); padding-top:8px;">
+                        <span>★ ${r.stars || 0} · ⑂ ${r.forks || 0}</span>
+                        <a href="${r.url}" target="_blank" style="color:var(--eva-primary-green); font-weight:600; text-decoration:none;">View on GitHub →</a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function searchGitHubRepos() {
+            const q = document.getElementById('github-search-input')?.value?.trim();
+            const cont = document.getElementById('github-repos-container');
+            if (!q) {
+                loadGitHubData();
+                return;
+            }
+            if (cont) cont.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--eva-text-muted);">Searching GitHub repositories...</div>';
+            try {
+                const res = await fetch(`/api/v1/agent/github/search?query=${encodeURIComponent(q)}&max_results=8`);
+                if (res.ok) {
+                    const data = await res.json();
+                    renderGitHubRepos(data.repositories || []);
+                }
+            } catch (e) {
+                if (cont) cont.innerHTML = `<div style="grid-column:1/-1; color:#B32400; padding:16px;">Search failed: ${e}</div>`;
+            }
+        }
+
+        async function loadGitHubCommits(repo) {
+            const cont = document.getElementById('github-commits-container');
+            if (!cont) return;
+            try {
+                const res = await fetch(`/api/v1/agent/github/commits?repo=${encodeURIComponent(repo)}&limit=4`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const commits = data.commits || [];
+                    if (commits.length === 0) {
+                        cont.innerHTML = '<div style="color:var(--eva-text-muted); font-size:12px;">No commits found.</div>';
+                        return;
+                    }
+                    cont.innerHTML = commits.map(c => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--eva-ivory); border-radius:var(--radius-xs); border:1px solid var(--eva-border-subtle); font-size:12px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <code style="background:var(--eva-pure-white); padding:2px 6px; border-radius:4px; font-weight:700; color:var(--eva-deep-green);">${c.sha}</code>
+                                <span style="color:var(--eva-primary-black); font-weight:500;">${c.message}</span>
+                            </div>
+                            <span style="color:var(--eva-text-light); font-size:11px;">${c.author}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                cont.innerHTML = `<div style="color:var(--eva-text-muted); font-size:12px;">Commits query: ${e}</div>`;
+            }
+        }
+
+        // =====================================================================
+        // GOD'S EYE TRANSIT & SPATIAL QUERIES
+        // =====================================================================
+        async function queryTransitGodEye() {
+            const q = document.getElementById('transit-query-input')?.value?.trim();
+            if (!q) {
+                alert("Please enter a transit destination, train query, or flight number.");
+                return;
+            }
+            const card = document.getElementById('transit-result-card');
+            const summaryEl = document.getElementById('transit-result-summary');
+            const rawEl = document.getElementById('transit-result-raw');
+            if (card) card.style.display = 'block';
+            if (summaryEl) summaryEl.textContent = "Querying God's Eye live multimodal network...";
+            if (rawEl) rawEl.textContent = "Connecting to transit satellites and local APIs...";
+
+            try {
+                const res = await fetch('/api/v1/transit/query', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({query: q})
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (summaryEl) summaryEl.textContent = data.summary || "Transit route analyzed.";
+                    if (rawEl) rawEl.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (e) {
+                if (summaryEl) summaryEl.textContent = "Transit network offline.";
+                if (rawEl) rawEl.textContent = String(e);
+            }
+        }
+
+        function quickTransitQuery(q) {
+            const input = document.getElementById('transit-query-input');
+            if (input) input.value = q;
+            queryTransitGodEye();
         }
 
         // Timeline Category Filter
