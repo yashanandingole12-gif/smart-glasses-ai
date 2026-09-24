@@ -1,33 +1,56 @@
 version: '3.8'
 
 services:
+  # ----------------------------------------------------------------------------
+  # EVA AI Core Backend Service
+  # ----------------------------------------------------------------------------
   eva-backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: eva_cloud_backend
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     environment:
       - ENVIRONMENT=production
       - HOST=0.0.0.0
-      - PORT=8000
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PORT=8001
+      - DATABASE_URL=sqlite:////app/data/smart_glasses.db
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - TAVILY_API_KEY=${TAVILY_API_KEY:-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}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     volumes:
+      # Persistent SQLite databases (smart_glasses.db, eva_memory.db)
       - eva_data:/app/data
-      - eva_uploads:/app/uploads
+      # Persistent file uploads & document storage
+      - ./storage:/app/storage
+      # Persistent system audit & request logs
       - eva_logs:/app/logs
     ports:
-      - "8000:8000"
+      - "8001:8001"
     networks:
       - eva_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
+  # ----------------------------------------------------------------------------
+  # Caddy Automatic SSL Reverse Proxy (Ports 80 & 443)
+  # ----------------------------------------------------------------------------
   caddy:
     image: caddy:2-alpine
     container_name: eva_caddy_proxy
-    restart: always
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -40,13 +63,33 @@ services:
     networks:
       - eva_net
 
+  # ----------------------------------------------------------------------------
+  # Optional Cloudflare Tunnel for Instant Public Secure Domain (Zero Config)
+  # Activate with: docker compose --profile tunnel up -d
+  # ----------------------------------------------------------------------------
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: eva_cloudflare_tunnel
+    restart: unless-stopped
+    profiles:
+      - tunnel
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks:
+      - eva_net
+    depends_on:
+      - eva-backend
+
 volumes:
   eva_data:
-  eva_uploads:
+    name: eva_persistent_data
   eva_logs:
+    name: eva_persistent_logs
   caddy_data:
+    name: eva_caddy_data
   caddy_config:
+    name: eva_caddy_config
 
 networks:
   eva_net:
+    name: eva_network
     driver: bridge

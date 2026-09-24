@@ -1,10 +1,12 @@
 # ==============================================================================
 # EVA Caddy Proxy Configuration — Automated Let's Encrypt SSL & WebSocket Proxy
-# Replace :80 with your domain (e.g. eva.yourdomain.com) for auto HTTPS
+# For Custom Domain: Replace :80 with your domain (e.g. eva.yourdomain.com)
 # ==============================================================================
 
 :80 {
-    reverse_proxy eva-backend:8000 {
+    encode gzip zstd
+
+    reverse_proxy eva-backend:8001 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
         header_up X-Forwarded-For {remote_host}
