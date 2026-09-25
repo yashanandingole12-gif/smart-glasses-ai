@@ -44,7 +44,7 @@ class StorageService:
     - Validates MIME types, extensions, and file sizes.
     - Persists file metadata in SQLite (`uploaded_files` table).
     - Extracts searchable text from PDF, TXT, Markdown, CSV, and DOCX documents.
-    - Provides context injection for LARA when answering questions about user files.
+    - Provides context injection for EVA when answering questions about user files.
     """
 
     def __init__(self, storage_dir: Optional[str] = None, db_path: Optional[str] = None):
@@ -106,7 +106,7 @@ class StorageService:
         return sanitized if sanitized else "unnamed_file"
 
     def extract_text_from_file(self, file_path: Path, mime_type: str) -> str:
-        """Extracts plain text content from documents for LARA context indexing."""
+        """Extracts plain text content from documents for EVA context indexing."""
         try:
             if not file_path.exists():
                 return ""
@@ -345,7 +345,7 @@ class StorageService:
         return results
 
     def get_latest_document_context(self) -> Optional[Dict[str, Any]]:
-        """Returns the most recently uploaded document and its extracted text for LARA reasoning."""
+        """Returns the most recently uploaded document and its extracted text for EVA reasoning."""
         with self._get_conn() as conn:
             row = conn.execute("""
                 SELECT file_id, filename, mime_type, extracted_text, created_at_iso

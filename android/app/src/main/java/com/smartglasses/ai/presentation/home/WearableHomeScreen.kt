@@ -119,7 +119,7 @@ fun WearableHomeScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Good morning,",
+                        text = state.greetingText,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Normal,
                         color = EvaPrimaryBlack,
@@ -141,7 +141,7 @@ fun WearableHomeScreen(
                     )
                 }
 
-                // Frosted Weather Pill
+                // Frosted Weather & AQI Pill
                 Box(
                     modifier = Modifier
                         .background(EvaPureWhite.copy(alpha = 0.85f), RoundedCornerShape(16.dp))
@@ -160,23 +160,34 @@ fun WearableHomeScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "22°",
+                                text = "${state.temperatureCelsius}°",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = EvaPrimaryBlack
                             )
                         }
                         Text(
-                            text = "• Clear",
+                            text = "• ${state.weatherCondition}",
                             fontSize = 11.sp,
                             color = EvaMutedText,
                             fontWeight = FontWeight.Medium
                         )
-                        Text(
-                            text = "Delhi, IN",
-                            fontSize = 10.sp,
-                            color = EvaMutedText
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "${state.aqi} AQI",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = EvaPrimaryGreen
+                            )
+                            Text(
+                                text = "• ${state.locationCity}",
+                                fontSize = 10.sp,
+                                color = EvaMutedText
+                            )
+                        }
                     }
                 }
             }

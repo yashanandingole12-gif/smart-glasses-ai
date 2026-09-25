@@ -1,5 +1,5 @@
 """
-LARA — Research Engine (Phase 1)
+EVA — Research Engine (Phase 1)
 ================================
 A multilingual academic-paper search module. This is the "brain" that a
 mobile/wearable app, a web app, or a desktop app can all call into later —
@@ -32,13 +32,13 @@ to sell you a "research API key," it's not needed for this use case.
 
 USAGE
 -----
-    python lara_research.py "quantum computing error correction" --lang auto --limit 10
-    python lara_research.py "प्रकाश संश्लेषण के नए तरीके" --limit 5      # Hindi query works too
+    python eva_research.py "quantum computing error correction" --lang auto --limit 10
+    python eva_research.py "प्रकाश संश्लेषण के नए तरीके" --limit 5      # Hindi query works too
 
 Or import it:
-    from lara_research import LaraResearch
-    lara = LaraResearch()
-    results = lara.search("CRISPR gene editing off-target effects", limit=10)
+    from eva_research import EvaResearch
+    eva = EvaResearch()
+    results = eva.search("CRISPR gene editing off-target effects", limit=10)
 """
 
 import os
@@ -136,7 +136,7 @@ class ArxivConnector:
             "start": 0,
             "max_results": limit,
         }
-        headers = {"User-Agent": "LARA-Academic-Research/1.0 (https://smartglasses.ai; mailto:research@smartglasses.ai)"}
+        headers = {"User-Agent": "EVA-Academic-Research/1.0 (https://smartglasses.ai; mailto:research@smartglasses.ai)"}
         try:
             resp = requests.get(self.BASE, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
@@ -170,7 +170,7 @@ class SemanticScholarConnector:
         self.api_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
 
     def search(self, query: str, limit: int) -> List[Paper]:
-        headers = {"User-Agent": "LARA-Academic-Research/1.0 (mailto:research@smartglasses.ai)"}
+        headers = {"User-Agent": "EVA-Academic-Research/1.0 (mailto:research@smartglasses.ai)"}
         if self.api_key:
             headers["x-api-key"] = self.api_key
         params = {
@@ -209,7 +209,7 @@ class CrossrefConnector:
 
     def search(self, query: str, limit: int) -> List[Paper]:
         params = {"query": query, "rows": limit, "mailto": self.mailto}
-        headers = {"User-Agent": f"LARA-Academic-Research/1.0 (mailto:{self.mailto})"}
+        headers = {"User-Agent": f"EVA-Academic-Research/1.0 (mailto:{self.mailto})"}
         try:
             resp = requests.get(self.BASE, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
@@ -248,7 +248,7 @@ class PubMedConnector:
 
     def search(self, query: str, limit: int) -> List[Paper]:
         params = {"db": "pubmed", "term": query, "retmax": limit, "retmode": "json"}
-        headers = {"User-Agent": "LARA-Academic-Research/1.0 (mailto:research@smartglasses.ai)"}
+        headers = {"User-Agent": "EVA-Academic-Research/1.0 (mailto:research@smartglasses.ai)"}
         if self.api_key:
             params["api_key"] = self.api_key
         try:
@@ -298,7 +298,7 @@ class PubMedConnector:
 # Orchestrator
 # ---------------------------------------------------------------------------
 
-class LaraResearch:
+class EvaResearch:
     def __init__(self):
         self.connectors = {
             "arxiv": ArxivConnector(),
@@ -378,7 +378,7 @@ class LaraResearch:
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="LARA — multilingual academic research search")
+    parser = argparse.ArgumentParser(description="EVA — multilingual academic research search")
     parser.add_argument("query", help="Research topic/question, any language")
     parser.add_argument("--limit", type=int, default=8, help="Results per source before merge")
     parser.add_argument("--sources", nargs="*", default=None,
@@ -388,15 +388,15 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output raw JSON instead of pretty text")
     args = parser.parse_args()
 
-    lara = LaraResearch()
-    results = lara.search(args.query, limit=args.limit, sources=args.sources,
+    eva = EvaResearch()
+    results = eva.search(args.query, limit=args.limit, sources=args.sources,
                            translate_results_back=args.translate_back)
 
     if args.json:
         print(json.dumps([p.to_dict() for p in results], indent=2, ensure_ascii=False))
         return
 
-    print(f"\nLARA found {len(results)} unique papers for: \"{args.query}\"\n" + "-" * 60)
+    print(f"\nEVA found {len(results)} unique papers for: \"{args.query}\"\n" + "-" * 60)
     for i, p in enumerate(results, 1):
         authors = ", ".join(p.authors[:3]) + (" et al." if len(p.authors) > 3 else "")
         print(f"{i}. {p.title}  [{p.source}, {p.year or 'n.d.'}]")

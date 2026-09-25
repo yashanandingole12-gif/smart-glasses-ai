@@ -71,3 +71,6 @@ firmware/esp32-s3/.vscode/
 *.mp3
 captures/
 temp_audio/
+storage/uploads/*
+!storage/uploads/.gitkeep
+

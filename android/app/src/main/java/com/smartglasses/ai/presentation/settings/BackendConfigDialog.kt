@@ -32,7 +32,7 @@ fun BackendConfigDialog(
             colors = CardDefaults.cardColors(containerColor = Color.White),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, LaraBorderLight, RoundedCornerShape(16.dp))
+                .border(1.dp, EvaBorderSubtle, RoundedCornerShape(16.dp))
         ) {
             Column(
                 modifier = Modifier
@@ -44,14 +44,14 @@ fun BackendConfigDialog(
                     text = "BACKEND CONFIGURATION",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LaraMutedOrange,
+                    color = EvaPrimaryGreen,
                     letterSpacing = 1.2.sp
                 )
 
                 Text(
                     text = "Configure FastAPI backend host URL. Support Android emulator (10.0.2.2), physical LAN IP, or HTTPS domain.",
                     fontSize = 13.sp,
-                    color = LaraTextSecondaryLight,
+                    color = EvaMutedText,
                     lineHeight = 18.sp
                 )
 
@@ -60,7 +60,7 @@ fun BackendConfigDialog(
                     text = "Quick Presets:",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = LaraTextSecondaryLight
+                    color = EvaMutedText
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -87,14 +87,14 @@ fun BackendConfigDialog(
                         urlInput = it
                         testResult = null
                     },
-                    label = { Text("Server URL", color = LaraTextSecondaryLight) },
+                    label = { Text("Server URL", color = EvaMutedText) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = LaraTextPrimaryLight,
-                        unfocusedTextColor = LaraTextPrimaryLight,
-                        focusedBorderColor = LaraMutedOrange,
-                        unfocusedBorderColor = LaraBorderLight,
-                        cursorColor = LaraMutedOrange
+                        focusedTextColor = EvaPrimaryBlack,
+                        unfocusedTextColor = EvaPrimaryBlack,
+                        focusedBorderColor = EvaPrimaryGreen,
+                        unfocusedBorderColor = EvaBorderSubtle,
+                        cursorColor = EvaPrimaryGreen
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -103,7 +103,7 @@ fun BackendConfigDialog(
                 testResult?.let { (success, message) ->
                     Text(
                         text = if (success) "✓ $message" else "✗ $message",
-                        color = if (success) LaraEmerald else LaraMutedRed,
+                        color = if (success) EvaPrimaryGreen else EvaStatusAlert,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -125,14 +125,14 @@ fun BackendConfigDialog(
                             }
                         },
                         enabled = !isTesting,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = LaraMutedOrange),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, LaraMutedOrange),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = EvaPrimaryGreen),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, EvaPrimaryGreen),
                         modifier = Modifier.weight(1f)
                     ) {
                         if (isTesting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
-                                color = LaraMutedOrange,
+                                color = EvaPrimaryGreen,
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -146,7 +146,7 @@ fun BackendConfigDialog(
                             onDismiss()
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = LaraMutedOrange,
+                            containerColor = EvaPrimaryGreen,
                             contentColor = Color.White
                         ),
                         modifier = Modifier.weight(1f)

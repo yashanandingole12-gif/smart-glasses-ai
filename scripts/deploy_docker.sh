@@ -2,12 +2,12 @@
 
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# LARA Smart Glasses AI — Docker Deploy Script (Linux/macOS/VPS)
+# EVA Smart Glasses AI — Docker Deploy Script (Linux/macOS/VPS)
 # -----------------------------------------------------------------------------
 set -e
 
 echo "=================================================="
-echo "  LARA Smart Glasses AI — Docker Deployment"
+echo "  EVA Smart Glasses AI — Docker Deployment"
 echo "=================================================="
 
 # Check if Docker is installed
@@ -20,11 +20,11 @@ fi
 # Ensure storage directories exist
 mkdir -p storage captures scratch
 
-echo "[*] Building and starting LARA container..."
+echo "[*] Building and starting EVA container..."
 docker compose up -d --build
 
 echo ""
-echo "[SUCCESS] LARA Smart Glasses AI is hosted and running on Docker!"
+echo "[SUCCESS] EVA Smart Glasses AI is hosted and running on Docker!"
 echo "  Web Console: http://localhost:8001/web"
 echo "  API Docs:    http://localhost:8001/docs"
 echo "  Health:      http://localhost:8001/api/v1/health"

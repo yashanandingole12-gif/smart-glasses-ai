@@ -16,7 +16,7 @@ import com.smartglasses.ai.core.bluetooth.DeviceConnectionState
 import kotlinx.coroutines.*
 
 /**
- * 24/7 Foreground Background Service for LARA Smart Glasses:
+ * 24/7 Foreground Background Service for EVA Smart Glasses:
  * - Keeps BLE connection to Seeed Studio XIAO ESP32-S3 Sense alive continuously.
  * - Operates even when the phone screen is locked/off, in pocket, or app is minimized.
  * - Handles incoming wearable push-to-talk events and SMS background sync.
@@ -126,7 +126,7 @@ class GlassesBackgroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
-                "LARA Smart Glasses Daemon",
+                "EVA Smart Glasses Daemon",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Keeps connection to Smart Glasses active in background when screen is off"
@@ -146,7 +146,7 @@ class GlassesBackgroundService : Service() {
         )
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("LARA Executive Companion")
+            .setContentTitle("EVA Executive Companion")
             .setContentText(contentText)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)

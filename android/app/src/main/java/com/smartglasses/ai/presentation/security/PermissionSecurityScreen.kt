@@ -27,7 +27,7 @@ import com.smartglasses.ai.presentation.home.WearableHomeViewModel
 import com.smartglasses.ai.presentation.theme.*
 
 /**
- * LARA Permission Center, Real-Time Access Governance & Security Profile:
+ * EVA Permission Center, Real-Time Access Governance & Security Profile:
  * - Dynamic, live permission indicators checking actual Android system state
  * - One-click "Grant Missing Permissions" runtime dialog launcher
  * - Direct System App Settings shortcut for permanent authorization
@@ -61,7 +61,7 @@ fun PermissionSecurityScreen(
     val allGranted = missingPermissions.isEmpty()
 
     Scaffold(
-        containerColor = LaraIvory
+        containerColor = EvaIvory
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -83,17 +83,17 @@ fun PermissionSecurityScreen(
                             fontFamily = FontFamily.Serif,
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
-                            color = LaraCharcoal,
+                            color = EvaPrimaryBlack,
                             letterSpacing = 1.sp
                         )
                         Text(
                             text = "Access Governance & Hardware Control",
                             fontSize = 12.sp,
-                            color = LaraTextSecondaryLight
+                            color = EvaMutedText
                         )
                     }
                     IconButton(onClick = onOpenConfigDialog) {
-                        Icon(Icons.Default.Settings, contentDescription = "Config", tint = LaraCharcoal)
+                        Icon(Icons.Default.Settings, contentDescription = "Config", tint = EvaPrimaryBlack)
                     }
                 }
             }
@@ -108,7 +108,7 @@ fun PermissionSecurityScreen(
                     ),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (allGranted) LaraEmerald.copy(alpha = 0.4f) else LaraAmber.copy(alpha = 0.4f)
+                        if (allGranted) EvaPrimaryGreen.copy(alpha = 0.4f) else EvaAmberSun.copy(alpha = 0.4f)
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -121,7 +121,7 @@ fun PermissionSecurityScreen(
                                 Icon(
                                     if (allGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
                                     contentDescription = null,
-                                    tint = if (allGranted) LaraEmerald else LaraAmber,
+                                    tint = if (allGranted) EvaPrimaryGreen else EvaAmberSun,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -129,12 +129,12 @@ fun PermissionSecurityScreen(
                                     if (allGranted) "ALL PERMISSIONS ACTIVE" else "PERMISSIONS REQUIRED",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
-                                    color = LaraCharcoal
+                                    color = EvaPrimaryBlack
                                 )
                             }
                             Text(
                                 if (allGranted) "SECURE" else "${missingPermissions.size} MISSING",
-                                color = if (allGranted) LaraEmerald else LaraAmber,
+                                color = if (allGranted) EvaPrimaryGreen else EvaAmberSun,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -142,11 +142,11 @@ fun PermissionSecurityScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = if (allGranted)
-                                "LARA has authoritative access for hands-free voice, real SMS read/write, calling, and contacts."
+                                "EVA has authoritative access for hands-free voice, real SMS read/write, calling, and contacts."
                             else
                                 "Some capabilities like real SMS, voice calling, or contacts resolution are restricted until authorized.",
                             fontSize = 11.sp,
-                            color = LaraTextSecondaryLight,
+                            color = EvaMutedText,
                             lineHeight = 15.sp
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -160,7 +160,7 @@ fun PermissionSecurityScreen(
                                         permissionLauncher.launch(PermissionManager.REQUIRED_PERMISSIONS)
                                     },
                                     modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(containerColor = LaraCharcoal),
+                                    colors = ButtonDefaults.buttonColors(containerColor = EvaPrimaryBlack),
                                     shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(vertical = 8.dp)
                                 ) {
@@ -174,13 +174,13 @@ fun PermissionSecurityScreen(
                                     PermissionManager.openAppSettings(context)
                                 },
                                 modifier = Modifier.weight(1f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, LaraCharcoal.copy(alpha = 0.3f)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, EvaPrimaryBlack.copy(alpha = 0.3f)),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(vertical = 8.dp)
                             ) {
-                                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = LaraCharcoal)
+                                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = EvaPrimaryBlack)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("App Settings", fontSize = 11.sp, color = LaraCharcoal, fontWeight = FontWeight.Bold)
+                                Text("App Settings", fontSize = 11.sp, color = EvaPrimaryBlack, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -193,7 +193,7 @@ fun PermissionSecurityScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
                 ) {
                     Row(
                         modifier = Modifier
@@ -203,12 +203,12 @@ fun PermissionSecurityScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("FastAPI Backend Server", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LaraCharcoal)
-                            Text(state.serverUrl, fontSize = 11.sp, color = LaraMutedOrange, maxLines = 1)
+                            Text("FastAPI Backend Server", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = EvaPrimaryBlack)
+                            Text(state.serverUrl, fontSize = 11.sp, color = EvaPrimaryGreen, maxLines = 1)
                         }
                         Button(
                             onClick = onOpenConfigDialog,
-                            colors = ButtonDefaults.buttonColors(containerColor = LaraCharcoal),
+                            colors = ButtonDefaults.buttonColors(containerColor = EvaPrimaryBlack),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
@@ -224,7 +224,7 @@ fun PermissionSecurityScreen(
                     text = "COMMUNICATION PERMISSIONS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LaraTextSecondaryLight,
+                    color = EvaMutedText,
                     letterSpacing = 0.8.sp
                 )
             }
@@ -259,7 +259,7 @@ fun PermissionSecurityScreen(
                     text = "INTELLIGENCE & SENSOR CAPABILITIES",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LaraTextSecondaryLight,
+                    color = EvaMutedText,
                     letterSpacing = 0.8.sp
                 )
             }
@@ -294,7 +294,7 @@ fun PermissionSecurityScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFBFBF9)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LaraAmber.copy(alpha = 0.4f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EvaAmberSun.copy(alpha = 0.4f))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -303,28 +303,28 @@ fun PermissionSecurityScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Timer, contentDescription = null, tint = LaraAmber, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Timer, contentDescription = null, tint = EvaAmberSun, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("TEMPORARY DATA ACCESS", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = LaraCharcoal)
+                                Text("TEMPORARY DATA ACCESS", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = EvaPrimaryBlack)
                             }
-                            Text("TIME-BOUND", color = LaraAmber, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("TIME-BOUND", color = EvaAmberSun, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Active session context expires automatically after 15 minutes of inactivity. Sensitive tokens are never logged.",
                             fontSize = 11.sp,
-                            color = LaraTextSecondaryLight,
+                            color = EvaMutedText,
                             lineHeight = 15.sp
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         OutlinedButton(
                             onClick = { viewModel.clearConversation() },
                             modifier = Modifier.fillMaxWidth(),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, LaraMutedRed.copy(alpha = 0.5f)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, EvaStatusAlert.copy(alpha = 0.5f)),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(vertical = 6.dp)
                         ) {
-                            Text("Purge Active Session Context", color = LaraMutedRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Purge Active Session Context", color = EvaStatusAlert, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -344,7 +344,7 @@ fun PermissionCategoryItem(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+        border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -352,23 +352,23 @@ fun PermissionCategoryItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LaraCharcoal)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = EvaPrimaryBlack)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(if (isGranted) LaraEmeraldBg else LaraAmberBg)
+                        .background(if (isGranted) EvaMistGreen else EvaMistGreen)
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
                         text = stateText,
-                        color = if (isGranted) LaraEmerald else LaraAmber,
+                        color = if (isGranted) EvaPrimaryGreen else EvaAmberSun,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(description, fontSize = 11.sp, color = LaraTextSecondaryLight, lineHeight = 15.sp)
+            Text(description, fontSize = 11.sp, color = EvaMutedText, lineHeight = 15.sp)
         }
     }
 }

@@ -179,7 +179,7 @@ def broadcast_live_event(event_type: str, data: Dict[str, Any]):
 @app.get("/web", response_class=HTMLResponse)
 @app.get("/console", response_class=HTMLResponse)
 async def root_dashboard():
-    """LARA Real-time Operations Console & Developer System Dashboard."""
+    """EVA Real-time Operations Console & Developer System Dashboard."""
     return HTMLResponse(content=get_dashboard_html())
 
 @app.get("/api/v1/events/recent")
@@ -1119,12 +1119,12 @@ async def process_agent_message(req: AgentMessageRequest):
             ],
             requires_confirmation=False,
             confirmation_prompt=None,
-            sources=["lara_desk_analysis_engine"],
+            sources=["eva_desk_analysis_engine"],
             metadata={
                 "latency_ms": metrics.total_ms,
                 "fast_path": True,
                 "dataset": dataset_info,
-                "llm_provider": "lara_desk_engine",
+                "llm_provider": "eva_desk_engine",
                 "request_id": req.request_id,
                 "language": req.language or "auto",
                 "locale": req.locale or "en-IN"
@@ -1298,7 +1298,7 @@ async def process_agent_message(req: AgentMessageRequest):
                         )
                         router_resp = await llm_router.generate_with_budget(
                             prompt=explain_prompt,
-                            system_prompt="You are LARA smart glasses assistant. Answer concisely in 2 spoken sentences without markdown formatting.",
+                            system_prompt="You are EVA smart glasses assistant. Answer concisely in 2 spoken sentences without markdown formatting.",
                             deadline_seconds=3.5,
                             session_id=req.session_id
                         )
@@ -1645,7 +1645,7 @@ async def process_agent_message(req: AgentMessageRequest):
         if latest_doc and latest_doc.get("extracted_text"):
             doc_text = latest_doc["extracted_text"][:4000]
             doc_prompt = (
-                f"You are LARA, an executive smart glasses AI assistant. "
+                f"You are EVA, an executive smart glasses AI assistant. "
                 f"The user has uploaded a document named '{latest_doc['filename']}'. "
                 f"Here is the text extracted from the document:\n\n{doc_text}\n\n"
                 f"Provide a clear, concise, wearable-friendly summary or directly answer the user's inquiry in 2-3 sentences."
@@ -1930,9 +1930,9 @@ async def _execute_research_search(query: str, limit: int = 5, language: str = "
 
     papers = []
     try:
-        from lara_research import LaraResearch
-        lara = LaraResearch()
-        results = lara.search(query=clean_query, limit=limit, lang=language)
+        from eva_research import EvaResearch
+        eva = EvaResearch()
+        results = eva.search(query=clean_query, limit=limit, lang=language)
         papers = [p.to_dict() for p in results]
     except Exception:
         from backend.app.tools.search_tools import academic_research_search
@@ -2449,7 +2449,7 @@ async def chat_compat_endpoint(req: Request):
 
 
 # -------------------------------------------------------------------------
-# LARA Cloud Academic Research Endpoints (arXiv, Semantic Scholar, CrossRef, PubMed)
+# EVA Cloud Academic Research Endpoints (arXiv, Semantic Scholar, CrossRef, PubMed)
 # -------------------------------------------------------------------------
 
 
@@ -2490,7 +2490,7 @@ async def research_summarize_endpoint(req: Request):
 
 
 # -------------------------------------------------------------------------
-# LARA Tabular Document & Financial Analytics Endpoints
+# EVA Tabular Document & Financial Analytics Endpoints
 # -------------------------------------------------------------------------
 
 @app.post("/api/v1/data/query")
@@ -2710,7 +2710,7 @@ async def contacts_email_endpoint(req: Request):
     }
 
 # -------------------------------------------------------------------------
-# LARA Multimodal Vision & Camera Frame Analysis Endpoints
+# EVA Multimodal Vision & Camera Frame Analysis Endpoints
 # -------------------------------------------------------------------------
 
 @app.post("/api/v1/vision/analyze", response_model=VisionAnalyzeResponse)
@@ -3566,20 +3566,91 @@ async def add_or_update_contact_endpoint(payload: Dict[str, Any]):
         job_title=payload.get("job_title"),
         notes=payload.get("notes")
     )
+
+# ==============================================================================
+# LIVE CONTEXT, AMBIENT WEATHER, AQI & GOOGLE LIVE EARTH 3D ENDPOINTS
+# ==============================================================================
+from backend.app.services.live_context_service import live_context_service
+
+@app.get("/api/v1/context/live")
+async def get_live_context_endpoint(
+    glasses_battery: Optional[int] = None,
+    phone_battery: Optional[int] = None,
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    city: Optional[str] = None
+):
+    """
+    Returns real-time dynamic context: IST local time, dynamic greeting,
+    Nagpur ambient temperature, weather conditions, AQI, and power telemetry.
+    """
     return {
         "success": True,
-        "contact": contact.model_dump()
+        "context": live_context_service.get_live_context(
+            glasses_battery=glasses_battery,
+            phone_battery=phone_battery,
+            custom_lat=lat,
+            custom_lon=lon,
+            custom_city=city
+        )
     }
 
+@app.get("/api/v1/weather/live")
+async def get_live_weather_endpoint(city: Optional[str] = None):
+    """Returns real-time ambient temperature, humidity, condition, and AQI."""
+    ctx = live_context_service.get_live_context(custom_city=city)
+    return {
+        "success": True,
+        "city": ctx["city"],
+        "temperature_celsius": ctx["temperature_celsius"],
+        "feels_like_celsius": ctx["feels_like_celsius"],
+        "weather_condition": ctx["weather_condition"],
+        "weather_icon": ctx["weather_icon"],
+        "humidity_percent": ctx["humidity_percent"],
+        "wind_speed_kmh": ctx["wind_speed_kmh"],
+        "aqi": ctx["aqi"],
+        "aqi_category": ctx["aqi_category"],
+        "aqi_advisory": ctx["aqi_advisory"]
+    }
 
+@app.get("/api/v1/navigation/google-earth")
+async def get_google_earth_navigation_endpoint(
+    destination: str = "Sitabuldi Interchange, Nagpur",
+    lat: float = 21.1458,
+    lon: float = 79.0882
+):
+    """Generates Google Live Earth 3D Photorealistic & Satellite Navigation links and bearings."""
+    return transit_service.get_google_earth_navigation(destination=destination, lat=lat, lon=lon)
 
+# ==============================================================================
+# SNAPDRAGON® AI LAB & QUALCOMM AI HUB NPU ACCELERATION ENDPOINTS
+# ==============================================================================
+from backend.app.services.snapdragon_npu_engine import snapdragon_npu_engine
 
+@app.get("/api/v1/snapdragon/status")
+async def get_snapdragon_status_endpoint():
+    """Returns Snapdragon X Elite / Hexagon NPU status and Qualcomm AI Hub loaded models."""
+    return snapdragon_npu_engine.get_system_status()
 
+@app.get("/api/v1/snapdragon/benchmarks")
+async def get_snapdragon_benchmarks_endpoint():
+    """Returns latency and power efficiency benchmarks for Snapdragon NPU vs CPU vs Cloud."""
+    return snapdragon_npu_engine.get_benchmarks()
 
+@app.post("/api/v1/snapdragon/infer/stt")
+async def post_snapdragon_stt_endpoint():
+    """Runs on-device Whisper speech transcription on Snapdragon Hexagon NPU."""
+    return snapdragon_npu_engine.infer_speech_to_text(b"")
 
+@app.post("/api/v1/snapdragon/infer/vision")
+async def post_snapdragon_vision_endpoint(task: str = "detect_objects"):
+    """Runs on-device Qualcomm AI Hub vision and object detection on Snapdragon Hexagon NPU."""
+    return snapdragon_npu_engine.infer_vision(b"", task=task)
 
-
-
-
-
+@app.post("/api/v1/snapdragon/infer/llm")
+async def post_snapdragon_llm_endpoint(payload: Dict[str, Any]):
+    """Runs on-device quantized INT4 LLM reasoning on Snapdragon Hexagon NPU."""
+    prompt = payload.get("prompt", "Where is the nearest metro?")
+    max_tokens = payload.get("max_tokens", 128)
+    return snapdragon_npu_engine.infer_local_llm(prompt=prompt, max_tokens=max_tokens)
 

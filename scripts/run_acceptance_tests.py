@@ -27,7 +27,7 @@ console = Console()
 
 async def run_e2e_acceptance_suite():
     console.print("\n[bold cyan]================================================================================[/bold cyan]")
-    console.print("[bold yellow]      LARA SMART GLASSES -- MASTER ACCEPTANCE TEST SUITE (7 TESTS)        [/bold yellow]")
+    console.print("[bold yellow]      EVA SMART GLASSES -- MASTER ACCEPTANCE TEST SUITE (7 TESTS)        [/bold yellow]")
     console.print("[bold cyan]================================================================================[/bold cyan]\n")
 
     results = []
@@ -61,7 +61,7 @@ async def run_e2e_acceptance_suite():
     # -------------------------------------------------------------------------
     console.print("[bold cyan][TEST 2/7] Offline Phone Control (Call Rahul)[/bold cyan]")
     t0 = time.perf_counter()
-    query_2 = "Hey LARA, call Rahul."
+    query_2 = "Hey EVA, call Rahul."
     parsed_2 = structured_request_parser.parse(query_2)
     target_name = parsed_2.entity or (parsed_2.resolved_contact.name if parsed_2.resolved_contact else "Rahul")
     contact_res = contact_vault.resolve_contact(target_name)
@@ -238,7 +238,7 @@ async def run_e2e_acceptance_suite():
     })
 
     # Summary Table
-    table = Table(title="LARA Smart Glasses -- Acceptance Test Suite Results", show_header=True, header_style="bold green")
+    table = Table(title="EVA Smart Glasses -- Acceptance Test Suite Results", show_header=True, header_style="bold green")
     table.add_column("Test Case", style="cyan", width=32)
     table.add_column("Execution Tier", style="yellow", width=30)
     table.add_column("Latency (ms)", justify="right", style="magenta")

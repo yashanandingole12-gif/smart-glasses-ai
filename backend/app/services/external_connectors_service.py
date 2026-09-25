@@ -17,7 +17,7 @@ class ExternalConnectorsService:
         """Fetch current GitHub repository and workflow status."""
         headers = {
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "LARA-Executive-Assistant"
+            "User-Agent": "EVA-Executive-Assistant"
         }
         if self.github_token:
             headers["Authorization"] = f"Bearer {self.github_token}"
@@ -28,7 +28,7 @@ class ExternalConnectorsService:
             "repository": self.github_repo,
             "open_pull_requests": 0,
             "open_issues": 1,
-            "last_commit": "Phase 3B.17: LARA Quiet Luxury UI and Real Data Architecture",
+            "last_commit": "Phase 3B.17: EVA Quiet Luxury UI and Real Data Architecture",
             "workflow_status": "passing",
             "summary": "Repository smart-glasses-ai is active with all CI checks passing."
         }

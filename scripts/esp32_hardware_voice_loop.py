@@ -38,12 +38,12 @@ def speak_response(text: str):
     except Exception as e:
         print(f"[AUDIO] TTS error: {e}")
 
-def query_lara(user_message: str):
-    """Send transcribed text to the LARA FastAPI Backend."""
+def query_eva(user_message: str):
+    """Send transcribed text to the EVA FastAPI Backend."""
     if not user_message:
         return
     print(f"\n🗣️ Voice Input Transcribed: \"{user_message}\"")
-    print(f"🤖 [LARA] Querying Assistant Backend...")
+    print(f"🤖 [EVA] Querying Assistant Backend...")
     t0 = time.perf_counter()
     try:
         resp = httpx.post(
@@ -61,7 +61,7 @@ def query_lara(user_message: str):
             data = resp.json()
             reply = data.get("response", "No response received.")
             provider = data.get("metadata", {}).get("llm_provider", "FastPath")
-            print(f"💬 [LARA] ({dur:.0f}ms | {provider}):\n👉 {reply}\n")
+            print(f"💬 [EVA] ({dur:.0f}ms | {provider}):\n👉 {reply}\n")
             print("🔊 [SPEAKER] Playing audio response on Laptop Speakers / Bluetooth...")
             speak_response(reply)
         else:
@@ -96,7 +96,7 @@ def run_live_esp_mic_test():
 
 def main():
     print("=" * 75)
-    print("  🎙️ LARA SMART GLASSES — PHYSICAL ESP32-S3 MICROPHONE CONSOLE")
+    print("  🎙️ EVA SMART GLASSES — PHYSICAL ESP32-S3 MICROPHONE CONSOLE")
     print("=" * 75)
     print("Hardware: Seeed Studio XIAO ESP32-S3 Sense on COM5")
     print("Audio: On-board PDM Digital Microphone (GPIO 42 CLK, GPIO 41 DIN)")
@@ -107,7 +107,7 @@ def main():
             print("\nOptions:")
             print("  [1] Test ESP32 Physical Microphone Live (VU Meter & Audio Energy)")
             print("  [2] Speak a Command into Microphone and get AI Spoken Response")
-            print("  [3] Type a Command directly to LARA")
+            print("  [3] Type a Command directly to EVA")
             print("  [Q] Quit")
             choice = input("\n👉 Select option (1/2/3/Q) [Default: 1]: ").strip().lower()
 
@@ -125,16 +125,16 @@ def main():
                         segments, _ = whisper_model.transcribe(audio.flatten(), beam_size=2, language="en")
                         text = " ".join([s.text for s in segments]).strip()
                         if text:
-                            query_lara(text)
+                            query_eva(text)
                         else:
                             print("No audible speech detected. Trying default query...")
-                            query_lara("What is 125 plus 375?")
+                            query_eva("What is 125 plus 375?")
                 except Exception as ex:
                     print(f"Audio capture error: {ex}")
             elif choice == "3":
                 q = input("👉 Enter query: ").strip()
                 if q:
-                    query_lara(q)
+                    query_eva(q)
             else:
                 # Run ESP32 hardware mic test
                 run_live_esp_mic_test()

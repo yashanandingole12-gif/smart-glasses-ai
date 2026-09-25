@@ -163,7 +163,7 @@ class AIResponseRouter(
         // 0.08 Conversational Lifecycle & Session Management
         val lifecycleGreetings = listOf(
             "eva start talk", "eva talk", "hey eva", "hi eva", "hello eva", "eva", "wake up eva",
-            "hey lara", "hi lara", "hello lara", "lara", "wake up lara", "hey assistant",
+            "hey eva", "hi eva", "hello eva", "eva", "wake up eva", "hey assistant",
             "start talk", "start listening", "talk"
         )
         if (lifecycleGreetings.any { qLower == it || qLower.startsWith("$it ") }) {
@@ -188,7 +188,7 @@ class AIResponseRouter(
 
         val lifecycleDismiss = listOf(
             "goodbye eva", "bye eva", "sleep eva", "shutdown eva", "turn off eva",
-            "goodbye lara", "bye lara", "sleep lara", "shutdown lara", "turn off lara",
+            "goodbye eva", "bye eva", "sleep eva", "shutdown eva", "turn off eva",
             "goodbye", "alvida", "stop talk", "stop listening", "stop"
         )
         if (lifecycleDismiss.any { qLower == it || qLower.startsWith("$it ") }) {

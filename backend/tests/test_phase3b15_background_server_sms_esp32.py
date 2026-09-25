@@ -13,7 +13,7 @@ def test_web_ui_endpoint():
     resp = client.get("/")
     assert resp.status_code == 200
     html = resp.text
-    assert "LARA Smart Glasses" in html
+    assert "EVA Smart Glasses" in html
     assert "ESP32 Smart Glasses & Android Hub" in html
     assert "updateHardwareStatus" in html
     assert "simulateIncomingSmsPrompt" in html

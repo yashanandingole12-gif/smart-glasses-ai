@@ -1,10 +1,10 @@
-# LARA Smart Glasses AI — System Architecture & Layer Infographic
+# EVA Smart Glasses AI — System Architecture & Layer Infographic
 
 ---
 
 ## 1. Architectural Overview & Design Philosophy
 
-The **LARA Smart Glasses AI System** is engineered as a **5-Layer Intelligent Wearable Computing Stack**. It combines edge sensor capture on the **Seeed Studio XIAO ESP32-S3 Sense**, native hardware mediation on **Android**, sub-50ms deterministic edge routing, resilient **LangGraph/Gemini 2.5 Flash** agent orchestration in the cloud, and real-time multi-modal audio relay on both the glasses and laptop speakers.
+The **EVA Smart Glasses AI System** is engineered as a **5-Layer Intelligent Wearable Computing Stack**. It combines edge sensor capture on the **Seeed Studio XIAO ESP32-S3 Sense**, native hardware mediation on **Android**, sub-50ms deterministic edge routing, resilient **LangGraph/Gemini 2.5 Flash** agent orchestration in the cloud, and real-time multi-modal audio relay on both the glasses and laptop speakers.
 
 ```mermaid
 graph TD
@@ -118,7 +118,7 @@ graph TD
 ================================================================================
 SLIDE 1: Title & Executive Vision
 ================================================================================
-Title: LARA Smart Glasses AI — 5-Layer Intelligent Wearable Architecture
+Title: EVA Smart Glasses AI — 5-Layer Intelligent Wearable Architecture
 Subtitle: Real-time Multimodal Edge AI, Android Mediation & Enterprise Integrations
 Visual: Full system topology diagram from docs/architecture_presentation.html
 Key Message: Sub-50ms local response for core daily utilities, combined with 

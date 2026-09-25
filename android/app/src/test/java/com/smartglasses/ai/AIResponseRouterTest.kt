@@ -137,28 +137,28 @@ class AIResponseRouterTest {
     }
 
     @Test
-    fun testHeyLaraLifecycleGreeting() = runBlocking {
+    fun testHeyEvaLifecycleGreeting() = runBlocking {
         val resp = router.routeQuery(
             sessionId = "sess_7",
-            query = "Hey LARA",
+            query = "Hey EVA",
             telemetry = telemetry,
             connectionState = ConnectionState.CONNECTED
         )
         assertEquals(ResponseSource.LOCAL_DETERMINISTIC, resp.source)
-        assertTrue(resp.text.contains("LARA is active"))
+        assertTrue(resp.text.contains("EVA is active"))
         assertTrue(resp.text.contains("84%"))
     }
 
     @Test
-    fun testGoodbyeLaraLifecycleCleanup() = runBlocking {
+    fun testGoodbyeEvaLifecycleCleanup() = runBlocking {
         val resp = router.routeQuery(
             sessionId = "sess_8",
-            query = "Goodbye LARA",
+            query = "Goodbye EVA",
             telemetry = telemetry,
             connectionState = ConnectionState.CONNECTED
         )
         assertEquals(ResponseSource.LOCAL_DETERMINISTIC, resp.source)
-        assertTrue(resp.text.contains("Goodbye! Putting LARA to sleep"))
+        assertTrue(resp.text.contains("Goodbye! Putting EVA to sleep"))
     }
 
     @Test

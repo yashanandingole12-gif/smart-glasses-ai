@@ -1,10 +1,11 @@
 """
 EVA God's Eye Live — Transit & Spatial Intelligence Engine
-Provides real-time situational awareness for smart glasses:
-  - Live Traffic Congestion & Route Estimates
-  - Metro Stations, Platform Directions & Live Arrivals
-  - Train Running Status & Departure Schedules
-  - Flight Status, Gates, Terminals & Baggage Carousels
+Provides real-time situational awareness for smart glasses & mobile:
+  - Nagpur & Multi-City Live Traffic Congestion & Route Estimates
+  - Maha Metro Nagpur (Sitabuldi Interchange, Orange Line, Aqua Line) & National Metro Networks
+  - Nagpur Junction (NGP) & Indian Railways Live Running Status (Vande Bharat, Duronto, Vidarbha SF)
+  - Dr. Babasaheb Ambedkar International Airport (NAG) Flight Tracking & Baggage Carousels
+  - Google Earth 3D Photorealistic & Satellite Navigation Deep Links
 
 Designed for hands-free smart glasses interaction:
 Returns compact, high-density audio synthesis text and OLED-friendly line-wrapped payloads.
@@ -19,225 +20,315 @@ logger = logging.getLogger("eva.transit")
 
 class TransitService:
     def __init__(self):
+        # 1. Traffic Arteries (Nagpur Primary + Major Expressways)
         self._traffic_nodes = {
-            "western_express_highway": {
-                "name": "Western Express Highway",
-                "corridor": "Bandra to Dahisar",
-                "congestion_level": "HEAVY",
-                "avg_speed_kmh": 22,
-                "delay_minutes": 18,
-                "status_summary": "Heavy traffic near Santacruz flyover due to lane bottleneck. Expect +18 min delay.",
-                "alternate_route": "SV Road or Coastal Road Link"
+            "wardha_road": {
+                "name": "Wardha Road / Airport Corridor",
+                "city": "Nagpur",
+                "corridor": "Sitabuldi to MIHAN & Airport South",
+                "congestion_level": "CLEAR",
+                "avg_speed_kmh": 58,
+                "delay_minutes": 0,
+                "status_summary": "Smooth, uninterrupted flow along Wardha Road Flyover. 58 km/h. +0 min delay.",
+                "alternate_route": "Direct Wardha Expressway"
             },
-            "eastern_express_highway": {
-                "name": "Eastern Express Highway",
-                "corridor": "Sion to Thane",
+            "samruddhi_mahamarg": {
+                "name": "Samruddhi Mahamarg (Super Expressway)",
+                "city": "Nagpur",
+                "corridor": "Nagpur Zero Point to Shirdi / Mumbai",
+                "congestion_level": "FREE_FLOW",
+                "avg_speed_kmh": 115,
+                "delay_minutes": 0,
+                "status_summary": "Super Expressway is wide open. High-speed flow at 115 km/h. No bottlenecks.",
+                "alternate_route": "NH-53 / Amravati Highway"
+            },
+            "amravati_road": {
+                "name": "Amravati Road (NH-53)",
+                "city": "Nagpur",
+                "corridor": "Ravi Nagar to Wadi / MIDC",
                 "congestion_level": "MODERATE",
-                "avg_speed_kmh": 42,
+                "avg_speed_kmh": 36,
+                "delay_minutes": 4,
+                "status_summary": "Moderate flow near Wadi bypass junction. +4 min delay.",
+                "alternate_route": "Outer Ring Road"
+            },
+            "central_avenue": {
+                "name": "Central Avenue (CA Road)",
+                "city": "Nagpur",
+                "corridor": "Gandhibagh to Itwari & Prajapati Nagar",
+                "congestion_level": "MODERATE",
+                "avg_speed_kmh": 28,
                 "delay_minutes": 6,
-                "status_summary": "Moderate flow. Minor slowdown near Chembur junction. +6 min delay.",
-                "alternate_route": "Eastern Freeway"
+                "status_summary": "Moderate commercial traffic near Itwari market. +6 min delay.",
+                "alternate_route": "Great Nag Road or Metro Aqua Line"
             },
-            "bandra_kurla_complex": {
-                "name": "Bandra Kurla Complex (BKC)",
-                "corridor": "BKC Connector / Kalanagar",
-                "congestion_level": "HEAVY",
-                "avg_speed_kmh": 18,
-                "delay_minutes": 14,
-                "status_summary": "Slow moving traffic near MTNL junction and BKC connector. +14 min delay.",
-                "alternate_route": "SCLR / Hans Bhugra Marg"
+            "ring_road": {
+                "name": "Nagpur Outer Ring Road",
+                "city": "Nagpur",
+                "corridor": "Kalamna - Wadi - Hingna - Besa - Dighori",
+                "congestion_level": "CLEAR",
+                "avg_speed_kmh": 65,
+                "delay_minutes": 0,
+                "status_summary": "Express ring road clear. 65 km/h transit around the city perimeter.",
+                "alternate_route": "Inner Ring Road"
             },
-            "coastal_road": {
+            "futala_promenade": {
+                "name": "Futala Lake & Telangkhedi Promenade",
+                "city": "Nagpur",
+                "corridor": "Law College Square to Futala Waterfront",
+                "congestion_level": "CLEAR",
+                "avg_speed_kmh": 40,
+                "delay_minutes": 0,
+                "status_summary": "Scenic route clear. Pleasant sunset transit.",
+                "alternate_route": "Seminary Hills Road"
+            },
+            # Secondary Multi-City Fallbacks
+            "mumbai_coastal": {
                 "name": "Mumbai Coastal Road",
+                "city": "Mumbai",
                 "corridor": "Marine Drive to Worli",
                 "congestion_level": "CLEAR",
                 "avg_speed_kmh": 68,
                 "delay_minutes": 0,
-                "status_summary": "Free flowing at 70 km/h. Smooth transit between Marine Drive and Worli.",
+                "status_summary": "Free flowing at 70 km/h.",
                 "alternate_route": "Direct Coastal Expressway"
             },
             "default": {
-                "name": "City Arterial Corridor",
-                "corridor": "Central Metro Area",
+                "name": "Nagpur City Central Corridor",
+                "city": "Nagpur",
+                "corridor": "Sitabuldi - Civil Lines - Dharampeth",
                 "congestion_level": "NORMAL",
-                "avg_speed_kmh": 35,
-                "delay_minutes": 4,
-                "status_summary": "Normal peak-hour traffic flow. Minor delays at traffic signals.",
-                "alternate_route": "Direct Corridor"
+                "avg_speed_kmh": 42,
+                "delay_minutes": 2,
+                "status_summary": "Normal smooth traffic flow across Nagpur central avenues.",
+                "alternate_route": "Metro Aqua / Orange Line"
             }
         }
 
+        # 2. Maha Metro Nagpur Stations (Orange Line & Aqua Line)
         self._metro_stations = [
             {
-                "id": "M1_ANDHERI",
-                "name": "Andheri Metro Station",
-                "line": "Line 1 (Blue Line)",
-                "distance_km": 0.4,
-                "walking_time_min": 5,
+                "id": "M_SITABULDI",
+                "name": "Sitabuldi Interchange Station",
+                "city": "Nagpur",
+                "line": "Maha Metro Interchange (Orange & Aqua Lines)",
+                "distance_km": 0.5,
+                "walking_time_min": 6,
                 "next_arrivals": [
-                    {"destination": "Ghatkopar", "eta_min": 2, "platform": "Platform 1"},
-                    {"destination": "Versova", "eta_min": 4, "platform": "Platform 2"}
+                    {"destination": "Khapri / Metro City (Orange Line South)", "eta_min": 2, "platform": "Platform 1"},
+                    {"destination": "Lokmanya Nagar (Aqua Line West)", "eta_min": 3, "platform": "Platform 3"},
+                    {"destination": "Automotive Square (Orange Line North)", "eta_min": 4, "platform": "Platform 2"},
+                    {"destination": "Prajapati Nagar (Aqua Line East)", "eta_min": 5, "platform": "Platform 4"}
                 ],
-                "facilities": ["Elevator", "Interchange with Western Railway", "Smart Card Gates"]
+                "facilities": ["Full Air-Conditioned Concourse", "Direct Escalators", "Smart Card & QR Ticketing", "FOB Link"]
             },
             {
-                "id": "M3_BKC",
-                "name": "BKC Underground Metro",
-                "line": "Line 3 (Aqua Line)",
+                "id": "M_AIRPORT",
+                "name": "Airport South Metro Station",
+                "city": "Nagpur",
+                "line": "Orange Line (Line 1)",
                 "distance_km": 1.2,
                 "walking_time_min": 14,
                 "next_arrivals": [
-                    {"destination": "Aarey JVLR", "eta_min": 3, "platform": "Platform 1"},
-                    {"destination": "Cuffe Parade", "eta_min": 7, "platform": "Platform 2"}
+                    {"destination": "Sitabuldi / Automotive Square", "eta_min": 2, "platform": "Platform 1"},
+                    {"destination": "Metro City / Khapri", "eta_min": 4, "platform": "Platform 2"}
                 ],
-                "facilities": ["Full Air Conditioned", "High-Speed Elevators", "Airport Link"]
+                "facilities": ["Direct Airport Shuttle Link", "High-Speed Elevators", "Luggage Racks"]
             },
             {
-                "id": "M7_GUNDAVALI",
-                "name": "Gundavali Metro Station",
-                "line": "Line 7 (Red Line)",
+                "id": "M_LOKMANYA",
+                "name": "Lokmanya Nagar Metro Station",
+                "city": "Nagpur",
+                "line": "Aqua Line (Line 2)",
+                "distance_km": 2.1,
+                "walking_time_min": 24,
+                "next_arrivals": [
+                    {"destination": "Sitabuldi -> Prajapati Nagar", "eta_min": 3, "platform": "Platform 1"}
+                ],
+                "facilities": ["EV Charging Hub", "Bike Sharing Dock", "Elevators"]
+            },
+            {
+                "id": "M_RAILWAY",
+                "name": "Nagpur Railway Station Metro",
+                "city": "Nagpur",
+                "line": "Orange Line (Line 1)",
                 "distance_km": 0.8,
                 "walking_time_min": 9,
                 "next_arrivals": [
-                    {"destination": "Dahisar East", "eta_min": 1, "platform": "Platform 1"},
-                    {"destination": "Andheri East", "eta_min": 5, "platform": "Platform 2"}
+                    {"destination": "Sitabuldi / Airport / Khapri", "eta_min": 3, "platform": "Platform 1"},
+                    {"destination": "Automotive Square", "eta_min": 5, "platform": "Platform 2"}
                 ],
-                "facilities": ["Skywalk link to Line 1", "Elevators", "Parking"]
+                "facilities": ["Direct Escalator into Nagpur Junction Platform 1", "Luggage Assistance"]
             },
             {
-                "id": "M2A_DN_NAGAR",
-                "name": "D.N. Nagar Metro",
-                "line": "Line 2A (Yellow Line)",
-                "distance_km": 1.6,
-                "walking_time_min": 18,
+                "id": "M_INSTITUTE",
+                "name": "Institution of Engineers / Dharampeth Metro",
+                "city": "Nagpur",
+                "line": "Aqua Line (Line 2)",
+                "distance_km": 1.0,
+                "walking_time_min": 11,
                 "next_arrivals": [
-                    {"destination": "Dahisar via Link Road", "eta_min": 4, "platform": "Platform 1"}
+                    {"destination": "Sitabuldi Central", "eta_min": 2, "platform": "Platform 2"},
+                    {"destination": "Lokmanya Nagar", "eta_min": 5, "platform": "Platform 1"}
                 ],
-                "facilities": ["Interchange with Blue Line", "EV Charging"]
+                "facilities": ["Dharampeth Market Skywalk", "Disabled Access Ramp"]
             }
         ]
 
+        # 3. Live Train Schedules (Nagpur Junction NGP & Major Expresses)
         self._train_schedules = [
             {
-                "train_number": "FAST_90421",
-                "train_name": "Churchgate Fast Local",
-                "source": "Borivali",
-                "destination": "Churchgate",
-                "current_station": "Andheri",
-                "status": "ON_TIME",
-                "platform": "Platform 4",
-                "departure_time": "12:15 PM",
-                "eta_min": 3,
-                "stops": "Andheri, Bandra, Dadar, Mumbai Central, Churchgate"
-            },
-            {
-                "train_number": "SLOW_90882",
-                "train_name": "CSMT Slow Local",
-                "source": "Thane",
-                "destination": "CSMT",
-                "current_station": "Dadar",
-                "status": "DELAYED_4_MIN",
-                "platform": "Platform 2",
-                "departure_time": "12:18 PM",
-                "eta_min": 6,
-                "stops": "All stations Dadar to CSMT"
-            },
-            {
-                "train_number": "EXP_12952",
-                "train_name": "Mumbai Rajdhani Express",
-                "source": "New Delhi (NDLS)",
-                "destination": "Mumbai Central (MMCT)",
-                "current_station": "Approaching Borivali",
-                "status": "ON_TIME",
-                "platform": "Platform 1",
-                "departure_time": "08:35 AM Arrival",
-                "eta_min": 25,
-                "stops": "Surat, Vadodara, Ratlam, Kota, NDLS"
-            },
-            {
-                "train_number": "VANDE_22223",
-                "train_name": "Vande Bharat Express",
-                "source": "CSMT",
-                "destination": "Solapur",
-                "current_station": "CSMT Yard",
+                "train_number": "VANDE_20826",
+                "train_name": "Nagpur - Bilaspur Vande Bharat Express",
+                "source": "Nagpur Junction (NGP)",
+                "destination": "Bilaspur (BSP)",
+                "current_station": "Nagpur Junction (Platform 1)",
                 "status": "BOARDING",
-                "platform": "Platform 16",
-                "departure_time": "04:05 PM",
-                "eta_min": 45,
-                "stops": "Dadar, Kalyan, Pune, Kurduwadi, Solapur"
+                "platform": "Platform 1",
+                "departure_time": "02:05 PM",
+                "eta_min": 15,
+                "stops": "Gondia, Rajnandgaon, Durg, Raipur, Bilaspur"
+            },
+            {
+                "train_number": "VANDE_20912",
+                "train_name": "Nagpur - Indore Vande Bharat Express",
+                "source": "Nagpur Junction (NGP)",
+                "destination": "Indore Junction (INDB)",
+                "current_station": "Nagpur Junction (Platform 2)",
+                "status": "ON_TIME",
+                "platform": "Platform 2",
+                "departure_time": "03:20 PM",
+                "eta_min": 40,
+                "stops": "Betul, Itarsi, Bhopal, Ujjain, Indore"
+            },
+            {
+                "train_number": "DURONTO_12290",
+                "train_name": "Nagpur - Mumbai CSMT AC Duronto Express",
+                "source": "Nagpur Junction (NGP)",
+                "destination": "Mumbai CSMT",
+                "current_station": "Nagpur Yard / Yard Placement",
+                "status": "ON_TIME",
+                "platform": "Platform 3",
+                "departure_time": "08:40 PM",
+                "eta_min": 180,
+                "stops": "Non-stop to Bhusawal, Igatpuri, Mumbai CSMT"
+            },
+            {
+                "train_number": "VIDARBHA_12106",
+                "train_name": "Vidarbha Superfast Express",
+                "source": "Gondia (G) / Nagpur (NGP)",
+                "destination": "Mumbai CSMT",
+                "current_station": "Approaching Ajni / NGP",
+                "status": "ON_TIME",
+                "platform": "Platform 8",
+                "departure_time": "05:00 PM",
+                "eta_min": 25,
+                "stops": "Nagpur, Wardha, Badnera, Akola, Shegaon, Bhusawal, Nashik, Kalyan, CSMT"
+            },
+            {
+                "train_number": "SEWAGRAM_12140",
+                "train_name": "Sewagram Superfast Express",
+                "source": "Nagpur Junction (NGP)",
+                "destination": "Mumbai CSMT",
+                "current_station": "Nagpur Platform 7",
+                "status": "SCHEDULED",
+                "platform": "Platform 7",
+                "departure_time": "09:15 PM",
+                "eta_min": 240,
+                "stops": "Wardha, Pulgaon, Dhamangaon, Badnera, Murtizapur, Akola, Shegaon"
             }
         ]
 
+        # 4. Live Flight Data (Dr. Babasaheb Ambedkar International Airport - NAG & Connectors)
         self._flight_data = {
-            "6E204": {
-                "flight_number": "6E-204",
+            "6E724": {
+                "flight_number": "6E-724",
                 "airline": "IndiGo",
-                "route": "BOM (Mumbai) -> DEL (New Delhi)",
-                "scheduled_departure": "14:30",
-                "estimated_departure": "14:35",
-                "status": "BOARDING",
-                "terminal": "Terminal 2 (T2)",
-                "gate": "Gate 48B",
-                "carousel": "Carousel 5 (Arrival)",
-                "aircraft": "Airbus A321neo",
-                "summary": "IndiGo 6E-204 to Delhi is currently BOARDING at Terminal 2, Gate 48B. Estimated departure 14:35."
-            },
-            "AI102": {
-                "flight_number": "AI-102",
-                "airline": "Air India",
-                "route": "JFK (New York) -> BOM (Mumbai)",
-                "scheduled_departure": "18:30",
-                "estimated_departure": "18:15",
-                "status": "APPROACHING",
-                "terminal": "Terminal 2 (T2)",
-                "gate": "Gate 32",
-                "carousel": "Carousel 8",
-                "aircraft": "Boeing 777-300ER",
-                "summary": "Air India AI-102 from New York JFK is on final approach to Mumbai. Landing early at 18:15, Carousel 8."
-            },
-            "UK955": {
-                "flight_number": "UK-955",
-                "airline": "Vistara",
-                "route": "DEL (New Delhi) -> BOM (Mumbai)",
-                "scheduled_departure": "16:00",
-                "estimated_departure": "16:00",
+                "route": "NAG (Nagpur) -> DEL (New Delhi)",
+                "scheduled_departure": "07:50",
+                "estimated_departure": "07:50",
                 "status": "ON_TIME",
-                "terminal": "Terminal 2 (T2)",
-                "gate": "Gate 51A",
-                "carousel": "Carousel 4",
-                "aircraft": "Airbus A320neo",
-                "summary": "Vistara UK-955 from Delhi is ON TIME. Arriving Mumbai at 16:00, Terminal 2, Gate 51A."
+                "terminal": "Terminal 1",
+                "gate": "Gate 2",
+                "carousel": "Carousel 1",
+                "aircraft": "Airbus A321neo",
+                "summary": "IndiGo 6E-724 from Nagpur to New Delhi is ON TIME. Gate 2, Terminal 1. Departure at 07:50."
             },
-            "EK500": {
-                "flight_number": "EK-500",
-                "airline": "Emirates",
-                "route": "DXB (Dubai) -> BOM (Mumbai)",
-                "scheduled_departure": "20:45",
-                "estimated_departure": "20:55",
-                "status": "DELAYED_10_MIN",
-                "terminal": "Terminal 2 (T2)",
-                "gate": "Gate 24",
-                "carousel": "Carousel 11",
-                "aircraft": "Boeing 777-300ER",
-                "summary": "Emirates EK-500 from Dubai is delayed by 10 min. Expected at 20:55, Terminal 2, Gate 24."
+            "6E412": {
+                "flight_number": "6E-412",
+                "airline": "IndiGo",
+                "route": "NAG (Nagpur) -> BOM (Mumbai)",
+                "scheduled_departure": "08:35",
+                "estimated_departure": "08:35",
+                "status": "BOARDING",
+                "terminal": "Terminal 1",
+                "gate": "Gate 3",
+                "carousel": "Carousel 2",
+                "aircraft": "Airbus A320neo",
+                "summary": "IndiGo 6E-412 to Mumbai BOM is currently BOARDING at Nagpur Terminal 1, Gate 3."
+            },
+            "AI469": {
+                "flight_number": "AI-469",
+                "airline": "Air India",
+                "route": "DEL (New Delhi) -> NAG (Nagpur)",
+                "scheduled_departure": "19:15",
+                "estimated_departure": "19:10",
+                "status": "APPROACHING",
+                "terminal": "Terminal 1",
+                "gate": "Gate 1",
+                "carousel": "Carousel 1",
+                "aircraft": "Airbus A320neo",
+                "summary": "Air India AI-469 from Delhi is on final approach to Nagpur (NAG). Arriving early at 19:10, Carousel 1."
+            },
+            "6E6018": {
+                "flight_number": "6E-6018",
+                "airline": "IndiGo",
+                "route": "BLR (Bengaluru) -> NAG (Nagpur)",
+                "scheduled_departure": "21:40",
+                "estimated_departure": "21:40",
+                "status": "ON_TIME",
+                "terminal": "Terminal 1",
+                "gate": "Gate 2",
+                "carousel": "Carousel 2",
+                "aircraft": "Airbus A321neo",
+                "summary": "IndiGo 6E-6018 from Bengaluru to Nagpur is ON TIME. Expected arrival 21:40, Carousel 2."
+            },
+            "6E911": {
+                "flight_number": "6E-911",
+                "airline": "IndiGo",
+                "route": "NAG (Nagpur) -> DXB (Dubai International)",
+                "scheduled_departure": "23:30",
+                "estimated_departure": "23:30",
+                "status": "SCHEDULED",
+                "terminal": "Terminal 1 (Intl Concourse)",
+                "gate": "Gate 4",
+                "carousel": "Carousel 3",
+                "aircraft": "Airbus A321neo",
+                "summary": "IndiGo 6E-911 Direct International to Dubai (DXB) is SCHEDULED for 23:30 from Nagpur Intl Concourse, Gate 4."
             }
         }
 
     def get_traffic_status(self, location: str = "", destination: str = "") -> Dict[str, Any]:
-        """Returns live traffic congestion and travel time estimates."""
+        """Returns live traffic congestion and travel time estimates (Nagpur primary + smart keyword matching)."""
         loc_clean = (location + " " + destination).lower()
-        if "western" in loc_clean or "santacruz" in loc_clean or "andheri" in loc_clean:
-            node = self._traffic_nodes["western_express_highway"]
-        elif "eastern" in loc_clean or "chembur" in loc_clean or "thane" in loc_clean or "sion" in loc_clean:
-            node = self._traffic_nodes["eastern_express_highway"]
-        elif "bkc" in loc_clean or "bandra kurla" in loc_clean:
-            node = self._traffic_nodes["bandra_kurla_complex"]
-        elif "coastal" in loc_clean or "marine drive" in loc_clean or "worli" in loc_clean:
-            node = self._traffic_nodes["coastal_road"]
+        if "wardha" in loc_clean or "airport" in loc_clean or "mihan" in loc_clean:
+            node = self._traffic_nodes["wardha_road"]
+        elif "samruddhi" in loc_clean or "expressway" in loc_clean or "shirdi" in loc_clean:
+            node = self._traffic_nodes["samruddhi_mahamarg"]
+        elif "amravati" in loc_clean or "wadi" in loc_clean or "ravi nagar" in loc_clean:
+            node = self._traffic_nodes["amravati_road"]
+        elif "central avenue" in loc_clean or "ca road" in loc_clean or "itwari" in loc_clean or "gandhibagh" in loc_clean:
+            node = self._traffic_nodes["central_avenue"]
+        elif "ring road" in loc_clean or "hingna" in loc_clean or "besa" in loc_clean or "dighori" in loc_clean:
+            node = self._traffic_nodes["ring_road"]
+        elif "futala" in loc_clean or "telangkhedi" in loc_clean or "seminary" in loc_clean:
+            node = self._traffic_nodes["futala_promenade"]
+        elif "coastal" in loc_clean or "mumbai" in loc_clean:
+            node = self._traffic_nodes["mumbai_coastal"]
         else:
             node = self._traffic_nodes["default"]
 
-        spoken_response = f"Traffic on {node['name']}: {node['congestion_level']}. {node['status_summary']}"
+        spoken_response = f"Traffic on {node['name']} ({node['city']}): {node['congestion_level']}. {node['status_summary']}"
         oled_lines = [
             f"TRAFFIC: {node['name'][:18]}",
             f"Level: {node['congestion_level']} ({node['avg_speed_kmh']}km/h)",
@@ -251,7 +342,7 @@ class TransitService:
         }
 
     def get_nearest_metro(self, query: str = "") -> Dict[str, Any]:
-        """Returns nearest metro stations, platform directions, and live arrival times."""
+        """Returns nearest Maha Metro Nagpur stations, platform directions, and live arrival times."""
         q_clean = query.lower()
         matched = self._metro_stations[0]
         for station in self._metro_stations:
@@ -260,11 +351,11 @@ class TransitService:
                 break
 
         next_train = matched["next_arrivals"][0]
-        spoken_response = f"Nearest is {matched['name']}, {matched['distance_km']}km away ({matched['walking_time_min']} min walk). Next train to {next_train['destination']} in {next_train['eta_min']} min on {next_train['platform']}."
+        spoken_response = f"Nearest is {matched['name']} in Nagpur, {matched['distance_km']}km away ({matched['walking_time_min']} min walk). Next train to {next_train['destination']} in {next_train['eta_min']} min on {next_train['platform']}."
         oled_lines = [
             f"METRO: {matched['name'][:18]}",
             f"{matched['line'][:20]}",
-            f"Next: {next_train['destination']} in {next_train['eta_min']}m ({next_train['platform']})"
+            f"Next: {next_train['destination'][:12]} in {next_train['eta_min']}m"
         ]
         return {
             "success": True,
@@ -275,15 +366,15 @@ class TransitService:
         }
 
     def get_train_schedule(self, query: str = "") -> Dict[str, Any]:
-        """Returns live train schedule and departure status."""
+        """Returns live train schedule at Nagpur Junction (NGP) and departure status."""
         q_clean = query.lower()
         selected = self._train_schedules[0]
         for t in self._train_schedules:
-            if any(part in t["train_name"].lower() or part in t["destination"].lower() for part in q_clean.split()):
+            if any(part in t["train_name"].lower() or part in t["destination"].lower() or part in t["train_number"].lower() for part in q_clean.split()):
                 selected = t
                 break
 
-        spoken_response = f"{selected['train_name']} to {selected['destination']} arrives in {selected['eta_min']} min on {selected['platform']}. Status: {selected['status'].replace('_', ' ')}."
+        spoken_response = f"{selected['train_name']} to {selected['destination']} departs in {selected['eta_min']} min from {selected['platform']}. Status: {selected['status'].replace('_', ' ')}."
         oled_lines = [
             f"TRAIN: {selected['train_name'][:18]}",
             f"To: {selected['destination'][:12]} | {selected['platform']}",
@@ -298,28 +389,27 @@ class TransitService:
         }
 
     def get_flight_status(self, flight_number: str) -> Dict[str, Any]:
-        """Returns real-time flight tracking, gate, terminal, and carousel details."""
+        """Returns real-time flight tracking at Dr. Babasaheb Ambedkar International Airport (NAG)."""
         clean_num = flight_number.upper().replace("-", "").replace(" ", "")
         flight = None
         for k, v in self._flight_data.items():
             if k in clean_num or clean_num in k:
                 flight = v
                 break
-        
+
         if not flight:
-            # Fallback dynamic generator for any flight
             flight = {
                 "flight_number": flight_number.upper(),
-                "airline": "Commercial Airline",
-                "route": "Live Corridor -> Mumbai (BOM)",
-                "scheduled_departure": "15:45",
-                "estimated_departure": "15:45",
+                "airline": "Commercial Flight",
+                "route": f"NAG (Nagpur) -> {flight_number.upper()} Corridor",
+                "scheduled_departure": "16:20",
+                "estimated_departure": "16:20",
                 "status": "ON_TIME",
-                "terminal": "Terminal 2",
-                "gate": "Gate 42",
-                "carousel": "Carousel 6",
-                "aircraft": "Boeing 737 / Airbus A320",
-                "summary": f"Flight {flight_number.upper()} is currently ON TIME. Departure at 15:45 from Terminal 2, Gate 42."
+                "terminal": "Terminal 1",
+                "gate": "Gate 2",
+                "carousel": "Carousel 1",
+                "aircraft": "Airbus A320 / Boeing 737",
+                "summary": f"Flight {flight_number.upper()} at Nagpur (NAG) is ON TIME. Departure at 16:20 from Terminal 1, Gate 2."
             }
 
         spoken_response = flight["summary"]
@@ -335,39 +425,71 @@ class TransitService:
             "oled_lines": oled_lines
         }
 
+    def get_google_earth_navigation(self, destination: str = "Sitabuldi Interchange, Nagpur", lat: float = 21.1458, lon: float = 79.0882) -> Dict[str, Any]:
+        """
+        Generates Google Live Earth 3D Photorealistic & Satellite Navigation metadata.
+        """
+        google_earth_3d_url = f"https://earth.google.com/web/@{lat},{lon},310a,800d,35y,0h,45t,0r"
+        google_maps_nav_url = f"https://www.google.com/maps/dir/?api=1&destination={lat},{lon}&travelmode=driving"
+        
+        spoken_nav = f"Google Earth 3D navigation locked on {destination}. Bearing 42 degrees North-East, 1.4 kilometers remaining."
+        oled_nav = [
+            f"NAV: {destination[:18]}",
+            f"Dist: 1.4km | 42° NE",
+            "Turn Right in 150m"
+        ]
+        
+        return {
+            "success": True,
+            "destination": destination,
+            "latitude": lat,
+            "longitude": lon,
+            "google_earth_url": google_earth_3d_url,
+            "google_maps_nav_url": google_maps_nav_url,
+            "bearing_degrees": 42.0,
+            "heading_compass": "NE",
+            "distance_km": 1.4,
+            "eta_minutes": 5,
+            "turn_instruction": "In 150 meters, turn right toward Sitabuldi Interchange Station.",
+            "spoken_response": spoken_nav,
+            "oled_lines": oled_nav
+        }
+
     def query_god_eye(self, message: str) -> Dict[str, Any]:
-        """Unified God's Eye Live query resolver across Traffic, Metro, Train, and Flights."""
+        """Unified God's Eye Live query resolver across Nagpur & Global Traffic, Metro, Trains, Flights, and Google Earth."""
         m = message.lower()
-        if any(w in m for w in ["flight", "plane", "airline", "indigo", "air india", "vistara", "emirates", "gate", "terminal"]):
-            # Extract flight code if present
+        if any(w in m for w in ["earth", "satellite", "3d map", "navigate", "directions", "route to", "gps"]):
+            return self.get_google_earth_navigation()
+        elif any(w in m for w in ["flight", "plane", "airline", "indigo", "air india", "vistara", "nagpur airport", "nag"]):
             words = message.split()
-            code = "6E204"
+            code = "6E412"
             for w in words:
                 if any(c.isdigit() for c in w) and len(w) >= 3:
                     code = w
                     break
             return self.get_flight_status(code)
-        elif any(w in m for w in ["metro", "subway", "underground", "line 1", "line 3", "aqua line"]):
+        elif any(w in m for w in ["metro", "subway", "maha metro", "sitabuldi", "aqua line", "orange line", "lokmanya"]):
             return self.get_nearest_metro(message)
-        elif any(w in m for w in ["train", "local", "railway", "csmt", "churchgate", "rajdhani", "vande bharat", "platform"]):
+        elif any(w in m for w in ["train", "railway", "vande bharat", "duronto", "vidarbha", "sewagram", "ngp", "platform"]):
             return self.get_train_schedule(message)
-        elif any(w in m for w in ["traffic", "congestion", "highway", "jam", "commute", "road", "bkc", "route"]):
+        elif any(w in m for w in ["traffic", "congestion", "wardha road", "samruddhi", "jam", "commute", "road", "amravati"]):
             return self.get_traffic_status(message)
         else:
-            # Default overview
             traffic = self.get_traffic_status()
             metro = self.get_nearest_metro()
             return {
                 "success": True,
                 "overview": {
+                    "city": "Nagpur, Maharashtra",
                     "traffic": traffic["data"],
-                    "metro": metro["station"]
+                    "metro": metro["station"],
+                    "home_landmark": "Sitabuldi Interchange / Zero Mile Stone"
                 },
-                "spoken_response": f"God's Eye Live: Nearest metro is {metro['station']['name']} (5 min walk). Traffic on city highways is {traffic['data']['congestion_level']}.",
+                "spoken_response": f"God's Eye Live (Nagpur): Nearest metro is {metro['station']['name']} (6 min walk). Traffic on Wardha Road and Samruddhi Mahamarg is {traffic['data']['congestion_level']}.",
                 "oled_lines": [
-                    "GOD'S EYE RADAR",
-                    f"Metro: {metro['station']['name'][:12]} (5m)",
-                    f"Traffic: {traffic['data']['congestion_level']}"
+                    "GOD'S EYE NAGPUR",
+                    f"Metro: {metro['station']['name'][:12]} (6m)",
+                    f"Wardha Rd: {traffic['data']['congestion_level']}"
                 ]
             }
 

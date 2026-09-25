@@ -1,8 +1,8 @@
-# LARA Smart Glasses AI — Engineering Retrospective, Challenges & Technical Disagreements
+# EVA Smart Glasses AI — Engineering Retrospective, Challenges & Technical Disagreements
 
 ## Executive Overview
 
-This document provides a comprehensive post-mortem and engineering retrospective of the **LARA Smart Glasses AI** project. It details the core problems encountered across firmware, mobile, and backend layers, where development got stuck, the key architectural disagreements and debates, and how each issue was resolved.
+This document provides a comprehensive post-mortem and engineering retrospective of the **EVA Smart Glasses AI** project. It details the core problems encountered across firmware, mobile, and backend layers, where development got stuck, the key architectural disagreements and debates, and how each issue was resolved.
 
 ---
 
@@ -19,7 +19,7 @@ This document provides a comprehensive post-mortem and engineering retrospective
 * **Impact**: The smart glasses voice output felt like an unhelpful generic notification dump rather than an intelligent contextual companion.
 
 ### 1.2 "Ghost Email Sending" (UI Success vs. Live Gmail Delivery)
-* **The Symptom**: When asking LARA to *"Send mail to tyachi6@gmail.com with subject Happy Birthday"*, the web interface and mobile app responded: *"Email sent to tyachi6@gmail.com."* However, no email was actually received in the target Gmail inbox.
+* **The Symptom**: When asking EVA to *"Send mail to tyachi6@gmail.com with subject Happy Birthday"*, the web interface and mobile app responded: *"Email sent to tyachi6@gmail.com."* However, no email was actually received in the target Gmail inbox.
 * **Root Cause**:
   1. The environment was falling back to `LaptopEmailProvider` (`USE_MOCK_EMAIL=1`) without notifying the user that real Google OAuth tokens were unlinked.
   2. The Google OAuth scope in production lacked the `https://www.googleapis.com/auth/gmail.send` write privilege (only read-only inbox scopes were authorized).
@@ -74,7 +74,7 @@ During the design and implementation phases, several key architectural approache
 ```mermaid
 flowchart TD
     A["User Voice Input (ESP32-S3 / Android)"] --> B["On-Device Android STT"]
-    B --> C["LARA Backend API (/api/v1/agent/message)"]
+    B --> C["EVA Backend API (/api/v1/agent/message)"]
     C --> D["StructuredRequestParser"]
     
     D -->|"Deterministic (Time, Math)"| E["Fast Path Engine (<50ms)"]
@@ -106,7 +106,7 @@ flowchart TD
 
 ### 4.3 Safe Two-Step Confirmation with Session Memory
 * Added session-bound `PendingAction` storage in `tool_registry.py`.
-* When a high-risk mutation is requested, LARA stages the draft and returns `requires_confirmation=True`.
+* When a high-risk mutation is requested, EVA stages the draft and returns `requires_confirmation=True`.
 * When the user affirms (*"yes", "send it", "haan bhejo"*), the parser emits `ParsedIntent.CONFIRMATION`, matches the `session_id`, and executes the pending action immediately.
 
 ### 4.4 Dual-Tier LLM Fallback (Gemini $\to$ DeepSeek)

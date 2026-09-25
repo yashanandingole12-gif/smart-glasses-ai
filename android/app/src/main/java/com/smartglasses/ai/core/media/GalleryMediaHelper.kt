@@ -22,7 +22,7 @@ object GalleryMediaHelper {
     fun saveJpegBytes(
         context: Context,
         jpegBytes: ByteArray,
-        titlePrefix: String = "LARA_Capture"
+        titlePrefix: String = "EVA_Capture"
     ): Uri? {
         if (jpegBytes.isEmpty()) return null
         return try {
@@ -35,7 +35,7 @@ object GalleryMediaHelper {
                 put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
                 put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/LARA_SmartGlasses")
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/EVA_SmartGlasses")
                     put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
             }
@@ -65,7 +65,7 @@ object GalleryMediaHelper {
         }
     }
 
-    fun saveSamplePhoto(context: Context, label: String = "LARA Smart Glasses Photo"): Uri? {
+    fun saveSamplePhoto(context: Context, label: String = "EVA Smart Glasses Photo"): Uri? {
         val width = 640
         val height = 480
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -86,11 +86,11 @@ object GalleryMediaHelper {
         }
 
         canvas.drawText(label, width / 2f, height / 2f - 20, paint)
-        canvas.drawText("XIAO ESP32-S3 Sense · OV2640", width / 2f, height / 2f + 25, subPaint)
+        canvas.drawText("XIAO ESP32-S3 Sense  OV2640", width / 2f, height / 2f + 25, subPaint)
 
         val stream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 92, stream)
         val bytes = stream.toByteArray()
-        return saveJpegBytes(context, bytes, "LARA_Photo")
+        return saveJpegBytes(context, bytes, "EVA_Photo")
     }
 }

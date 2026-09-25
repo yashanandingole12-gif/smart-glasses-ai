@@ -73,7 +73,7 @@ def test_storage_file_size_limit():
 
 def test_api_upload_and_download_flow():
     # 1. Upload TXT Document
-    test_text = "Project Specifications: LARA Smart Glasses Context Engine v1.0. High performance BLE and Audio."
+    test_text = "Project Specifications: EVA Smart Glasses Context Engine v1.0. High performance BLE and Audio."
     files = {"file": ("project_spec.txt", io.BytesIO(test_text.encode("utf-8")), "text/plain")}
     data = {"source": "web"}
     

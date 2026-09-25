@@ -511,7 +511,7 @@ class StructuredRequestParser:
             "research papers on", "research papers about", "research paper", "search papers on", "search papers about",
             "find papers on", "find papers about", "papers on", "papers about", "paper on", "paper about",
             "research on", "literature on", "literature review on", "semantic scholar", "google scholar", "scholar search",
-            "research engine", "lara research"
+            "research engine", "eva research"
         ]
         if any(t in q for t in research_triggers):
             clean_topic = q_raw
@@ -521,7 +521,7 @@ class StructuredRequestParser:
                 "research papers on", "research papers about", "research paper on", "research paper about",
                 "search papers on", "search papers about", "papers on", "papers about", "paper on", "paper about",
                 "research on", "literature on", "literature review on", "semantic scholar", "google scholar", "arxiv",
-                "research engine", "lara research"
+                "research engine", "eva research"
             ]:
                 if t in q:
                     idx = q.find(t)

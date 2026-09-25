@@ -23,7 +23,7 @@ import com.smartglasses.ai.presentation.home.WearableHomeViewModel
 import com.smartglasses.ai.presentation.theme.*
 
 /**
- * LARA Unified Information Center:
+ * EVA Unified Information Center:
  * - Cross-tool information retrieval across Mail, Calendar, Messages, Contacts, Files, Notes, Research
  * - Natural language search interface
  */
@@ -37,7 +37,7 @@ fun InformationWorkspaceScreen(
     val categories = listOf("All", "Mail", "Calendar", "Messages", "Contacts", "Files", "Research")
 
     Scaffold(
-        containerColor = LaraIvory
+        containerColor = EvaIvory
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -54,13 +54,13 @@ fun InformationWorkspaceScreen(
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = LaraCharcoal,
+                        color = EvaPrimaryBlack,
                         letterSpacing = 1.sp
                     )
                     Text(
                         text = "Unified Cross-Domain Executive Knowledge",
                         fontSize = 12.sp,
-                        color = LaraTextSecondaryLight
+                        color = EvaMutedText
                     )
                 }
             }
@@ -71,22 +71,22 @@ fun InformationWorkspaceScreen(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search emails, files, meetings, contacts...", fontSize = 13.sp, color = LaraTextSecondaryLight) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = LaraMutedOrange) },
+                    placeholder = { Text("Search emails, files, meetings, contacts...", fontSize = 13.sp, color = EvaMutedText) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = EvaPrimaryGreen) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = {
                                 viewModel.sendTextMessage(searchQuery)
                                 onNavigateToCommand()
                             }) {
-                                Icon(Icons.Default.ArrowForward, contentDescription = "Query", tint = LaraCharcoal)
+                                Icon(Icons.Default.ArrowForward, contentDescription = "Query", tint = EvaPrimaryBlack)
                             }
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = LaraMutedOrange,
-                        unfocusedBorderColor = LaraBorderLight,
+                        focusedBorderColor = EvaPrimaryGreen,
+                        unfocusedBorderColor = EvaBorderSubtle,
                         focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White
                     ),
@@ -105,14 +105,14 @@ fun InformationWorkspaceScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) LaraCharcoal else Color.White)
-                                .border(1.dp, if (isSelected) LaraCharcoal else LaraBorderLight, RoundedCornerShape(8.dp))
+                                .background(if (isSelected) EvaPrimaryBlack else Color.White)
+                                .border(1.dp, if (isSelected) EvaPrimaryBlack else EvaBorderSubtle, RoundedCornerShape(8.dp))
                                 .clickable { selectedCategory = cat }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = cat,
-                                color = if (isSelected) Color.White else LaraCharcoal,
+                                color = if (isSelected) Color.White else EvaPrimaryBlack,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -127,7 +127,7 @@ fun InformationWorkspaceScreen(
                     text = "EXECUTIVE SHORTCUTS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LaraTextSecondaryLight,
+                    color = EvaMutedText,
                     letterSpacing = 0.8.sp
                 )
             }
@@ -196,7 +196,7 @@ fun InfoShortcutCard(
             .clickable { onQueryClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+        border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -206,17 +206,17 @@ fun InfoShortcutCard(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(LaraIvory),
+                    .background(EvaIvory),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = LaraCharcoal, modifier = Modifier.size(18.dp))
+                Icon(icon, contentDescription = null, tint = EvaPrimaryBlack, modifier = Modifier.size(18.dp))
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LaraCharcoal)
-                Text("\"$query\"", fontSize = 11.sp, color = LaraTextSecondaryLight, lineHeight = 15.sp)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = EvaPrimaryBlack)
+                Text("\"$query\"", fontSize = 11.sp, color = EvaMutedText, lineHeight = 15.sp)
             }
-            Icon(Icons.Default.ArrowOutward, contentDescription = null, tint = LaraMutedOrange, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.ArrowOutward, contentDescription = null, tint = EvaPrimaryGreen, modifier = Modifier.size(16.dp))
         }
     }
 }

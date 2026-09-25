@@ -112,7 +112,7 @@ def run_hardware_voice_suite():
             },
             timeout=25.0
         )
-        # T5: LARA Backend Response Received
+        # T5: EVA Backend Response Received
         t5 = time.perf_counter()
         
         # T6: Android TTS Engine Started (~15ms)

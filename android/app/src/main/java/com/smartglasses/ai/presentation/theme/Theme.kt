@@ -37,14 +37,6 @@ fun EvaTheme(
     )
 }
 
-// Backward Compatibility Aliases
-@Composable
-fun LaraTheme(
-    content: @Composable () -> Unit
-) {
-    EvaTheme(content = content)
-}
-
 @Composable
 fun SmartGlassesTheme(
     content: @Composable () -> Unit

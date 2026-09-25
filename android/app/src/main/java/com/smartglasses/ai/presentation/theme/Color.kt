@@ -36,33 +36,26 @@ val EvaStatusAlert = Color(0xFF9E3A3A)
 val EvaAmberSun = Color(0xFFD4A038)
 val EvaAmberSunBg = Color(0xFFFFF9EE)
 
-// =========================================================================
-// Compatibility Aliases for Existing Screens & Themes (Mapped to Ivory/Green)
-// =========================================================================
+// Compatibility Aliases for Design Tokens
 val EvaVoid = EvaIvory
 val EvaNight = EvaWarmIvory
 val EvaEarthBlack = EvaLightStone
 val EvaCharcoal = EvaPrimaryBlack
-
 val EvaUmber = EvaWarmIvory
 val EvaCopper = EvaSoftGreen
 val EvaAmberBrown = EvaPrimaryGreen
 val EvaBronze = EvaMutedText
-
 val EvaGold = EvaPrimaryGreen
 val EvaAmber = EvaPrimaryGreen
 val EvaSunlight = EvaPrimaryBlack
 val EvaIvoryLegacy = EvaIvory
-
 val EvaOliveBlack = EvaPrimaryBlack
 val EvaMoss = EvaMutedText
 val EvaOlive = EvaPrimaryGreen
 val EvaSage = EvaSoftGreen
-
 val EvaWine = EvaDeepGreen
 val EvaCrimson = EvaStatusAlert
 val EvaMauve = EvaSoftGreen
-
 val EvaIndigo = EvaWarmIvory
 val EvaSurfaceVelvet = EvaPureWhite
 val EvaSurfaceElevated = EvaSoftWhite
@@ -73,38 +66,10 @@ val EvaCyan = EvaSoftGreen
 val EvaViolet = EvaPrimaryGreen
 val EvaRose = EvaStatusAlert
 val EvaEmerald = EvaPrimaryGreen
-
 val EvaTextPure = EvaPrimaryBlack
 val EvaTextPrimary = EvaPrimaryBlack
 val EvaTextSecondary = EvaMutedText
 val EvaTextMuted = EvaMutedText
-
-val LaraCharcoal = EvaPrimaryBlack
-val LaraGraphite = EvaSoftBlack
-val LaraSurfaceDark = EvaPureWhite
-val LaraSurfaceCard = EvaPureWhite
-val LaraIvory = EvaIvory
-val LaraWarmWhite = EvaPureWhite
-val LaraSurfaceSubtle = EvaWarmIvory
-
-val LaraMutedOrange = EvaPrimaryGreen
-val LaraOrangeLight = EvaPaleGreen
-val LaraEmerald = EvaPrimaryGreen
-val LaraEmeraldBg = EvaMistGreen
-val LaraAmber = EvaPrimaryGreen
-val LaraAmberBg = EvaMistGreen
-val LaraMutedRed = EvaStatusAlert
-val LaraMutedRedBg = Color(0x1A9E3A3A)
-val LaraSand = EvaWarmIvory
-
-val LaraBorderDark = EvaBorderSubtle
-val LaraBorderLight = EvaBorderSubtle
-
-val LaraTextPrimaryDark = EvaPrimaryBlack
-val LaraTextSecondaryDark = EvaMutedText
-val LaraTextPrimaryLight = EvaPrimaryBlack
-val LaraTextSecondaryLight = EvaMutedText
-
 val LuxuryNavy = EvaPrimaryBlack
 val LuxuryIvory = EvaIvory
 val LuxuryWarmWhite = EvaPureWhite
@@ -123,7 +88,6 @@ val LuxurySage = EvaSoftGreen
 val LuxurySageBg = EvaMistGreen
 val LuxuryTerracotta = EvaStatusAlert
 val LuxuryTerracottaBg = Color(0x1A9E3A3A)
-
 val WearableDarkBackground = EvaIvory
 val WearableDarkSurface = EvaPureWhite
 val WearableDarkSurfaceVariant = EvaWarmIvory

@@ -7,9 +7,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import com.smartglasses.ai.core.bluetooth.BleManager
 import com.smartglasses.ai.core.permissions.PermissionManager
-import com.smartglasses.ai.presentation.LaraMainScreen
+import com.smartglasses.ai.presentation.EvaMainScreen
 import com.smartglasses.ai.presentation.home.WearableHomeViewModel
-import com.smartglasses.ai.presentation.theme.LaraTheme
+import com.smartglasses.ai.presentation.theme.EvaTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -47,8 +47,8 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            LaraTheme {
-                LaraMainScreen(
+            EvaTheme {
+                EvaMainScreen(
                     viewModel = viewModel,
                     bleManager = bleManager
                 )

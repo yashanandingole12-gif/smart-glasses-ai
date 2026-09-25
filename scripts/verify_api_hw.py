@@ -30,7 +30,7 @@ def verify_all_endpoints():
     else:
         print(f"[3] Microphone Telemetry Endpoint: {r.status_code} -> {r.text}")
 
-    # 4. End-to-End LARA Agent Message
+    # 4. End-to-End EVA Agent Message
     t0 = time.time()
     payload = {
         "session_id": "test_hw_verification",
@@ -42,9 +42,9 @@ def verify_all_endpoints():
     lat_msg = (time.time() - t0) * 1000
     if r.status_code == 200:
         d = r.json()
-        print(f"[4] LARA Voice Query: {r.status_code} -> Response: '{d.get('response')}' (Total Latency: {lat_msg:.1f}ms, Server: {d.get('metadata', {}).get('latency_ms')}ms)")
+        print(f"[4] EVA Voice Query: {r.status_code} -> Response: '{d.get('response')}' (Total Latency: {lat_msg:.1f}ms, Server: {d.get('metadata', {}).get('latency_ms')}ms)")
     else:
-        print(f"[4] LARA Voice Query: {r.status_code} -> {r.text}")
+        print(f"[4] EVA Voice Query: {r.status_code} -> {r.text}")
 
     # 5. Calendar Query
     t0 = time.time()

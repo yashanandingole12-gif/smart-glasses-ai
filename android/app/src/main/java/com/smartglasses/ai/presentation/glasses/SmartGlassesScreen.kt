@@ -357,7 +357,7 @@ fun ClosedScreenDaemonCard(isActive: Boolean) {
                     color = LuxuryNavy
                 )
                 Text(
-                    text = "LARA operates with phone locked & in pocket. Push-to-talk, vision, calling & SMS stay active.",
+                    text = "EVA operates with phone locked & in pocket. Push-to-talk, vision, calling & SMS stay active.",
                     fontSize = 11.sp,
                     color = LuxuryNavy.copy(alpha = 0.7f),
                     lineHeight = 14.sp

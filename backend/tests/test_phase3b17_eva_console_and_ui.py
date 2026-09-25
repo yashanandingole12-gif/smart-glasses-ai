@@ -4,12 +4,12 @@ from backend.app.main import app
 
 client = TestClient(app)
 
-def test_web_console_lara_branding():
-    """Verify that GET /web returns LARA Operations Console with executive branding."""
+def test_web_console_eva_branding():
+    """Verify that GET /web returns EVA Operations Console with executive branding."""
     resp = client.get("/web")
     assert resp.status_code == 200
     html = resp.text
-    assert "LARA" in html
+    assert "EVA" in html
     assert "Private Intelligence & Control" in html
     assert "Intent Inspector" in html
     assert "Desk & Data Analysis" in html

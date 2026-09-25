@@ -3,17 +3,17 @@ import os
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from lara_research import LaraResearch
+from eva_research import EvaResearch
 
 def audit_research_apis():
     print("=====================================================")
-    print("   LARA RESEARCH ENGINE -- LIVE API AUDIT & STATUS   ")
+    print("   EVA RESEARCH ENGINE -- LIVE API AUDIT & STATUS   ")
     print("=====================================================")
 
-    lara = LaraResearch()
+    eva = EvaResearch()
     query = "quantum computing"
 
-    for name, connector in lara.connectors.items():
+    for name, connector in eva.connectors.items():
         t0 = time.time()
         try:
             res = connector.search(query, limit=3)
@@ -27,7 +27,7 @@ def audit_research_apis():
 
     # Unified search with deduplication
     t0 = time.time()
-    unified = lara.search(query, limit=3)
+    unified = eva.search(query, limit=3)
     t_total = (time.time() - t0) * 1000
     print("-----------------------------------------------------")
     print(f"Unified Parallel Search: {len(unified)} unique papers returned in {t_total:.1f}ms")

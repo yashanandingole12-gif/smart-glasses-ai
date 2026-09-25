@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# LARA Smart Glasses AI - Docker Deploy Script (PowerShell)
+# EVA Smart Glasses AI - Docker Deploy Script (PowerShell)
 # -----------------------------------------------------------------------------
 param (
     [switch]$Rebuild,
@@ -7,7 +7,7 @@ param (
 )
 
 Write-Host "==================================================" -ForegroundColor Cyan
-Write-Host "  LARA Smart Glasses AI - Docker Deployment" -ForegroundColor Cyan
+Write-Host "  EVA Smart Glasses AI - Docker Deployment" -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan
 
 # Auto-detect and include Docker Desktop paths in PATH if not already present
@@ -52,7 +52,7 @@ if ($Rebuild) {
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "[SUCCESS] LARA Smart Glasses AI is running on Docker!" -ForegroundColor Green
+    Write-Host "[SUCCESS] EVA Smart Glasses AI is running on Docker!" -ForegroundColor Green
     Write-Host "  Web Console: http://localhost:8001/web" -ForegroundColor Cyan
     Write-Host "  API Docs:    http://localhost:8001/docs" -ForegroundColor Cyan
     Write-Host "  Health:      http://localhost:8001/api/v1/health" -ForegroundColor Cyan

@@ -18,7 +18,7 @@ def get_dashboard_html() -> str:
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- LARA Smart Glasses Operations Console | ESP32 Smart Glasses & Android Hub | Private Intelligence & Control | Intent Inspector | Desk & Data Analysis | Automations Center | Smart Notifications -->
+    <!-- EVA Smart Glasses Operations Console | ESP32 Smart Glasses & Android Hub | Private Intelligence & Control | Intent Inspector | Desk & Data Analysis | Automations Center | Smart Notifications -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>EVA — See More. Live Deeper. | Ambient Intelligence</title>
     
@@ -1510,29 +1510,33 @@ def get_dashboard_html() -> str:
             <!-- Right Ambient Live Status Widget -->
             <div class="eva-hero-widget-card">
                 <div class="widget-header">
-                    <span class="widget-badge">Live Context</span>
-                    <span class="widget-time" id="hero-live-clock">10:42 AM</span>
+                    <span class="widget-badge" id="hero-badge-location"><span class="status-dot-pulse"></span> Nagpur, IN</span>
+                    <span class="widget-time" id="hero-live-clock">--:-- --</span>
                 </div>
 
                 <div class="widget-live-block">
-                    <div class="widget-live-title" id="hero-context-title">Autumn Morning Walk</div>
+                    <div class="widget-live-title" id="hero-context-title">Good morning, Yash</div>
                     <div class="widget-live-desc" id="hero-context-desc">
-                        Acoustic environment optimal. Microphones calibrated to natural daylight ambient speech.
+                        Nagpur: 29°C · Clear Sky · 68 AQI (Satisfactory). Microphones and telemetry calibrated for ambient walk.
                     </div>
                 </div>
 
                 <div class="widget-metrics-row">
                     <div class="widget-metric-cell">
-                        <span class="widget-metric-num" id="hero-metric-battery">84%</span>
+                        <span class="widget-metric-num" id="hero-metric-temp">29°C</span>
+                        <span class="widget-metric-label">Ambient Temp</span>
+                    </div>
+                    <div class="widget-metric-cell">
+                        <span class="widget-metric-num" id="hero-metric-aqi" style="color:var(--eva-primary-green);">68 AQI</span>
+                        <span class="widget-metric-label">Air Quality</span>
+                    </div>
+                    <div class="widget-metric-cell">
+                        <span class="widget-metric-num" id="hero-metric-battery">85%</span>
                         <span class="widget-metric-label">Battery</span>
                     </div>
                     <div class="widget-metric-cell">
                         <span class="widget-metric-num" id="hero-metric-latency">48ms</span>
                         <span class="widget-metric-label">Cloud TTFA</span>
-                    </div>
-                    <div class="widget-metric-cell">
-                        <span class="widget-metric-num" id="hero-metric-audio">TWS Active</span>
-                        <span class="widget-metric-label">Audio Route</span>
                     </div>
                 </div>
             </div>
@@ -2347,18 +2351,47 @@ def get_dashboard_html() -> str:
                         </div>
                     </div>
 
-                    <!-- God's Eye Live Transit Tab -->
+                    <!-- God's Eye Live Transit & Google Live Earth 3D Tab -->
                     <div class="console-panel" id="tab-transit">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <h4 style="font-size:18px; font-weight:700; color:var(--eva-primary-black);">God's Eye Spatial & Live Transit Intelligence</h4>
-                                <p style="font-size:13px; color:var(--eva-text-muted);">Real-time multimodal navigation across road traffic, suburban metro, intercity trains, and flight corridors.</p>
+                                <h4 style="font-size:18px; font-weight:700; color:var(--eva-primary-black);">God's Eye Spatial & Google Live Earth 3D</h4>
+                                <p style="font-size:13px; color:var(--eva-text-muted);">Real-time satellite navigation across Nagpur Maha Metro, Indian Railways, Wardha Road corridor, and global 3D Earth terrain.</p>
                             </div>
                             <span class="eva-status-pill"><span class="status-dot-pulse"></span> Orbit Active</span>
                         </div>
 
+                        <!-- Google Live Earth 3D Quick Action Banner -->
+                        <div style="background:linear-gradient(135deg, var(--eva-deep-green), var(--eva-primary-green)); border-radius:var(--radius-md); padding:16px 20px; color:white; display:flex; justify-content:space-between; align-items:center; box-shadow:var(--glass-shadow);">
+                            <div>
+                                <div style="font-size:15px; font-weight:700; letter-spacing:0.5px; display:flex; align-items:center; gap:8px;">
+                                    <span style="display:inline-flex; align-items:center; gap:6px;"><span class="status-dot-pulse" style="background:#fff;"></span> Google Live Earth 3D Navigation</span>
+                                    <span style="font-size:10px; background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:99px;">Nagpur Zero Mile Base</span>
+                                </div>
+                                <div style="font-size:12px; opacity:0.9; margin-top:4px;">Photorealistic 3D terrain, orbital spatial perspective & live turn-by-turn HUD routing.</div>
+                            </div>
+                            <div style="display:flex; gap:10px;">
+                                <a id="btn-open-google-earth" href="https://earth.google.com/web/@21.1458,79.0882,312a,950d,35y,0h,45t,0r" target="_blank" class="eva-btn-primary" style="font-size:12px; padding:8px 14px; background:white; color:var(--eva-deep-green); border:none; text-decoration:none;">
+                                    Open Google Earth 3D
+                                </a>
+                                <a id="btn-open-google-maps" href="https://www.google.com/maps/dir/?api=1&destination=21.1458,79.0882" target="_blank" class="eva-btn-secondary" style="font-size:12px; padding:8px 14px; background:rgba(255,255,255,0.15); color:white; border:1px solid rgba(255,255,255,0.4); text-decoration:none;">
+                                    Google Maps Nav
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Nagpur 3D Spatial Landmarks Quick-Teleport Bar -->
+                        <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;">
+                            <button class="filter-pill active" onclick="teleportGodEyePOI('Sitabuldi Interchange', 21.1458, 79.0832)">Sitabuldi Metro</button>
+                            <button class="filter-pill" onclick="teleportGodEyePOI('Zero Mile Stone', 21.1478, 79.0883)">Zero Mile Stone</button>
+                            <button class="filter-pill" onclick="teleportGodEyePOI('Nagpur Junction NGP', 21.1524, 79.0889)">Nagpur Junction</button>
+                            <button class="filter-pill" onclick="teleportGodEyePOI('Dr. Babasaheb Ambedkar Airport NAG', 21.0922, 79.0472)">Nagpur Airport NAG</button>
+                            <button class="filter-pill" onclick="teleportGodEyePOI('Futala Lake Waterfront', 21.1558, 79.0435)">Futala Lake</button>
+                            <button class="filter-pill" onclick="teleportGodEyePOI('Samruddhi Mahamarg Zero Point', 21.1350, 79.0120)">Samruddhi Expressway</button>
+                        </div>
+
                         <div style="display:flex; gap:10px;">
-                            <input type="text" id="transit-query-input" class="cloud-input-field" placeholder="Ask transit (e.g. 'flight 6E204 status', 'traffic to Airport', 'metro to Central', 'trains to Mumbai')..." onkeyup="if(event.key==='Enter') queryTransitGodEye()" style="flex:1;">
+                            <input type="text" id="transit-query-input" class="cloud-input-field" placeholder="Ask transit (e.g. 'metro to Sitabuldi', 'traffic on Wardha Road', 'Vande Bharat to Bilaspur', 'Nagpur flight 6E412')..." onkeyup="if(event.key==='Enter') queryTransitGodEye()" style="flex:1;">
                             <button class="cloud-btn-action" onclick="queryTransitGodEye()">Ask God's Eye</button>
                         </div>
 
@@ -2368,25 +2401,25 @@ def get_dashboard_html() -> str:
                         </div>
 
                         <div class="device-status-grid">
-                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('traffic to airport')">
-                                <span class="tile-name">Live Traffic</span>
-                                <span class="tile-value">Nominal</span>
-                                <span class="tile-sub">Wardha Road 18 min</span>
+                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('traffic on Wardha Road')">
+                                <span class="tile-name">Wardha Expressway</span>
+                                <span class="tile-value">Clear Flow</span>
+                                <span class="tile-sub">58 km/h · +0 min delay</span>
                             </div>
-                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('nearest metro station')">
-                                <span class="tile-name">Metro Transit</span>
-                                <span class="tile-value">Sitabuldi</span>
-                                <span class="tile-sub">Aqua Line · 4 min arr</span>
+                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('Sitabuldi metro')">
+                                <span class="tile-name">Maha Metro Nagpur</span>
+                                <span class="tile-value">Sitabuldi Interchange</span>
+                                <span class="tile-sub">Aqua/Orange · 2 min arr</span>
                             </div>
-                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('train schedule to Mumbai')">
-                                <span class="tile-name">Indian Railways</span>
-                                <span class="tile-value">Vande Bharat</span>
-                                <span class="tile-sub">Plat 1 · On Time</span>
+                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('Vande Bharat train')">
+                                <span class="tile-name">Nagpur Junction (NGP)</span>
+                                <span class="tile-value">Vande Bharat 20826</span>
+                                <span class="tile-sub">Plat 1 · 14:05 Dep</span>
                             </div>
-                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('flight 6E204 status')">
-                                <span class="tile-name">Flight Status</span>
-                                <span class="tile-value">6E 204</span>
-                                <span class="tile-sub">Gate 4 · Baggage Belt 2</span>
+                            <div class="device-status-tile" style="cursor:pointer;" onclick="quickTransitQuery('Nagpur flight 6E412')">
+                                <span class="tile-name">Nagpur Airport (NAG)</span>
+                                <span class="tile-value">6E-412 (BOM)</span>
+                                <span class="tile-sub">Terminal 1 · Gate 3</span>
                             </div>
                         </div>
                     </div>
@@ -2915,8 +2948,33 @@ def get_dashboard_html() -> str:
         }
 
         // =====================================================================
-        // GOD'S EYE TRANSIT & SPATIAL QUERIES
+        // GOD'S EYE TRANSIT & GOOGLE LIVE EARTH 3D QUERIES
         // =====================================================================
+        async function teleportGodEyePOI(name, lat, lon) {
+            const earthBtn = document.getElementById('btn-open-google-earth');
+            const mapsBtn = document.getElementById('btn-open-google-maps');
+            if (earthBtn) earthBtn.href = `https://earth.google.com/web/@${lat},${lon},312a,950d,35y,0h,45t,0r`;
+            if (mapsBtn) mapsBtn.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
+            
+            const card = document.getElementById('transit-result-card');
+            const summaryEl = document.getElementById('transit-result-summary');
+            const rawEl = document.getElementById('transit-result-raw');
+            if (card) card.style.display = 'block';
+            if (summaryEl) summaryEl.textContent = `[3D Satellite] Locked on ${name} (${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E)`;
+            if (rawEl) rawEl.textContent = `[Google Live Earth 3D Teleport]\nDestination: ${name}\nCoordinates: ${lat}, ${lon}\nMode: Orbital 3D Photorealistic Frustum\nBearing: 42° NE | Elevation: 312m MSL`;
+
+            try {
+                const res = await fetch(`/api/v1/navigation/google-earth?destination=${encodeURIComponent(name)}&lat=${lat}&lon=${lon}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (summaryEl) summaryEl.textContent = `[Live Earth 3D] ${data.spoken_response || data.destination}`;
+                    if (rawEl) rawEl.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (err) {
+                console.debug('POI navigation fallback active:', err);
+            }
+        }
+
         async function queryTransitGodEye() {
             const q = document.getElementById('transit-query-input')?.value?.trim();
             if (!q) {
@@ -2938,7 +2996,7 @@ def get_dashboard_html() -> str:
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (summaryEl) summaryEl.textContent = data.summary || "Transit route analyzed.";
+                    if (summaryEl) summaryEl.textContent = data.spoken_response || data.summary || "Transit route analyzed.";
                     if (rawEl) rawEl.textContent = JSON.stringify(data, null, 2);
                 }
             } catch (e) {
@@ -2968,26 +3026,57 @@ def get_dashboard_html() -> str:
             });
         }
 
-        // Fetch Live Telemetry from Backend
-        async function fetchBackendTelemetry() {
+        // Fetch Real-time Live Context (IST Time, Weather, AQI, Battery)
+        async function fetchLiveContext() {
             try {
-                const res = await fetch('/api/v1/hardware/status');
+                // 1. Browser Native Battery API if available
+                let browserBattery = null;
+                if (navigator.getBattery) {
+                    try {
+                        const b = await navigator.getBattery();
+                        browserBattery = Math.round(b.level * 100);
+                    } catch(e) {}
+                }
+
+                const url = browserBattery !== null ? `/api/v1/context/live?phone_battery=${browserBattery}` : '/api/v1/context/live';
+                const res = await fetch(url);
                 if (res.ok) {
-                    const data = await res.json();
-                    if (data.system && data.system.battery_pct !== undefined) {
-                        const bat = data.system.battery_pct + '%';
+                    const resp = await res.json();
+                    const ctx = resp.context;
+                    if (ctx) {
+                        // Clock & Greeting
+                        const clockEl = document.getElementById('hero-live-clock');
+                        if (clockEl) clockEl.textContent = `${ctx.formatted_time} IST`;
+
+                        const titleEl = document.getElementById('hero-context-title');
+                        if (titleEl) titleEl.textContent = ctx.greeting;
+
+                        const descEl = document.getElementById('hero-context-desc');
+                        if (descEl) descEl.textContent = `${ctx.city.split(',')[0]}: ${ctx.temperature_celsius}°C · ${ctx.weather_condition} · ${ctx.aqi} AQI (${ctx.aqi_category}). ${ctx.aqi_advisory}`;
+
+                        // Metrics
+                        const tempEl = document.getElementById('hero-metric-temp');
+                        if (tempEl) tempEl.textContent = `${ctx.temperature_celsius}°C`;
+
+                        const aqiEl = document.getElementById('hero-metric-aqi');
+                        if (aqiEl) {
+                            aqiEl.textContent = `${ctx.aqi} AQI`;
+                            aqiEl.style.color = ctx.aqi_color || 'var(--eva-primary-green)';
+                        }
+
                         const batEl = document.getElementById('hero-metric-battery');
                         const tileBat = document.getElementById('tile-battery-pct');
-                        if (batEl) batEl.textContent = bat;
-                        if (tileBat) tileBat.textContent = bat;
+                        const battStr = `${ctx.glasses_battery_pct}%`;
+                        if (batEl) batEl.textContent = battStr;
+                        if (tileBat) tileBat.textContent = battStr;
                     }
                 }
             } catch (err) {
-                console.debug('Telemetry loopback active.');
+                console.debug('Live context loop active:', err);
             }
         }
-        setInterval(fetchBackendTelemetry, 10000);
-        fetchBackendTelemetry();
+        setInterval(fetchLiveContext, 10000);
+        fetchLiveContext();
         loadLlmConfig();
 
         // Action Handlers

@@ -22,7 +22,7 @@ import com.smartglasses.ai.presentation.home.WearableHomeViewModel
 import com.smartglasses.ai.presentation.theme.*
 
 /**
- * LARA Desk Analysis & Document Intelligence Workspace:
+ * EVA Desk Analysis & Document Intelligence Workspace:
  * - Tabular data analysis (CSV, XLSX, PDF tables)
  * - Contract & document reasoning
  * - Structured summaries & anomaly extraction
@@ -37,7 +37,7 @@ fun IntelligenceScreen(
     var analysisResult by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        containerColor = LaraIvory
+        containerColor = EvaIvory
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -55,26 +55,26 @@ fun IntelligenceScreen(
                 ) {
                     Column {
                         Text(
-                            text = "LARA INTELLIGENCE",
+                            text = "EVA INTELLIGENCE",
                             fontFamily = FontFamily.Serif,
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
-                            color = LaraCharcoal,
+                            color = EvaPrimaryBlack,
                             letterSpacing = 1.sp
                         )
                         Text(
                             text = "Desk Analysis & Document Reasoning",
                             fontSize = 12.sp,
-                            color = LaraTextSecondaryLight
+                            color = EvaMutedText
                         )
                     }
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(LaraEmeraldBg)
+                            .background(EvaMistGreen)
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Text("AI READY", color = LaraEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("AI READY", color = EvaPrimaryGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -85,7 +85,7 @@ fun IntelligenceScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Row(
@@ -94,15 +94,15 @@ fun IntelligenceScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.TableChart, contentDescription = null, tint = LaraMutedOrange, modifier = Modifier.size(22.dp))
+                                Icon(Icons.Default.TableChart, contentDescription = null, tint = EvaPrimaryGreen, modifier = Modifier.size(22.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(selectedDataset, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = LaraCharcoal)
+                                Text(selectedDataset, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = EvaPrimaryBlack)
                             }
-                            Text("24,582 rows · 18 cols", fontSize = 11.sp, color = LaraTextSecondaryLight)
+                            Text("24,582 rows · 18 cols", fontSize = 11.sp, color = EvaMutedText)
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
-                        Divider(color = LaraBorderLight, thickness = 0.8.dp)
+                        Divider(color = EvaBorderSubtle, thickness = 0.8.dp)
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // Desk Action Buttons
@@ -116,7 +116,7 @@ fun IntelligenceScreen(
                                     analysisResult = "Dataset contains 24,582 sales records across 4 regions. Q3 revenue grew by +14.2% YoY driven by enterprise subscriptions."
                                 },
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = LaraCharcoal),
+                                colors = ButtonDefaults.buttonColors(containerColor = EvaPrimaryBlack),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(vertical = 8.dp)
                             ) {
@@ -129,7 +129,7 @@ fun IntelligenceScreen(
                                     analysisResult = "Detected 3 regional variance anomalies: APAC discount rate exceeded 28% threshold in August (Record #1,402 and #8,912)."
                                 },
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = LaraMutedOrange),
+                                colors = ButtonDefaults.buttonColors(containerColor = EvaPrimaryGreen),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(vertical = 8.dp)
                             ) {
@@ -138,16 +138,16 @@ fun IntelligenceScreen(
 
                             OutlinedButton(
                                 onClick = {
-                                    activeOperation = "Ask LARA"
+                                    activeOperation = "Ask EVA"
                                     viewModel.sendTextMessage("Analyze dataset $selectedDataset for quarterly sales trends")
                                     onNavigateToCommand()
                                 },
                                 modifier = Modifier.weight(1f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(vertical = 8.dp)
                             ) {
-                                Text("Ask LARA", fontSize = 11.sp, color = LaraCharcoal)
+                                Text("Ask EVA", fontSize = 11.sp, color = EvaPrimaryBlack)
                             }
                         }
                     }
@@ -161,24 +161,24 @@ fun IntelligenceScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAF8)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, LaraEmerald.copy(alpha = 0.4f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, EvaPrimaryGreen.copy(alpha = 0.4f))
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = LaraEmerald, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = EvaPrimaryGreen, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "OPERATION: ${activeOperation?.uppercase()}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = LaraEmerald
+                                    color = EvaPrimaryGreen
                                 )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = analysisResult ?: "",
                                 fontSize = 13.sp,
-                                color = LaraCharcoal,
+                                color = EvaPrimaryBlack,
                                 lineHeight = 18.sp
                             )
                         }
@@ -192,7 +192,7 @@ fun IntelligenceScreen(
                     text = "AVAILABLE INTELLIGENCE TOOLS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LaraTextSecondaryLight,
+                    color = EvaMutedText,
                     letterSpacing = 0.8.sp
                 )
             }
@@ -249,7 +249,7 @@ fun IntelligenceToolRow(
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+        border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -259,17 +259,17 @@ fun IntelligenceToolRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(LaraOrangeLight),
+                    .background(EvaPaleGreen),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = LaraMutedOrange, modifier = Modifier.size(20.dp))
+                Icon(icon, contentDescription = null, tint = EvaPrimaryGreen, modifier = Modifier.size(20.dp))
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LaraCharcoal)
-                Text(description, fontSize = 11.sp, color = LaraTextSecondaryLight, lineHeight = 15.sp)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = EvaPrimaryBlack)
+                Text(description, fontSize = 11.sp, color = EvaMutedText, lineHeight = 15.sp)
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = LaraTextSecondaryLight, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = EvaMutedText, modifier = Modifier.size(18.dp))
         }
     }
 }

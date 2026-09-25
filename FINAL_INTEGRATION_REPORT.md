@@ -1,4 +1,4 @@
-# LARA SMART GLASSES: FINAL SYSTEM INTEGRATION REPORT
+# EVA SMART GLASSES: FINAL SYSTEM INTEGRATION REPORT
 **Authoritative Architectural & Systems Audit Report**  
 *Target Hardware: Seeed Studio XIAO ESP32-S3 (Sense), Android Companion App, MAX98357A I2S DAC, SSD1306/SH1106 OLED, FastAPI Orchestrator, Gemini 1.5 Flash / On-Device SLM*
 
@@ -6,7 +6,7 @@
 
 ## 1. Executive Architecture Summary
 
-LARA (Lightweight Adaptive Real-time Assistant) Smart Glasses operate on a **multi-tier hierarchical intelligence architecture** balancing ultralow latency (<50ms deterministic edge execution), robust privacy, on-device SLM inference (<100ms offline fallback), and cloud multimodal reasoning.
+EVA (Lightweight Adaptive Real-time Assistant) Smart Glasses operate on a **multi-tier hierarchical intelligence architecture** balancing ultralow latency (<50ms deterministic edge execution), robust privacy, on-device SLM inference (<100ms offline fallback), and cloud multimodal reasoning.
 
 The platform links three core runtime execution environments:
 1. **ESP32-S3 Firmware Edge**: Runs binary framed BLE 5.0 streaming, I2S microphone/speaker audio pipelines, SSD1306/SH1106 OLED text/telemetry rendering, and OV2640/OV3660 camera frame capture.
@@ -15,7 +15,7 @@ The platform links three core runtime execution environments:
 
 ```
        +-------------------------------------------------------------------------+
-       |                         LARA SMART GLASSES (ESP32-S3)                   |
+       |                         EVA SMART GLASSES (ESP32-S3)                   |
        |  - I2S PDM Mic (GPIO 41/42)      - MAX98357A I2S DAC (GPIO 7/8/9)       |
        |  - SSD1306 OLED (I2C D4/D5)      - OV2640 Camera Sensor                 |
        |  - BLE 5.0 Framed Packet Engine (Header + Opcode + Seq + CRC Payload)   |
@@ -55,7 +55,7 @@ The platform links three core runtime execution environments:
 | **10-Digit Calling Safety Rule** | Verified | Strict confirmation | 100% block on auto-dialing <10 digit numbers (e.g. 9-digit) |
 | **SMS Spam / Scam Classifier** | Verified | < 1ms classification | 8-category rule-set (Scams, links, OTP, system, personal) |
 | **On-Device SLM Engine** | Verified | < 80ms inference | CS concepts, Python syntax, unit conversions & physics |
-| **Lifecycle (Hey/Goodbye LARA)** | Verified | Instant (<10ms) | Context cleanup & battery/unread situational summary |
+| **Lifecycle (Hey/Goodbye EVA)** | Verified | Instant (<10ms) | Context cleanup & battery/unread situational summary |
 | **Backend Test Suite** | Passed | 70/70 Tests (100%) | `pytest backend/tests` execution |
 | **Android Unit Test Suite** | Passed | 35/35 Tests (100%) | `gradlew testDebugUnitTest` execution |
 
@@ -154,7 +154,7 @@ Evaluates incoming SMS in <1ms without cloud latency:
 
 ## 8. Offline Low-Power AI & Deterministic SLM Engines
 
-When offline or during cloud network timeouts (2.5-second preemptive budget), LARA falls back to on-device deterministic and quantized SLM engines:
+When offline or during cloud network timeouts (2.5-second preemptive budget), EVA falls back to on-device deterministic and quantized SLM engines:
 - **Fast Deterministic Math**: Arithmetic, multiplication tables, percentages, powers, square roots, fractions (<5ms).
 - **Computer Science & Programming**: Data structures ("array", "tuple", "list vs tuple"), OOP principles, recursion, API & JSON definitions, Python for/while loops, and list comprehensions.
 - **Unit Conversions**: Kilometers/miles, Celsius/Fahrenheit, Kilograms/pounds, Meters/feet, Inches/cm.
@@ -164,9 +164,9 @@ When offline or during cloud network timeouts (2.5-second preemptive budget), LA
 
 ## 9. Conversational Continuity & Lifecycle
 
-- **"Hey LARA" / "Hi LARA"**: Wakes up assistant and provides a situational summary:
-  *"Hello! LARA is active and ready. Battery is at 84%. You have 2 personal messages. How can I help you today?"*
-- **"Goodbye LARA" / "Sleep LARA"**: Safely flushes active conversation pagination, clears pending SMS/Call confirmations, and puts LARA into low-power sleep state.
+- **"Hey EVA" / "Hi EVA"**: Wakes up assistant and provides a situational summary:
+  *"Hello! EVA is active and ready. Battery is at 84%. You have 2 personal messages. How can I help you today?"*
+- **"Goodbye EVA" / "Sleep EVA"**: Safely flushes active conversation pagination, clears pending SMS/Call confirmations, and puts EVA into low-power sleep state.
 
 ---
 
@@ -207,7 +207,7 @@ When offline or during cloud network timeouts (2.5-second preemptive budget), LA
 - `test_phase3b14_multimodal_vision_math.py`: 15 passed
 - `test_phase3b15_background_server_sms_esp32.py`: 4 passed
 - `test_phase3b16_glasses_vision_pairing.py`: 8 passed
-- `test_phase3b17_lara_console_and_ui.py`: 5 passed
+- `test_phase3b17_eva_console_and_ui.py`: 5 passed
 - `test_phase3b17_real_data_integrations.py`: 5 passed
 
 ### Android Gradle Unit Test Suite

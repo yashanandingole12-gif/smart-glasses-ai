@@ -34,9 +34,6 @@ enum class EvaTab(val label: String, val icon: ImageVector) {
     YOU("Settings", Icons.Default.Settings)
 }
 
-// Alias for backward compatibility
-typealias LaraTab = EvaTab
-
 @Composable
 fun EvaMainScreen(
     viewModel: WearableHomeViewModel,
@@ -61,66 +58,53 @@ fun EvaMainScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(EvaIvory)
-                    .padding(horizontal = 24.dp, vertical = 10.dp)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(66.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    color = EvaPureWhite.copy(alpha = 0.95f),
+                    shape = RoundedCornerShape(26.dp),
+                    color = EvaPureWhite.copy(alpha = 0.92f),
                     border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle),
-                    shadowElevation = 8.dp
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 12.dp),
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp, horizontal = 14.dp),
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         EvaTab.values().forEach { tab ->
                             val isSelected = selectedTab == tab
-
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(18.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .clickable { selectedTab = tab }
-                                    .padding(vertical = 4.dp, horizontal = 12.dp)
+                                    .padding(horizontal = 14.dp, vertical = 6.dp)
                             ) {
-                                if (isSelected) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
-                                            .background(EvaDeepGreen),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = tab.icon,
-                                            contentDescription = tab.label,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) EvaMistGreen else Color.Transparent),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Icon(
                                         imageVector = tab.icon,
                                         contentDescription = tab.label,
-                                        tint = EvaMutedText,
+                                        tint = if (isSelected) EvaPrimaryGreen else EvaMutedText,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
-
                                 Text(
                                     text = tab.label,
-                                    fontSize = 10.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) EvaPrimaryBlack else EvaMutedText,
-                                    modifier = Modifier.padding(top = 2.dp)
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) EvaPrimaryBlack else EvaMutedText
                                 )
                             }
                         }
@@ -128,42 +112,32 @@ fun EvaMainScreen(
                 }
             }
         }
-    ) { padding ->
+    ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .background(EvaIvory)
+                .padding(innerPadding)
         ) {
             when (selectedTab) {
                 EvaTab.HOME -> WearableHomeScreen(
                     viewModel = viewModel,
+                    bleManager = bleManager,
                     onNavigateToDevices = { selectedTab = EvaTab.DEVICES },
-                    onNavigateToSettings = { selectedTab = EvaTab.YOU }
+                    onNavigateToSettings = { selectedTab = EvaTab.YOU },
+                    onNavigateToActivity = { selectedTab = EvaTab.ACTIVITY }
                 )
                 EvaTab.ACTIVITY -> ActivityScreen(
-                    viewModel = viewModel,
                     onNavigateToHome = { selectedTab = EvaTab.HOME }
                 )
                 EvaTab.DEVICES -> DevicesHubScreen(
                     bleManager = bleManager,
-                    viewModel = viewModel,
                     onNavigateBack = { selectedTab = EvaTab.HOME }
                 )
                 EvaTab.YOU -> YouProfileScreen(
                     viewModel = viewModel,
-                    onOpenConfigDialog = { viewModel.openConfigDialog() }
+                    onNavigateBack = { selectedTab = EvaTab.HOME }
                 )
             }
         }
     }
-}
-
-// Backward-compatible entrypoint
-@Composable
-fun LaraMainScreen(
-    viewModel: WearableHomeViewModel,
-    bleManager: BleManager
-) {
-    EvaMainScreen(viewModel = viewModel, bleManager = bleManager)
 }

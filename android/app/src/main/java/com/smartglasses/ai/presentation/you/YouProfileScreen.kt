@@ -35,13 +35,14 @@ data class PermissionItem(
 @Composable
 fun YouProfileScreen(
     viewModel: WearableHomeViewModel,
+    onNavigateBack: () -> Unit = {},
     onOpenConfigDialog: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     var expandedCategory by remember { mutableStateOf<String?>("Communication") }
 
     Scaffold(
-        containerColor = LaraIvory
+        containerColor = EvaIvory
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -54,16 +55,16 @@ fun YouProfileScreen(
             item {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     Text(
-                        text = "You",
+                        text = "Settings & Authority",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = LaraTextPrimaryLight
+                        color = EvaPrimaryBlack
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Governance, device authority, background service & privacy.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = LaraTextSecondaryLight
+                        color = EvaMutedText
                     )
                 }
             }
@@ -74,7 +75,7 @@ fun YouProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
                 ) {
                     Column(
                         modifier = Modifier.padding(18.dp),
@@ -85,7 +86,7 @@ fun YouProfileScreen(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 1.2.sp,
-                            color = LaraMutedOrange
+                            color = EvaPrimaryGreen
                         )
 
                         Row(
@@ -101,20 +102,20 @@ fun YouProfileScreen(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(LaraEmerald)
+                                        .background(EvaPrimaryGreen)
                                 )
                                 Text(
-                                    text = "LARA Background Service",
+                                    text = "EVA Background Service",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = LaraTextPrimaryLight
+                                    color = EvaPrimaryBlack
                                 )
                             }
                             Text(
                                 text = "Active",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = LaraEmerald
+                                color = EvaPrimaryGreen
                             )
                         }
 
@@ -131,29 +132,29 @@ fun YouProfileScreen(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(LaraEmerald)
+                                        .background(if (state.deviceConnectionState == com.smartglasses.ai.core.bluetooth.DeviceConnectionState.CONNECTED_ESP32) EvaPrimaryGreen else EvaBorderSubtle)
                                 )
                                 Text(
                                     text = "Smart Glasses Link",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = LaraTextPrimaryLight
+                                    color = EvaPrimaryBlack
                                 )
                             }
                             Text(
-                                text = "Connected",
+                                text = if (state.deviceConnectionState == com.smartglasses.ai.core.bluetooth.DeviceConnectionState.CONNECTED_ESP32) "Connected" else "Disconnected",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = LaraEmerald
+                                color = if (state.deviceConnectionState == com.smartglasses.ai.core.bluetooth.DeviceConnectionState.CONNECTED_ESP32) EvaPrimaryGreen else EvaMutedText
                             )
                         }
 
-                        Divider(color = LaraBorderLight, thickness = 0.5.dp)
+                        Divider(color = EvaBorderSubtle, thickness = 0.5.dp)
 
                         Text(
-                            text = "LARA can continue approved interactions when your screen is off or your phone is in your pocket, subject to Android system restrictions.",
+                            text = "EVA can continue approved interactions when your screen is off or your phone is in your pocket, subject to Android system restrictions.",
                             fontSize = 12.sp,
-                            color = LaraTextSecondaryLight,
+                            color = EvaMutedText,
                             lineHeight = 17.sp
                         )
                     }
@@ -167,7 +168,7 @@ fun YouProfileScreen(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.2.sp,
-                    color = LaraMutedOrange
+                    color = EvaPrimaryGreen
                 )
             }
 
@@ -195,7 +196,7 @@ fun YouProfileScreen(
                     onToggle = { expandedCategory = if (expandedCategory == "Context") null else "Context" },
                     permissions = listOf(
                         PermissionItem("Calendar", "Daily schedules and upcoming agenda items.", true, Icons.Default.CalendarToday),
-                        PermissionItem("Location", "Weather queries and localized contextual assistance.", state.locationAvailable, Icons.Default.LocationOn),
+                        PermissionItem("Location", "Weather queries and localized contextual assistance in Nagpur.", state.locationAvailable, Icons.Default.LocationOn),
                         PermissionItem("Notifications", "Priority filtering of incoming notifications.", true, Icons.Default.Notifications)
                     )
                 )
@@ -219,11 +220,11 @@ fun YouProfileScreen(
             item {
                 PermissionCategoryCard(
                     categoryName = "Documents & Files",
-                    subtitle = "Financial spreadsheets, legal PDFs & contracts",
+                    subtitle = "Google Docs, Drive PDFs & blueprints",
                     isExpanded = expandedCategory == "Documents",
                     onToggle = { expandedCategory = if (expandedCategory == "Documents") null else "Documents" },
                     permissions = listOf(
-                        PermissionItem("Files & Storage", "Document reasoning & bounded desk dataset analysis.", true, Icons.Default.Folder)
+                        PermissionItem("Files & Storage", "Document reasoning & workspace files.", true, Icons.Default.Folder)
                     )
                 )
             }
@@ -236,7 +237,7 @@ fun YouProfileScreen(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.2.sp,
-                    color = LaraMutedOrange
+                    color = EvaPrimaryGreen
                 )
             }
 
@@ -246,7 +247,7 @@ fun YouProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
                 ) {
                     Column(
                         modifier = Modifier.padding(18.dp),
@@ -262,24 +263,24 @@ fun YouProfileScreen(
                                     text = "Google Workspace & Gmail",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = LaraTextPrimaryLight
+                                    color = EvaPrimaryBlack
                                 )
                                 Text(
                                     text = if (state.googleEmail != null) "Connected: ${state.googleEmail}" else "Not connected (Private OAuth)",
                                     fontSize = 12.sp,
-                                    color = if (state.googleEmail != null) LaraEmerald else LaraTextSecondaryLight
+                                    color = if (state.googleEmail != null) EvaPrimaryGreen else EvaMutedText
                                 )
                             }
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
-                                color = if (state.googleEmail != null) LaraEmeraldBg else LaraIvory,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, if (state.googleEmail != null) LaraEmerald else LaraBorderLight)
+                                color = if (state.googleEmail != null) EvaMistGreen else EvaIvory,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (state.googleEmail != null) EvaPrimaryGreen else EvaBorderSubtle)
                             ) {
                                 Text(
                                     text = if (state.googleEmail != null) "Active" else "Required for Email",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (state.googleEmail != null) LaraEmerald else LaraTextSecondaryLight,
+                                    color = if (state.googleEmail != null) EvaPrimaryGreen else EvaMutedText,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
@@ -295,8 +296,8 @@ fun YouProfileScreen(
                                 } catch (_: Exception) {}
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (state.googleEmail != null) LaraGraphite else LaraCharcoal,
-                                contentColor = LaraIvory
+                                containerColor = if (state.googleEmail != null) EvaSoftBlack else EvaPrimaryBlack,
+                                contentColor = EvaIvory
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -319,7 +320,7 @@ fun YouProfileScreen(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.2.sp,
-                    color = LaraMutedOrange
+                    color = EvaPrimaryGreen
                 )
             }
 
@@ -330,7 +331,7 @@ fun YouProfileScreen(
                         .clickable { onOpenConfigDialog() },
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
                 ) {
                     Row(
                         modifier = Modifier
@@ -341,21 +342,21 @@ fun YouProfileScreen(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = "LARA Server Configuration",
+                                text = "EVA Cloud Backend Configuration",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = LaraTextPrimaryLight
+                                color = EvaPrimaryBlack
                             )
                             Text(
                                 text = state.serverUrl,
                                 fontSize = 12.sp,
-                                color = LaraTextSecondaryLight
+                                color = EvaMutedText
                             )
                         }
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = "Edit",
-                            tint = LaraTextSecondaryLight
+                            tint = EvaMutedText
                         )
                     }
                 }
@@ -380,7 +381,7 @@ private fun PermissionCategoryCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, LaraBorderLight)
+        border = androidx.compose.foundation.BorderStroke(1.dp, EvaBorderSubtle)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -395,18 +396,18 @@ private fun PermissionCategoryCard(
                         text = categoryName,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = LaraTextPrimaryLight
+                        color = EvaPrimaryBlack
                     )
                     Text(
                         text = subtitle,
                         fontSize = 12.sp,
-                        color = LaraTextSecondaryLight
+                        color = EvaMutedText
                     )
                 }
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = "Toggle",
-                    tint = LaraTextSecondaryLight
+                    tint = EvaMutedText
                 )
             }
 
@@ -415,7 +416,7 @@ private fun PermissionCategoryCard(
                     modifier = Modifier.padding(top = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Divider(color = LaraBorderLight, thickness = 0.5.dp)
+                    Divider(color = EvaBorderSubtle, thickness = 0.5.dp)
                     permissions.forEach { perm ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -430,7 +431,7 @@ private fun PermissionCategoryCard(
                                 Icon(
                                     imageVector = perm.icon,
                                     contentDescription = perm.title,
-                                    tint = LaraMutedOrange,
+                                    tint = EvaPrimaryGreen,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -438,25 +439,25 @@ private fun PermissionCategoryCard(
                                         text = perm.title,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = LaraTextPrimaryLight
+                                        color = EvaPrimaryBlack
                                     )
                                     Text(
                                         text = perm.purpose,
                                         fontSize = 11.sp,
-                                        color = LaraTextSecondaryLight
+                                        color = EvaMutedText
                                     )
                                 }
                             }
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
-                                color = if (perm.isGranted) LaraEmeraldBg else LaraMutedRedBg,
+                                color = if (perm.isGranted) EvaMistGreen else EvaIvory,
                                 modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Text(
                                     text = if (perm.isGranted) "Authorized ✓" else "Not Granted",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (perm.isGranted) LaraEmerald else LaraMutedRed,
+                                    color = if (perm.isGranted) EvaPrimaryGreen else EvaMutedText,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }

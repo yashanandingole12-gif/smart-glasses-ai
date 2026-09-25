@@ -57,7 +57,7 @@ BACKEND PYTEST TEST SUITE:
   * test_phase3b14_multimodal_vision_math.py
   * test_phase3b15_background_server_sms_esp32.py
   * test_phase3b16_glasses_vision_pairing.py
-  * test_phase3b17_lara_console_and_ui.py
+  * test_phase3b17_eva_console_and_ui.py
   * test_phase3b17_real_data_integrations.py
   * test_research_agent.py
   * test_rule_engine.py

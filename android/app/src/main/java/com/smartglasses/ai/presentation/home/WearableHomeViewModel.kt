@@ -201,11 +201,13 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             while (true) {
                 val formattedTime = getCurrentFormattedTime()
                 val period = calculateTimePeriod()
+                val greeting = calculateGreeting(period)
                 val micReady = PermissionManager.hasAudioPermission(getApplication())
                 _uiState.update {
                     it.copy(
                         currentTime = formattedTime,
                         period = period,
+                        greetingText = greeting,
                         isMicrophoneReady = micReady
                     )
                 }
@@ -496,7 +498,7 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
                         val uri = com.smartglasses.ai.core.media.GalleryMediaHelper.saveJpegBytes(
                             getApplication(),
                             decodedBytes,
-                            "LARA_Capture"
+                            "EVA_Capture"
                         )
                         savedImageUri = uri?.toString()
                     } catch (e: Exception) {
@@ -648,6 +650,15 @@ class WearableHomeViewModel(application: Application) : AndroidViewModel(applica
             in 12..16 -> "afternoon"
             in 17..21 -> "evening"
             else -> "night"
+        }
+    }
+
+    private fun calculateGreeting(period: String): String {
+        return when (period) {
+            "morning" -> "Good morning,"
+            "afternoon" -> "Good afternoon,"
+            "evening" -> "Good evening,"
+            else -> "Rest well,"
         }
     }
 

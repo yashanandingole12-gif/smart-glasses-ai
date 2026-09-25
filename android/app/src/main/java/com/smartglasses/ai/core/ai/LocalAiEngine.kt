@@ -136,7 +136,7 @@ class LocalAiEngine(private val context: Context) {
 
             // Identity & Capabilities
             qLower.contains("who are you") || qLower.contains("what are you") || qLower.contains("who made you") -> {
-                "I am LARA, your private Smart Glasses AI assistant, running on-device intelligence to support your daily flow."
+                "I am EVA, your private Smart Glasses AI assistant, running on-device intelligence to support your daily flow."
             }
             qLower.contains("what can you do") || qLower.contains("help me") -> {
                 "I can tell time, date, battery, location, do arithmetic and conversions, manage calls and SMS, and assist offline or via cloud intelligence."

@@ -1,16 +1,24 @@
 package com.smartglasses.ai.presentation.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,7 +33,9 @@ data class TransitStatusItem(
     val primaryText: String,
     val secondaryText: String,
     val statusTag: String,
-    val tagColor: Color
+    val tagColor: Color,
+    val lat: Double = 21.1458,
+    val lon: Double = 79.0882
 )
 
 @Composable
@@ -33,39 +43,58 @@ fun GodEyeTransitScreen(
     onNavigateBack: () -> Unit = {},
     onQueryTransit: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val transitItems = remember {
         listOf(
             TransitStatusItem(
-                title = "Western Express Highway",
-                category = "ROAD TRAFFIC",
-                primaryText = "Heavy Traffic near Santacruz Flyover",
-                secondaryText = "Avg Speed: 22 km/h • +18 min delay • Alt: Coastal Road Link",
-                statusTag = "HEAVY (+18m)",
-                tagColor = EvaStatusWarning
-            ),
-            TransitStatusItem(
-                title = "Andheri Metro Station (Line 1)",
-                category = "METRO NETWORK",
-                primaryText = "0.4 km away (5 min walk)",
-                secondaryText = "Next to Ghatkopar: 2 min (Platform 1) • Versova: 4 min (Platform 2)",
+                title = "Sitabuldi Interchange Metro Station",
+                category = "MAHA METRO NAGPUR",
+                primaryText = "0.5 km away (6 min walk)",
+                secondaryText = "Orange Line: Khapri in 2 min (Plat 1) • Aqua Line: Lokmanya Nagar in 3 min (Plat 3)",
                 statusTag = "LIVE SYNC",
-                tagColor = EvaPrimaryGreen
+                tagColor = EvaPrimaryGreen,
+                lat = 21.1458,
+                lon = 79.0832
             ),
             TransitStatusItem(
-                title = "Churchgate Fast Local",
-                category = "SUBURBAN TRAIN",
-                primaryText = "Arriving on Platform 4 in 3 min",
-                secondaryText = "Stops: Andheri, Bandra, Dadar, Mumbai Central, Churchgate",
-                statusTag = "ON TIME",
-                tagColor = EvaPrimaryGreen
+                title = "Wardha Road / Airport Corridor",
+                category = "ROAD TRAFFIC (NAGPUR)",
+                primaryText = "Smooth Flow along Wardha Flyover",
+                secondaryText = "Avg Speed: 58 km/h • +0 min delay • Direct Airport Expressway",
+                statusTag = "CLEAR",
+                tagColor = EvaPrimaryGreen,
+                lat = 21.1050,
+                lon = 79.0620
             ),
             TransitStatusItem(
-                title = "IndiGo Flight 6E-204 (DEL)",
-                category = "FLIGHT RADAR",
-                primaryText = "Terminal 2, Gate 48B",
-                secondaryText = "Status: BOARDING • Departure: 14:35 • Carousel 5 (Arrival)",
+                title = "Nagpur - Bilaspur Vande Bharat (20826)",
+                category = "INDIAN RAILWAYS (NGP)",
+                primaryText = "Boarding on Platform 1, Nagpur Junction",
+                secondaryText = "Departure: 14:05 • Stops: Gondia, Rajnandgaon, Durg, Raipur, Bilaspur",
                 statusTag = "BOARDING",
-                tagColor = EvaPrimaryGreen
+                tagColor = EvaPrimaryGreen,
+                lat = 21.1524,
+                lon = 79.0889
+            ),
+            TransitStatusItem(
+                title = "Samruddhi Mahamarg (Super Expressway)",
+                category = "EXPRESSWAY RADAR",
+                primaryText = "Zero Point Nagpur to Shirdi / Mumbai",
+                secondaryText = "Speed: 115 km/h • High-speed smooth corridor • +0 min delay",
+                statusTag = "FREE FLOW",
+                tagColor = EvaPrimaryGreen,
+                lat = 21.1350,
+                lon = 79.0120
+            ),
+            TransitStatusItem(
+                title = "IndiGo 6E-412 (NAG -> BOM)",
+                category = "FLIGHT RADAR (NAG)",
+                primaryText = "Dr. Babasaheb Ambedkar Airport (NAG), Gate 3",
+                secondaryText = "Status: BOARDING • Departure: 08:35 • Baggage Carousel 2",
+                statusTag = "ON TIME",
+                tagColor = EvaPrimaryGreen,
+                lat = 21.0922,
+                lon = 79.0472
             )
         )
     }
@@ -76,25 +105,38 @@ fun GodEyeTransitScreen(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp, vertical = 24.dp)
         ) {
-            // Header
+            // Header with Back Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "GOD'S EYE LIVE",
-                        color = EvaPrimaryBlack,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = EvaPrimaryBlack,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clickable { onNavigateBack() }
                     )
-                    Text(
-                        text = "Real-Time Spatial & Transit Telemetry",
-                        color = EvaMutedText,
-                        fontSize = 12.sp
-                    )
+                    Column {
+                        Text(
+                            text = "GOD'S EYE LIVE",
+                            color = EvaPrimaryBlack,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp
+                        )
+                        Text(
+                            text = "Nagpur Spatial & Transit Radar",
+                            color = EvaMutedText,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
 
                 Box(
@@ -104,7 +146,7 @@ fun GodEyeTransitScreen(
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "GLASSES SYNC",
+                        text = "ORBIT SYNC",
                         color = EvaDeepGreen,
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Monospace,
@@ -113,15 +155,107 @@ fun GodEyeTransitScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Google Live Earth 3D Action Card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = EvaDeepGreen,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .padding(16.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Public,
+                                contentDescription = "Google Earth 3D",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Google Live Earth 3D Navigation",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Explore Nagpur & global terrain in real-time 3D photorealistic satellite view with smart glasses waypoint tracking.",
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val url = "https://earth.google.com/web/@21.1458,79.0882,312a,950d,35y,0h,45t,0r"
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = EvaPureWhite,
+                                contentColor = EvaDeepGreen
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 6.dp)
+                        ) {
+                            Text(text = "Open Earth 3D", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val url = "https://www.google.com/maps/dir/?api=1&destination=21.1458,79.0882&travelmode=driving"
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color.White
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 6.dp)
+                        ) {
+                            Text(text = "Live GPS Nav", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Transit List
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(transitItems) { item ->
-                    TransitCard(item = item)
+                    TransitCard(
+                        item = item,
+                        onOpenMap = {
+                            val uri = Uri.parse("geo:${item.lat},${item.lon}?q=${item.lat},${item.lon}(${Uri.encode(item.title)})")
+                            val intent = Intent(Intent.ACTION_VIEW, uri)
+                            context.startActivity(intent)
+                        }
+                    )
                 }
             }
         }
@@ -129,12 +263,13 @@ fun GodEyeTransitScreen(
 }
 
 @Composable
-fun TransitCard(item: TransitStatusItem) {
+fun TransitCard(item: TransitStatusItem, onOpenMap: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(EvaPureWhite, RoundedCornerShape(14.dp))
             .border(1.dp, EvaBorderSubtle, RoundedCornerShape(14.dp))
+            .clickable { onOpenMap() }
             .padding(16.dp)
     ) {
         Column {

@@ -108,7 +108,7 @@ void OledManager::showAiResponse(const String& query, const String& response) {
     // Top Header
     _display.setTextSize(1);
     _display.setCursor(0, 0);
-    _display.print("LARA AI RESPONSE");
+    _display.print("EVA AI RESPONSE");
     _display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
 
     // Body
@@ -146,7 +146,7 @@ void OledManager::showCustomText(const String& line1, const String& line2, const
 
     _display.setTextSize(1);
     _display.setCursor(0, 0);
-    _display.print("LARA SMART GLASS");
+    _display.print("EVA SMART GLASS");
     _display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
 
     if (line1.length() > 0) {
@@ -171,7 +171,7 @@ void OledManager::showListening() {
 
     _display.setTextSize(1);
     _display.setCursor(0, 0);
-    _display.print("LARA SMART GLASS");
+    _display.print("EVA SMART GLASS");
     _display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
 
     _display.setTextSize(2);
@@ -192,7 +192,7 @@ void OledManager::showThinking() {
 
     _display.setTextSize(1);
     _display.setCursor(0, 0);
-    _display.print("LARA SMART GLASS");
+    _display.print("EVA SMART GLASS");
     _display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
 
     _display.setTextSize(2);

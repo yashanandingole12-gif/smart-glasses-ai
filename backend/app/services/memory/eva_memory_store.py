@@ -270,7 +270,7 @@ class EvaMemoryStore:
                 sensitivity="S1",
                 kind="did",
                 status="current",
-                triggers=["eva", "lara", "smart glasses", "glasses project"]
+                triggers=["eva", "eva", "smart glasses", "glasses project"]
             ))
             self.insert_memory(MemoryItem(
                 memory_id="CA.001",

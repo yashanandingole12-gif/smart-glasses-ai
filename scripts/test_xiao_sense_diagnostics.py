@@ -1,6 +1,6 @@
 """
 XIAO ESP32-S3 Sense Hardware Diagnostics CLI Test Runner
-Safely queries hardware diagnostics endpoints for OV2640 camera and MSM261D PDM mic without interfering with main LARA assistant flow.
+Safely queries hardware diagnostics endpoints for OV2640 camera and MSM261D PDM mic without interfering with main EVA assistant flow.
 """
 
 import sys

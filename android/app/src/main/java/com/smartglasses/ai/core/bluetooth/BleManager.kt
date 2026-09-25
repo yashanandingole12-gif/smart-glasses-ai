@@ -92,7 +92,7 @@ class BleManager(private val context: Context) {
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
 
-    private val _connectionState = MutableStateFlow(DeviceConnectionState.CONNECTED_SIMULATED)
+    private val _connectionState = MutableStateFlow(DeviceConnectionState.DISCONNECTED)
     val connectionState: StateFlow<DeviceConnectionState> = _connectionState.asStateFlow()
 
     private val _batteryLevel = MutableStateFlow(85)
@@ -536,30 +536,29 @@ class BleManager(private val context: Context) {
     }
 
     fun toggleConnectionMode() {
-        _connectionState.value = when (_connectionState.value) {
+        when (_connectionState.value) {
             DeviceConnectionState.DISCONNECTED -> {
                 if (isBleHardwareAvailable()) {
+                    Log.i(TAG, "User initiated BLE scan for ESP32...")
+                    _connectionState.value = DeviceConnectionState.CONNECTING
                     startScan()
-                    DeviceConnectionState.CONNECTING
                 } else {
-                    DeviceConnectionState.CONNECTED_SIMULATED
+                    Log.w(TAG, "Bluetooth not available on this device.")
+                    _connectionState.value = DeviceConnectionState.DISCONNECTED
                 }
             }
             DeviceConnectionState.CONNECTING -> {
+                Log.i(TAG, "Cancelling scan/connection...")
                 stopScan()
-                DeviceConnectionState.DISCONNECTED
+                _connectionState.value = DeviceConnectionState.DISCONNECTED
             }
             DeviceConnectionState.CONNECTED_SIMULATED -> {
-                if (isBleHardwareAvailable()) {
-                    startScan()
-                    DeviceConnectionState.CONNECTING
-                } else {
-                    DeviceConnectionState.DISCONNECTED
-                }
+                _connectionState.value = DeviceConnectionState.DISCONNECTED
             }
             DeviceConnectionState.CONNECTED_ESP32 -> {
+                Log.i(TAG, "User requested disconnect from ESP32...")
                 disconnect()
-                DeviceConnectionState.DISCONNECTED
+                _connectionState.value = DeviceConnectionState.DISCONNECTED
             }
         }
         syncGlassesState()
@@ -604,7 +603,7 @@ class BleManager(private val context: Context) {
     fun requestPhotoCapture(): Boolean {
         Log.i(TAG, "Triggering photo capture from smart glasses camera...")
         val sent = sendCommand("{\"action\":\"CAPTURE_IMAGE\"}")
-        GalleryMediaHelper.saveSamplePhoto(context, "LARA Smart Glasses Photo")
+        GalleryMediaHelper.saveSamplePhoto(context, "EVA Smart Glasses Photo")
         return sent || _connectionState.value == DeviceConnectionState.CONNECTED_SIMULATED
     }
 }

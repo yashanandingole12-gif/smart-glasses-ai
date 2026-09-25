@@ -1,5 +1,5 @@
 """
-LARA Universal Tabular & Document Data Analytics Engine (Phase 3B.18)
+EVA Universal Tabular & Document Data Analytics Engine (Phase 3B.18)
 =====================================================================
 Performs deterministic statistical analysis, anomaly detection, column profiling,
 and natural language query answering on any uploaded CSV or structured document.
@@ -12,7 +12,7 @@ import math
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 
-logger = logging.getLogger("lara.data_analytics")
+logger = logging.getLogger("eva.data_analytics")
 
 
 class DataAnalyticsEngine:
@@ -253,7 +253,7 @@ Q3,APAC,8.1,63.4,3.5,20.1,9100,7.1
                 "columns": cols,
                 "findings": findings,
                 "anomalies": d.get("anomalies", []),
-                "source": "LARA Universal Data Analytics Engine",
+                "source": "EVA Universal Data Analytics Engine",
                 "confidence": 0.99
             }
 
@@ -285,7 +285,7 @@ Q3,APAC,8.1,63.4,3.5,20.1,9100,7.1
             "columns": cols,
             "findings": findings,
             "anomalies": anomalies,
-            "source": "LARA Universal Data Analytics Engine",
+            "source": "EVA Universal Data Analytics Engine",
             "confidence": 0.99
         }
 

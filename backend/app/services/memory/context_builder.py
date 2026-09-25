@@ -277,7 +277,7 @@ COMMUNICATION PRINCIPLES:
         elif any(w in t_low for w in ["delta robot", "servo", "stepper", "nema", "atc", "arduino", "inmp441", "motor", "lathe"]):
             sub = "Delta Robot" if "delta" in t_low else "Hardware Components"
             return ("Robotics & Hardware", sub)
-        elif any(w in t_low for w in ["eva", "lara", "glasses", "smart glasses", "companion"]):
+        elif any(w in t_low for w in ["eva", "eva", "glasses", "smart glasses", "companion"]):
             sub = "Memory Engine" if "memory" in t_low else "System Architecture"
             return ("EVA Architecture", sub)
         elif any(w in t_low for w in ["love", "lonely", "feeling", "relationship", "jealousy", "poem", "heart"]):
