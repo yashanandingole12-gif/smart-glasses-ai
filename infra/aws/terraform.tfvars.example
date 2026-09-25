@@ -1,0 +1,12 @@
+# Example Terraform Variable Values for EVA Smart Glasses AWS Deployment
+aws_region              = "ap-south-1"
+environment             = "production"
+project_name            = "eva-smart-glasses"
+device_id               = "EVA-GLS-01"
+vpc_cidr                = "10.0.0.0/16"
+database_name           = "eva_db"
+database_username       = "eva_admin"
+database_instance_class = "db.t4g.micro"
+container_cpu           = 512
+container_memory        = 1024
+app_port                = 8001

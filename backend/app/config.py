@@ -87,6 +87,19 @@ class Settings(BaseSettings):
     ]
 
 
+    # AWS Cloud Integration (Phase A: AWS-Ready with AWS_ENABLED=false default)
+    AWS_ENABLED: bool = False
+    AWS_REGION: str = "ap-south-1"
+    AWS_IOT_ENDPOINT: Optional[str] = None
+    AWS_IOT_CLIENT_ID: str = "eva_backend_service"
+    AWS_IOT_CERT_PATH: Optional[str] = None
+    AWS_IOT_KEY_PATH: Optional[str] = None
+    AWS_IOT_ROOT_CA_PATH: Optional[str] = None
+    AWS_S3_BUCKET_NAME: Optional[str] = None
+    AWS_SECRETS_NAME: Optional[str] = None
+    AWS_CLOUDWATCH_LOG_GROUP: str = "/eva/production/backend"
+    DEFAULT_DEVICE_ID: str = "EVA-GLS-01"
+
     # External Integrations (Backwards compatibility)
     GMAIL_CLIENT_ID: Optional[str] = None
     GMAIL_CLIENT_SECRET: Optional[str] = None

@@ -28,7 +28,7 @@ htmlcov/
 *.sqlite3
 *.db
 
-# Mandatory Security Exclusions: Secrets & OAuth Credentials
+# Mandatory Security Exclusions: Secrets, AWS & OAuth Credentials
 .env
 .env.*
 !.env.example
@@ -38,6 +38,12 @@ htmlcov/
 credentials.json
 token.json
 client_secret*.json
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
 
 # Android
 android/.gradle/
