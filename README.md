@@ -26,35 +26,35 @@ EVA is built to be a lifelong personal companion rather than a transactional voi
 ```mermaid
 flowchart TB
     subgraph WearableLayer["Wearable & Mobile Perception Layer"]
-        Glasses["👓 Smart Glasses (ESP32-S3 Sense)\nINMP441 Mic • OV2640 Cam • BLE"]
-        Android["📱 Android Companion (Kotlin/Compose)\nForeground Service • 'Hey EVA' Wake-Word • BLE Hub"]
-        Watch["⌚ Wearable / Smartwatch\nHaptic Feedback & Telemetry"]
-        Laptop["💻 Laptop Web Console\nLiquid Glass HUD & Memory Studio"]
+        Glasses[" Smart Glasses (ESP32-S3 Sense)\nINMP441 Mic • OV2640 Cam • BLE"]
+        Android[" Android Companion (Kotlin/Compose)\nForeground Service • 'Hey EVA' Wake-Word • BLE Hub"]
+        Watch[" Wearable / Smartwatch\nHaptic Feedback & Telemetry"]
+        Laptop[" Laptop Web Console\nLiquid Glass HUD & Memory Studio"]
     end
 
     subgraph CoreGateway["EVA Edge & Cloud Orchestration Gateway (FastAPI)"]
         WakeRouter{"Request & Wake-Word Router"}
-        Governor["🛡️ Usage Governor & Cost Controller\nDaily Quotas • Token Caps • $0 Free-Tier Gating"]
+        Governor[" Usage Governor & Cost Controller\nDaily Quotas • Token Caps • $0 Free-Tier Gating"]
         
         subgraph LocalTiers["Instant Deterministic Tiers (<10ms, Zero Cloud)"]
-            Math["🔢 Deterministic Math Engine\nArithmetic, Roots, Quadratic Solver"]
-            Telephony["📞 Edge Telephony & Device Control\nCalls, SMS, Battery, Time"]
+            Math[" Deterministic Math Engine\nArithmetic, Roots, Quadratic Solver"]
+            Telephony[" Edge Telephony & Device Control\nCalls, SMS, Battery, Time"]
         end
         
-        subgraph MemoryEngine["🧠 Persistent Memory Engine (Book of Yash)"]
+        subgraph MemoryEngine[" Persistent Memory Engine (Book of Yash)"]
             CoreCard["Deterministic Core Identity Card (<=300 Tokens)"]
             FTS5["SQLite FTS5 Full-Text Keyword Index"]
             Evolution["Temporal Evolution & Contradiction Resolver"]
             Sensitivity["Sensitivity Gating (S0 Public -> S4 Critical)"]
         end
 
-        subgraph MultiAgentGraph["🤖 LangGraph Multi-Agent Ecosystem"]
+        subgraph MultiAgentGraph[" LangGraph Multi-Agent Ecosystem"]
             Router["LLM Multi-Tier Router\n(Fast: Gemini Flash Lite -> Primary: Flash -> Secondary: DeepSeek)"]
-            DocsAgent["📄 Google Docs & Drive Agent\nDocs Creation, PDF Search, Public Sharing"]
-            ContactsAgent["👥 Personal Contact Vault\nFuzzy Resolution, 1-Click Document Sharing"]
-            LinkedInAgent["💼 LinkedIn & Career Opportunity Agent"]
-            ResearchAgent["📚 ArXiv Academic Research Agent"]
-            GitHubAgent["🐙 GitHub & Repository Studio Agent"]
+            DocsAgent[" Google Docs & Drive Agent\nDocs Creation, PDF Search, Public Sharing"]
+            ContactsAgent[" Personal Contact Vault\nFuzzy Resolution, 1-Click Document Sharing"]
+            LinkedInAgent[" LinkedIn & Career Opportunity Agent"]
+            ResearchAgent[" ArXiv Academic Research Agent"]
+            GitHubAgent[" GitHub & Repository Studio Agent"]
         end
     end
 
@@ -81,38 +81,38 @@ flowchart TB
 
 ---
 
-## 💎 Core Features & Innovations
+##  Core Features & Innovations
 
-### 1. 🧠 The "Book of Yash" Epistemic Memory Engine
+### 1.  The "Book of Yash" Epistemic Memory Engine
 - **Deterministic Core Identity Card**: High-density 300-token identity snapshot always injected into prompts without bloating token budgets.
 - **15 Structured Memory Categories**: Personal facts, preferences, emotional context, career aspirations, robotics projects (Delta robot, ATC, Arduino), personality traits, and life events.
 - **Temporal Contradiction & Evolution**: When preferences evolve (e.g. updating target companies from Mahindra to Boston Dynamics), EVA archives the old record, links the evolution edge, and updates active context.
 - **Sensitivity Gating (S0–S4)**: Strict privacy bounds. Private emotional reflections or relationship notes are never spoken aloud over public speakers.
 
-### 2. 📄 Google Docs, Cloud File Sharing & Contact Vault
+### 2.  Google Docs, Cloud File Sharing & Contact Vault
 - **Google Docs Creation**: Instantly generates Google Documents with voice or REST requests.
 - **Universal Accessible Sharing**: Automatically creates `anyoneWithLink` (reader/writer) public links for documents and PDFs.
-- **1-Click Contact Document Sharing**: Saying *"Share project PDF with Rahul"* resolves the recipient in [`contact_vault`](file:///c:/Users/Lenovoo/.gemini/antigravity/scratch/smart-glasses-ai/backend/app/services/contact_vault.py) and grants Drive permissions automatically.
+- **1-Click Contact Document Sharing**: Saying *"Share project PDF with Rahul"* resolves the recipient in [`contact_vault`] and grants Drive permissions automatically.
 - **Unified File Search**: Real-time search across Google Drive and local cloud documents.
 
-### 3. 🛡️ Usage Governor & Cost Controller
+### 3.  Usage Governor & Cost Controller
 - **Zero-Cost Guardrail**: Automatically throttles requests to stay 100% within the **Gemini Free Tier** (15 RPM / 1,500 requests/day).
 - **Daily Quotas**: Configured for 500 requests/day and 100 requests/hour with automatic local memory fallback.
 - **Token Capping**: Enforces 180 max output tokens per voice turn to guarantee ultra-fast responses and minimal bandwidth.
 - **Live Usage Stats**: Inspect live token tallies and cost estimates at `GET /api/v1/usage/stats`.
 
-### 4. 🎙️ Continuous "Hey EVA" Background Voice Engine
+### 4.  Continuous "Hey EVA" Background Voice Engine
 - **In-Pocket Operation**: Android background foreground service (`GlassesBackgroundService`) keeps audio listening active with screen off using low-power wake locks.
 - **Real-Time Streaming**: Low-latency bidirectional audio over WebSocket (`/ws/audio`).
 
-### 5. ⚡ Snapdragon® NPU & Qualcomm® AI Hub Acceleration (HP PCs)
+### 5.  Snapdragon® NPU & Qualcomm® AI Hub Acceleration (HP PCs)
 - **45 TOPS Qualcomm Hexagon NPU Offload**: Direct on-device neural execution on Snapdragon X Elite / X Plus powered HP PCs (HP OmniBook X, HP EliteBook Ultra).
 - **Sub-20ms Speech-to-Text**: Qualcomm AI Hub compiled `whisper_base_en` INT8 running on the Hexagon NPU with 0 cloud latency.
 - **82 FPS Spatial Vision & OCR**: On-device `mobilenet_v4_hybrid` for smart glasses camera object and crosswalk detection.
 - **Quantized INT4 On-Device Reasoning**: Local `llama-3.2-1b-instruct` execution preserving 100% private user data on the companion PC.
 - **68% Power Reduction**: Drastically reduces companion laptop battery consumption compared to x86 CPUs.
 
-### 6. 🐳 Permanent 24/7 Docker Container Stack
+### 6.  Permanent 24/7 Docker Container Stack
 - **Self-Healing (`restart: unless-stopped`)**: Automatically recovers from power outages, system reboots, and network drops.
 - **Persistent Data Volumes**: Databases (`smart_glasses.db`, `eva_memory.db`) and uploaded files are preserved across container updates and rebuilds.
 - **Caddy Reverse Proxy**: Integrated automatic SSL and WebSocket reverse proxy on ports `80` and `443`.
@@ -189,7 +189,7 @@ smart-glasses-ai/
 
 ---
 
-## ⚡ Quick Start Guide
+##  Quick Start Guide
 
 ### 1. Local Development (Standalone)
 
@@ -232,7 +232,7 @@ chmod +x scripts/docker_start.sh scripts/docker_stop.sh
 
 ---
 
-## 📱 Connecting the Android Companion App
+##  Connecting the Android Companion App
 
 The Android app features a **Live Backend Switcher** to connect to your local computer, AWS EC2 instance, or Cloudflare domain without rebuilding the APK:
 
@@ -247,7 +247,7 @@ The Android app features a **Live Backend Switcher** to connect to your local co
 
 ---
 
-## 🧪 Testing & Verification
+##  Testing & Verification
 
 Run the comprehensive test suite across memory, agents, workspace, and deterministic solvers:
 
@@ -275,7 +275,7 @@ backend/tests/test_eva_personal_intelligence_and_memory.py::test_agent_graph_con
 
 ---
 
-## 🔒 Security & Privacy Commitments
+##  Security & Privacy Commitments
 
 1. **Automatic Secret Redaction**: All API keys, bearer tokens, and OAuth refresh tokens are redacted from logs and metrics.
 2. **Deterministic Confirmation Tokens**: State mutations (`GMAIL_SEND`, `SMS_SEND`, `CALENDAR_CREATE`) require explicit voice confirmation.
@@ -284,5 +284,5 @@ backend/tests/test_eva_personal_intelligence_and_memory.py::test_agent_graph_con
 
 ---
 
-## 📄 License
+##  License
 This project is licensed under the **MIT License**.

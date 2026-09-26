@@ -6,7 +6,6 @@ from backend.app.services.llm_service import LLMService, LLMResponse, ToolCall
 from backend.app.services.llm_router import LLMRouter, RoutingTier
 
 def test_deepseek_config_loaded():
-    assert settings.DEEPSEEK_API_KEY == "sk-2929005b2c1c4ff18abc78b7e5fc693d"
     assert settings.SECONDARY_LLM_PROVIDER == "deepseek"
     assert settings.SECONDARY_LLM_MODEL == "deepseek-chat"
     assert settings.SECONDARY_LLM_BASE_URL == "https://api.deepseek.com"
